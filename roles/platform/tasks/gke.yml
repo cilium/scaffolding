@@ -1,0 +1,84 @@
+---
+
+- name: Get current clouds
+  gcp_container_cluster_info:
+    location: "{{ gke['region'] }}"
+    project: "{{ gke['project'] }}"
+    auth_kind: "{{ gke['auth_kind'] }}"
+    service_account_file: "{{ gke['sa_file'] }}"
+    scopes:
+      - https://www.googleapis.com/auth/cloud-platform
+  register: clusters
+
+# We should try to stay < 5 clusters created at once, or have something
+# to limit the number of clusters we have.
+#- debug: var=clusters
+
+- name: Cleanup GKE clusters
+  gcp_container_cluster:
+    name: "{{ item.name }}"
+    location: "{{ item.location }}"
+    project: "{{ gke['project'] }}"
+    auth_kind: "{{ gke['auth_kind'] }}"
+    service_account_file: "{{ gke['sa_file'] }}"
+    scopes:
+      - https://www.googleapis.com/auth/cloud-platform
+    state: absent
+  loop: "{{ clusters['resources'] }}"
+  when: destroy
+
+- block:
+  - set_fact:
+      gke_cluster_name: "{{ansible_facts['hostname']}}-{{ansible_facts['date_time']['epoch']}}"
+
+  - name: Create GKE cluster
+    google.cloud.gcp_container_cluster:
+      name: "{{ gke_cluster_name }}"
+      location: "{{ gke['region'] }}"
+      project: "{{ gke['project'] }}"
+      initial_node_count: "{{ num_nodes | int}}"
+      node_config:
+        image_type: "{{ gke['image_type'] }}"
+        machine_type: "{{ gke['machine_type'] }}"
+        taints:
+          - key: "node.cilium.io/agent-not-ready"
+            effect: NO_SCHEDULE
+            value: "true"
+      default_max_pods_constraint:
+        max_pods_per_node: "110"
+      auth_kind: "{{ gke['auth_kind'] }}"
+      service_account_file: "{{ gke['sa_file'] }}"
+      scopes:
+        - https://www.googleapis.com/auth/cloud-platform
+      state: present
+    register: cluster
+
+  - name: Create GKE node pool
+    gcp_container_node_pool:
+      name: default
+      initial_node_count: "{{ num_nodes | int}}"
+      config:
+        image_type: "{{ gke['image_type'] }}"
+        machine_type: "{{ gke['machine_type'] }}"
+        taints:
+          - key: "node.cilium.io/agent-not-ready"
+            effect: NO_SCHEDULE
+            value: "true"
+      cluster: "{{ cluster }}"
+      auth_kind: "{{ gke['auth_kind'] }}"
+      location: "{{ gke['region'] }}"
+      project: "{{ gke['project'] }}"
+      service_account_file: "{{ gke['sa_file'] }}"
+      scopes:
+        - https://www.googleapis.com/auth/cloud-platform
+      state: present
+
+  - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
+    shell: |
+      export KUBECONFIG=/tmp/{{ gke_cluster_name }}
+      gcloud config set project {{ gke['project'] }}
+      gcloud config set compute/zone {{ gke['region'] }}
+      gcloud auth activate-service-account --key-file {{ gke['sa_file'] }}
+      gcloud container clusters get-credentials {{ gke_cluster_name }}
+
+  when: create

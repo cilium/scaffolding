@@ -1,0 +1,6 @@
+---
+- block:
+  - name: Deploy GKE Cloud
+    include_tasks: gke.yml
+  tags:
+    - gke
