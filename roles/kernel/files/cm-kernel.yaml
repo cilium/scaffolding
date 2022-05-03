@@ -1,0 +1,76 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: entrypoint
+  labels:
+    app: default-init
+data:
+  entrypoint.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+    set -x
+    FORCE=${FORCE:-false}
+    if $FORCE; then
+      chroot "$ROOT_MOUNT_DIR" rm -rf updated
+    fi
+    if [[ -f "updated" ]]; then
+      echo "System already updated"
+      exit 0
+    fi
+    apt-get update
+    apt-get install -y curl
+    VERSION=${VERSION:-v5.4}
+    ERSION="$(echo $VERSION | sed 's/[^0-9]*\([0-9rc.-]\+\)/\1/')"
+    URL="https://kernel.ubuntu.com/~kernel-ppa/mainline/v$ERSION"
+    MDEBS=($(curl -s "$URL/" \
+    | grep "\(amd64\|all\).deb" \
+    | sed 's/.*[">]\([^">]*\(amd64\|all\).deb\).*/\1/g' \
+    | sort \
+    | uniq \
+    | grep -v lowlatency \
+    | grep modules \
+    | sed 's,\(.*\),'$URL/'\1,g'))
+    IDEBS=($(curl -s "$URL/" \
+    | grep "\(amd64\|all\).deb" \
+    | sed 's/.*[">]\([^">]*\(amd64\|all\).deb\).*/\1/g' \
+    | sort \
+    | uniq \
+    | grep -v lowlatency \
+    | grep image \
+    | sed 's,\(.*\),'$URL/'\1,g'))
+    HDEBS=($(curl -s "$URL/" \
+    | grep "\(amd64\|all\).deb" \
+    | sed 's/.*[">]\([^">]*\(amd64\|all\).deb\).*/\1/g' \
+    | sort \
+    | uniq \
+    | grep -v lowlatency \
+    | grep -v generic \
+    | grep headers \
+    | sed 's,\(.*\),'$URL/'\1,g'))
+    ROOT_MOUNT_DIR="${ROOT_MOUNT_DIR:-/host}"
+    echo "Cleaning up old deb files"
+    chroot "$ROOT_MOUNT_DIR" rm -rf *.deb updated 
+    echo "Installing dependencies"
+    chroot "$ROOT_MOUNT_DIR" apt-get update && apt-get install -y libelf1 kmod linux-base
+    cat << EOF | chroot "$ROOT_MOUNT_DIR"
+      curl $(for pkg in ${HDEBS[@]}; do echo "-O ${pkg}"; done)
+      curl $(for pkg in ${MDEBS[@]}; do echo "-O ${pkg}"; done)
+      curl $(for pkg in ${IDEBS[@]}; do echo "-O ${pkg}"; done)
+      dpkg -i *.deb
+      echo "true" > updated 
+      rm -rf *.deb
+    EOF

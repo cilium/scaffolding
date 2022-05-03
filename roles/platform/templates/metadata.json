@@ -1,0 +1,12 @@
+{
+    "clusterName":"{}",
+    "clusterID":"{}",
+    "infraID":"{}",
+    "aws": {
+        "region":"{}",
+        "identifier":[
+            {
+                "kubernetes.io/cluster/{}":"owned"
+            }]
+    }
+}
