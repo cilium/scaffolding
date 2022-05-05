@@ -4,9 +4,3 @@
     include_tasks: gke.yml
   tags:
     - gke
-
-- block:
-  - name: Deploy OCP Cloud on AWS
-    include_tasks: ocp.yml
-  tags:
-    - ocp

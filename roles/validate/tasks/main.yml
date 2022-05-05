@@ -1,7 +1,0 @@
----
-- name : Cilium Connectivity Check
-  shell: |
-    export KUBECONFIG={{kubeconfig}};/tmp/cilium connectivity test
-  register: connectivity_check
-
-- debug: var=connectivity_check.stdout_lines
