@@ -29,7 +29,7 @@
 
 - block:
   - set_fact:
-      gke_cluster_name: "{{ansible_facts['hostname']}}-{{ansible_facts['date_time']['epoch']}}"
+      gke_cluster_name: "{{cluster_prefix}}-{{ansible_facts['date_time']['epoch']}}"
 
   - name: Create GKE cluster
     google.cloud.gcp_container_cluster:
@@ -44,6 +44,9 @@
           - key: "node.cilium.io/agent-not-ready"
             effect: NO_SCHEDULE
             value: "true"
+        labels:
+          use: PerfCI
+          name: "{{ gke_cluster_name }}"
       default_max_pods_constraint:
         max_pods_per_node: "110"
       auth_kind: "{{ gke['auth_kind'] }}"
@@ -64,6 +67,9 @@
           - key: "node.cilium.io/agent-not-ready"
             effect: NO_SCHEDULE
             value: "true"
+        labels:
+          use: PerfCI
+          name: "{{ gke_cluster_name }}"
       cluster: "{{ cluster }}"
       auth_kind: "{{ gke['auth_kind'] }}"
       location: "{{ gke['region'] }}"

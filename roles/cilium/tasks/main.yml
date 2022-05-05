@@ -1,0 +1,6 @@
+---
+- block:
+  - name: Install Cilium ontop of GKE Cloud
+    include_tasks: gke.yml
+  tags:
+    - gke
