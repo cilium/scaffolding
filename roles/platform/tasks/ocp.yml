@@ -4,7 +4,7 @@
     - name: Destroy OCP Cluster
       shell: |
          set -o pipefail
-         /tmp/openshift-install destroy cluster --dir {{ocp_install_dir}} --log-level=debug
+         {{archive_dir}}/openshift-install destroy cluster --dir {{ocp_install_dir}} --log-level=debug
   when: destroy
 
 - block:
@@ -17,29 +17,31 @@
   - name: Download latest OCP Installer
     shell: |
         curl -sSL --remote-name-all {{ocp['base_url']}}/{{ ocp['version'] }}/openshift-install-linux.tar.gz
-        tar xzvfC openshift-install-linux.tar.gz /tmp
+        tar xzvfC openshift-install-linux.tar.gz {{archive_dir}}
         rm openshift-install-linux.tar.gz
-        /tmp/openshift-install version
+        {{archive_dir}}/openshift-install version
 
   # Temp solution, need to template out
   - name: Copy Install-Config
     shell: |
-      mkdir -p /tmp/{{ ocp_cluster_name }}
-      cp {{ role_path }}/files/install-config.yaml /tmp/{{ ocp_cluster_name }}
+      mkdir -p {{archive_dir}}/{{ ocp_cluster_name }}
+      cp {{ role_path }}/files/install-config.yaml {{archive_dir}}/{{ ocp_cluster_name }}
 
   - name: Build Manifest
     shell: |
-       /tmp/openshift-install create manifests --dir /tmp/{{ ocp_cluster_name }}
+       {{archive_dir}}/openshift-install create manifests --dir /tmp/{{ ocp_cluster_name }}
 
   - name: Drop in Cilium Manifest
     shell: |
-      curl -sSL "https://github.com/cilium/cilium-olm/archive/{{ocp['cilium_olm_rev']}}.tar.gz" -o /tmp/cilium-olm.tgz
-      tar -C /tmp -xf /tmp/cilium-olm.tgz
-      cp /tmp/cilium-olm-{{ocp['cilium_olm_rev']}}/manifests/cilium.v{{ocp['cilium_version']}}/* "/tmp/{{ocp_cluster_name}}/manifests"
-      rm -rf -- /tmp/cilium-olm.tgz "/tmp/cilium-olm-{{ocp['cilium_olm_rev']}}"
+      curl -sSL "https://github.com/cilium/cilium-olm/archive/{{ocp['cilium_olm_rev']}}.tar.gz" -o {{archive_dir}}/cilium-olm.tgz
+      tar -C {{archive_dir}} -xf /tmp/cilium-olm.tgz
+      cp {{archive_dir}}/cilium-olm-{{ocp['cilium_olm_rev']}}/manifests/cilium.v{{ocp['cilium_version']}}/* "/tmp/{{ocp_cluster_name}}/manifests"
+      rm -rf -- {{archive_dir}}/cilium-olm.tgz "/tmp/cilium-olm-{{ocp['cilium_olm_rev']}}"
 
   - name: Install OCP on AWS with Cilium as CNI
     shell: |
       set -o pipefail
-      /tmp/openshift-install create cluster --dir /tmp/{{ ocp_cluster_name }} --log-level=debug
+      {{archive_dir}}/openshift-install create cluster --dir /tmp/{{ ocp_cluster_name }} --log-level=debug
+
+# Move kubeconfig to archive_dir/kubeconfig to match GKE
   when: create

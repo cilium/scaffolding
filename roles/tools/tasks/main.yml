@@ -1,0 +1,104 @@
+---
+
+#
+# Using Helm Install the community Prometheus
+# If Prometheus is already installed, skip
+# If Install Prometheus, check for deployment
+# -- Not Optional for CI, needed to capture metrics
+#
+- block:
+
+  - name: Setup kubeconfig
+    set_fact:
+      kubeconfig: "{{archive_dir}}/kubeconfig"
+    when: kubeconfig|length < 1
+
+  - name: Add Prometheus Helm Repo
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      helm repo add prometheus-community https://prometheus-community.github.io/helm-chart
+      helm repo update
+
+  - name: Check for existing install
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      helm status -n prometheus prometheus | grep deployed
+    register: prom_install
+    ignore_errors: true
+
+  - name: Install Prometheus
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      helm install prometheus prometheus-community/prometheus --namespace prometheus --namespace prometheus --create-namespace
+    when: prom_install.rc == 1
+
+  - name: Check Prometheus install
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      helm status -n prometheus prometheus | grep deployed
+    when: prom_install.rc == 1
+
+  tags:
+    - prometheus
+
+#
+# Install Benchmark Operator from helm chart in cloud-bulldozer/benchmark-operator
+#
+- block:
+
+  - name: Setup kubeconfig
+    set_fact:
+      kubeconfig: "{{archive_dir}}/kubeconfig"
+    when: kubeconfig|length < 1
+
+  - name: Check for existing install of Benchmark Operator
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get pods -A | grep benchmark-operator | wc -l
+    register: bmo_install
+    ignore_errors: true
+
+  - name: Install Benchmark Operator
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      git clone http://github.com/cloud-bulldozer/benchmark-operator/ {{archive_dir}}/bmo
+      cd {{archive_dir}}/bmo/
+      make deploy
+    when: bmo_install.stdout|int == 0
+
+  - name: Check install
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get pods -A | grep benchmark-operator | wc -l
+    register: bmo_check
+
+  - fail:
+      msg: "benchmark-operator failed to install"
+    when: bmo_check.stdout|int == 0
+
+  tags: benchmark-operator
+
+#
+# Using cloud-bullzozer/performance-dashboards
+# Render dashboards
+# Install grafana/dashboards with the default k8s-deploy, openshift will be different
+# -- Optional for CI, as we will scrap Prometheus.
+#
+- block:
+
+  - name: Setup kubeconfig
+    set_fact:
+      kubeconfig: "{{archive_dir}}/kubeconfig"
+    when: kubeconfig|length < 1
+
+  - name: Install Grafana (Performance)
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      git clone http://github.com/cloud-bulldozer/performance-dashboards/ {{archive_dir}}/dashboards
+      cd {{archive_dir}}/dashboards
+      make
+      cd {{archive_dir}}/dashboards/dittybopper
+      ./k8s-deploy.sh
+
+  tags:
+    - grafana

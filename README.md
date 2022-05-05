@@ -5,6 +5,13 @@ Ansible Automation to bring up a Performance SUT
 - GKE Cluster Destroy will destroy all clusters. We can switch to passing a kubeconfig and getting the cluster_name to destroy
 - Stopping OpenShift mid-install can result in the `metadata.json` to be missing for a cleanup. To circumvent this, we can build a net-new `metadata.json` to clean up objects in the specified platform.
 
+## Tools needed for execution
+- kubectl
+- gcloud
+- curl
+- git
+- helm
+
 ## Structure
 ```
 ├── roles
