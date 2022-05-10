@@ -29,7 +29,7 @@
 
 - block:
   - set_fact:
-      gke_cluster_name: "{{cluster_prefix}}-{{ansible_facts['date_time']['epoch']}}"
+      gke_cluster_name: "{{cluster_prefix}}-{{start_time}}"
 
   - name: Create GKE cluster
     google.cloud.gcp_container_cluster:
@@ -81,10 +81,21 @@
 
   - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
     shell: |
-      export KUBECONFIG=/tmp/{{ gke_cluster_name }}
+      export KUBECONFIG={{archive_dir}}/kubeconfig
       gcloud config set project {{ gke['project'] }}
       gcloud config set compute/zone {{ gke['region'] }}
       gcloud auth activate-service-account --key-file {{ gke['sa_file'] }}
       gcloud container clusters get-credentials {{ gke_cluster_name }}
+
+  - set_fact:
+      kubeconfig: "{{archive_dir}}/kubeconfig"
+
+  - name: Drop project in metadata
+    shell: |
+      echo {{gke['project']}} > {{archive_dir}}/project
+      echo gke > {{archive_dir}}/platform
+      echo {{gke['region']}} > {{archive_dir}}/region
+      echo {{gke_cluster_name}} > {{archive_dir}}/cluster_name
+      echo {{start_time}} > {{archive_dir}}/starttime
 
   when: create

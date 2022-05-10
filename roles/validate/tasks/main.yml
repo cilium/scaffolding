@@ -1,7 +1,15 @@
 ---
+
+- name: Setup kubeconfig
+  set_fact:
+    kubeconfig: "{{archive_dir}}/kubeconfig"
+  when: kubeconfig|length < 1
+
 - name : Cilium Connectivity Check
   shell: |
-    export KUBECONFIG={{kubeconfig}};/tmp/cilium connectivity test
+    export KUBECONFIG={{kubeconfig}}
+    /tmp/cilium connectivity test
   register: connectivity_check
+  tags: gke
 
 - debug: var=connectivity_check.stdout_lines

@@ -1,0 +1,43 @@
+---
+apiVersion: ripsaw.cloudbulldozer.io/v1alpha1
+kind: Benchmark
+metadata:
+  name: datapath-uperf
+  namespace: benchmark-operator
+spec:
+  metadata:
+    collection: true
+    targeted: false
+  elasticsearch:
+    url: {{ es_url }}
+  system_metrics:
+    collection: true
+    es_url: {{ es_url }}
+    prom_url: http://{{ prom_server.stdout }}
+    prom_token: {{ prom_token }}
+    metrics_profile: {{ metric_collection_url }}
+  workload:
+    name: uperf
+    args:
+      run_id: {{ start_time }}-{{ test_platform}}-{{ test_kernel }}-datapath
+      hostnetwork: false
+      serviceip: false
+      networkpolicy: false
+      debug: false
+      pin: false
+      samples: 5
+      pair: 1
+      nthrs:
+        - 1
+        - 8
+      protos:
+        - tcp
+        - udp
+      test_types:
+        - stream
+        - rr
+      sizes:
+        - 64
+        - 1024
+        - 16384
+      runtime: 30

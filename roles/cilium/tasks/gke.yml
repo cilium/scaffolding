@@ -1,11 +1,15 @@
 ---
+
+
 - name: Pull specific cilium-cli version
   shell: |
       curl -sSL --remote-name-all https://github.com/cilium/cilium-cli/releases/download/{{ cilium['cli_version'] }}/cilium-linux-amd64.tar.gz
-      tar xzvfC cilium-linux-amd64.tar.gz /tmp
+      tar xzvfC cilium-linux-amd64.tar.gz {{archive_dir}}
       rm cilium-linux-amd64.tar.gz
-      export KUBECONFIG={{kubeconfig}};/tmp/cilium version
+      export KUBECONFIG={{kubeconfig}}
+      {{archive_dir}}/cilium version
 
 - name: Install using Cilium cli
   shell: |
-      export KUBECONFIG={{kubeconfig}};/tmp/cilium install {{cilium['install_params']}}
+      export KUBECONFIG={{kubeconfig}}
+      {{archive_dir}}/cilium install --version {{cilium['version']}} {{cilium['install_params']}}
