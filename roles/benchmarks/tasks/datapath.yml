@@ -1,0 +1,108 @@
+
+---
+- name: Setup kubeconfig
+  set_fact:
+    kubeconfig: "{{archive_dir}}/kubeconfig"
+  when: kubeconfig|length < 1
+
+- name: Check for benchmark-operator
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    kubectl get pods -n benchmark-operator --show-labels -l control-plane=controller-manager | grep controller-manager
+  register: bmo
+
+- name: Retrieve Platform type
+  shell: |
+    cat {{archive_dir}}/platform
+  ignore_errors: true
+  register: platform
+
+- set_fact:
+    test_platform: "{{ platform.stdout | default('test-platform')}}"
+
+- name: Retrieve kernel
+  shell: |
+    cat {{archive_dir}}/kernel
+  ignore_errors: true
+  register: kernel
+
+- set_fact:
+    test_kernel: "{{ kernel.stdout | default('test-kernel')}}"
+
+- name: Retrieve start time
+  shell: |
+    cat {{archive_dir}}/starttime
+  ignore_errors: true
+  register: start_time
+
+- set_fact:
+    start_time: "{{ start_time.stdout | default('test-start')}}"
+
+# Doubtfully will work with OpenShift as they use openshift-monitoring
+- name: Retrieve Prometheus Server information
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    kubectl get svc --namespace prometheus prometheus-server -o jsonpath="{.spec.clusterIP}:{.spec.ports[0].port}"
+  register: prom_server
+
+- block:
+  - name: Check for node labels
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l node-role.kubernetes.io/worker= | wc -l
+    register: labeled_node_count
+
+  - name: Label nodes
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      for node in `kubectl get nodes -o custom-columns=:.metadata.name --no-headers`; do
+        kubectl label node/$node node-role.kubernetes.io/worker=
+      done
+    when: labeled_node_count.stdout|int == 0
+
+  - name: Generate data-path performance benchmark
+    template:
+      src: datapath-uperf.yml.j2
+      dest: "{{ archive_dir }}/datapath-uperf.yml"
+
+  - name: Launch benchmark
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl create -f {{ archive_dir }}/datapath-uperf.yml
+
+  - name: Wait for benchmark to complete
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get benchmark/datapath-uperf -n benchmark-operator -o jsonpath="{.status.complete}"
+    register: complete
+    until: complete.stdout == "true"
+    retries: 500
+    delay: 60
+
+  # We will make the assumption the user did not change the name of the benchmark
+  - name: Check benchmark state
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get benchmark/datapath-uperf -n benchmark-operator -o jsonpath="{.status.state}"
+    register: status
+
+  - fail:
+      msg: "Benchmark failed to complete"
+    when: status.stdout != "Complete"
+
+  - name: Store console log output
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl logs -n benchmark-operator $(kubectl get pods -n benchmark-operator -l benchmark-operator-role=client -o custom-columns=:.metadata.name --no-headers) > {{archive_dir}}/datapath-uperf.log
+
+  # We will make the assumption the user did not change the name of the benchmark
+  - name: Capture run uuid
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get benchmarks/datapath-uperf -n benchmark-operator --no-headers -o custom-columns=:.status.uuid | tee {{archive_dir}}/datapath-uuid
+    register: uuid
+
+  - set_fact:
+      benchmark_uuid: uuid.stdout
+
+  when: bmo.rc == 0
