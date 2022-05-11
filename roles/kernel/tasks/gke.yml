@@ -26,7 +26,7 @@
 - name: Restart GKE nodes
   shell: |
     export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
-    gcloud auth activate-service-account $(cat {{gke['sa_file']}} | jq "" ) --key-file={{ gke['sa_file'] }} --project $(cat {{gke['sa_file']}} | jq ".project_id" )
+    gcloud auth activate-service-account $(cat sa.json | jq .client_email|sed 's/"//g' ) --key-file=sa.json --project $(cat sa.json | jq .project_id|sed 's/"//g' )
     yes | gcloud config set project {{ gke['project'] }}
     gcloud compute instances reset --zone {{ gke['region'] }} {{ item }}
   loop: "{{ node_list.stdout_lines }}"
