@@ -16,7 +16,7 @@
   - name: Add Prometheus Helm Repo
     shell: |
       export KUBECONFIG={{kubeconfig}}
-      helm repo add prometheus-community https://prometheus-community.github.io/helm-chart
+      helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       helm repo update
 
   - name: Check for existing install
