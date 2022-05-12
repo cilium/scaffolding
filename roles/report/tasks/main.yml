@@ -1,0 +1,15 @@
+---
+
+- name: Check for run UUID
+  fail:
+    msg: "No benchmark UUID provided "
+  when: benchmark_uuid | length < 1
+
+- name: Capture results
+  shell: |
+    cp {{ role_path }}/files/uperf.json {{archive_dir}}/
+    touchstone_compare -url {{es_url}} --config {{archive_dir}}/uperf.json -u {{benchmark_uuid}} | tee {{archive_dir}}/datapath-result.out
+  register: report
+
+- debug:
+    var: report.stdout
