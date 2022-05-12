@@ -8,7 +8,7 @@
 - name : Cilium Connectivity Check
   shell: |
     export KUBECONFIG={{kubeconfig}}
-    /tmp/cilium connectivity test
+    {{archive_dir}}/cilium connectivity test | tee {{archive_dir}}/connectivity-test.out
   register: connectivity_check
   tags: gke
 
