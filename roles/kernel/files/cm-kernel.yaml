@@ -63,7 +63,7 @@ data:
     | sed 's,\(.*\),'$URL/'\1,g'))
     ROOT_MOUNT_DIR="${ROOT_MOUNT_DIR:-/host}"
     echo "Cleaning up old deb files"
-    chroot "$ROOT_MOUNT_DIR" rm -rf *.deb updated 
+    chroot "$ROOT_MOUNT_DIR" rm -rf *.deb updated
     echo "Installing dependencies"
     chroot "$ROOT_MOUNT_DIR" apt-get update && apt-get install -y libelf1 kmod linux-base
     cat << EOF | chroot "$ROOT_MOUNT_DIR"
@@ -71,6 +71,6 @@ data:
       curl $(for pkg in ${MDEBS[@]}; do echo "-O ${pkg}"; done)
       curl $(for pkg in ${IDEBS[@]}; do echo "-O ${pkg}"; done)
       dpkg -i *.deb
-      echo "true" > updated 
+      echo "true" > updated
       rm -rf *.deb
     EOF

@@ -22,7 +22,8 @@
 
 - name: Retrieve kernel
   shell: |
-    cat {{archive_dir}}/kernel
+    export KUBECONFIG={{kubeconfig}}
+    kubectl get nodes -o wide -o jsonpath="{.items[0].status.nodeInfo.kernelVersion}" | tee {{archive_dir}}/kernel
   ignore_errors: true
   register: kernel
 
@@ -86,6 +87,7 @@
       kubectl get benchmark/datapath-uperf -n benchmark-operator -o jsonpath="{.status.state}"
     register: status
 
+  # Consider using handler in the event it failed to complete, we clean up.
   - fail:
       msg: "Benchmark failed to complete"
     when: status.stdout != "Complete"
@@ -103,6 +105,17 @@
     register: uuid
 
   - set_fact:
-      benchmark_uuid: uuid.stdout
+      benchmark_uuid: "{{ uuid.stdout }}"
+
+  - name: Cleanup Run
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl delete benchmark/datapath-uperf -n benchmark-operator
+    when: cleanup
+
+  - name : Check for uuid
+    fail:
+      msg: "UUID was not captured. Benchmark execution failed"
+    when: uuid|length < 1
 
   when: bmo.rc == 0

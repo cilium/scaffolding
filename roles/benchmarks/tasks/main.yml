@@ -1,10 +1,6 @@
 ---
-
-- name: Show report
-  include_tasks: report.yml
-
 - block:
-  - name: Run Data Path Performance Tests
+  - name: Run datapath performance test
     include_tasks: datapath.yml
-    tags: always
-  tags: datapath-performance
+  tags:
+    - datapath

@@ -1,50 +1,48 @@
 ---
+- block:
+  - name: Capture nodes
+    shell: |
+     export KUBECONFIG={{kubeconfig}}
+     kubectl get nodes --no-headers -o custom-columns=:.metadata.name
+    register: node_list
 
-- name: Capture nodes
-  shell: |
-   export KUBECONFIG={{kubeconfig}}
-   kubectl get nodes --no-headers -o custom-columns=:.metadata.name
-  register: node_list
+  - name: Create CM
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl apply -f {{ role_path }}/files/cm-kernel.yaml
 
-- name: Create CM
-  shell: |
-    export KUBECONFIG={{kubeconfig}}
-    kubectl apply -f {{ role_path }}/files/cm-kernel.yaml
+  - name: Create DS
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      export KERNEL_VERSION={{kernel}}
+      envsubst < {{ role_path }}/files/ds-kernel.yaml | kubectl apply -f -
 
-- name: Create DS
-  shell: |
-    export KUBECONFIG={{kubeconfig}}
-    export KERNEL_VERSION={{kernel}}
-    envsubst < {{ role_path }}/files/ds-kernel.yaml | kubectl apply -f -
+  - name: Check on the rollout
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl rollout status ds/node-initializer
 
-- name: Check on the rollout
-  shell: |
-    export KUBECONFIG={{kubeconfig}}
-    kubectl rollout status ds/node-initializer
+  # Assumption we are logged into the account, might need to add login method to use gcloud cli
+  - name: Restart GKE nodes
+    shell: |
+      export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
+      gcloud auth activate-service-account $(cat sa.json | jq .client_email|sed 's/"//g' ) --key-file=sa.json --project $(cat sa.json | jq .project_id|sed 's/"//g' )
+      yes | gcloud config set project {{ gke['project'] }}
+      gcloud compute instances reset --zone {{ gke['region'] }} {{ item }}
+    loop: "{{ node_list.stdout_lines }}"
 
-# Assumption we are logged into the account, might need to add login method to use gcloud cli
-- name: Restart GKE nodes
-  shell: |
-    export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
-    gcloud auth activate-service-account $(cat sa.json | jq .client_email|sed 's/"//g' ) --key-file=sa.json --project $(cat sa.json | jq .project_id|sed 's/"//g' )
-    yes | gcloud config set project {{ gke['project'] }}
-    gcloud compute instances reset --zone {{ gke['region'] }} {{ item }}
-  loop: "{{ node_list.stdout_lines }}"
+  - name: Delete DS
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl delete ds/node-initializer
 
-- name: Delete DS
-  shell: |
-    export KUBECONFIG={{kubeconfig}}
-    kubectl delete ds/node-initializer
+  - name: Pause for 1 minute for vms to reboot
+    pause:
+      minutes: 1
 
-- name: Pause for 1 minute for vms to reboot
-  pause:
-    minutes: 1
+  - name: Check node status
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl wait --for=condition=Ready nodes --all --timeout=600s
 
-- name: Check node status
-  shell: |
-    export KUBECONFIG={{kubeconfig}}
-    kubectl wait --for=condition=Ready nodes --all --timeout=600s
-
-- name: Drop kernel in archive_dir
-  shell: |
-    echo {{kernel}} > {{archive_dir}}/kernel
+  when: kernel | length > 1

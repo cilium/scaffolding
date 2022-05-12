@@ -6,5 +6,7 @@
   - role: cilium
   - role: kernel
   - role: tools
+  - role: validate
   - role: benchmarks
+  - role: report
     tags: always
