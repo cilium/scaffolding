@@ -2,7 +2,7 @@
 apiVersion: ripsaw.cloudbulldozer.io/v1alpha1
 kind: Benchmark
 metadata:
-  name: datapath-uperf
+  name: datapath-uperf-rr
   namespace: benchmark-operator
 spec:
   metadata:
@@ -19,7 +19,7 @@ spec:
   workload:
     name: uperf
     args:
-      run_id: {{ start_time }}-{{ test_platform}}-{{ test_kernel }}-datapath
+      run_id: {{ start_time }}-{{ test_platform}}-{{ test_kernel }}-datapath-rr
       hostnetwork: false
       serviceip: false
       networkpolicy: false
@@ -31,9 +31,7 @@ spec:
         - 1
       protos:
         - tcp
-        - udp
       test_types:
-        - stream
         - rr
       sizes:
         - 64

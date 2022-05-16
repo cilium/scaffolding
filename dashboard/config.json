@@ -71,6 +71,37 @@
             ]
           }
         }
+      ],
+      "system-metrics": [
+          {
+              "filter": {
+                  "metricName.keyword": "allNodeCPU"
+              },
+              "buckets": [
+                  "labels.mode.keyword"
+              ],
+              "aggregations": {
+                  "value": [
+                      "avg"
+                  ]
+              }
+          },
+          {
+              "filter": {
+                  "metricName.keyword": "nodeCPU"
+              },
+              "buckets": [
+                  "uuid.keyword",
+                  "labels.node.keyword",
+                  "labels.mode.keyword"
+              ],
+              "aggregations": {
+                  "value": [
+                      "avg"
+                  ]
+              }
+          }
+
       ]
     }
   }

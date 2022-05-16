@@ -25,10 +25,10 @@
     export KUBECONFIG={{kubeconfig}}
     kubectl get nodes -o wide -o jsonpath="{.items[0].status.nodeInfo.kernelVersion}" | tee {{archive_dir}}/kernel
   ignore_errors: true
-  register: kernel
+  register: kernel_capture
 
 - set_fact:
-    test_kernel: "{{ kernel.stdout | default('test-kernel')}}"
+    test_kernel: "{{ kernel_capture.stdout | default('test-kernel')}}"
 
 - name: Retrieve start time
   shell: |
@@ -61,61 +61,20 @@
       done
     when: labeled_node_count.stdout|int == 0
 
-  - name: Generate data-path performance benchmark
+  - name: Generate data-path performance benchmarks
     template:
-      src: datapath-uperf.yml.j2
-      dest: "{{ archive_dir }}/datapath-uperf.yml"
+      src: "{{item.file}}"
+      dest: "{{archive_dir}}/{{item.name}}"
+    with_items:
+      - { file: datapath-uperf-stream-tcp.yml.j2, name: datapath-uperf-stream-tcp.yml }
+      - { file: datapath-uperf-stream-udp.yml.j2, name: datapath-uperf-stream-udp.yml }
+      - { file: datapath-uperf-rr.yml.j2, name: datapath-uperf-rr.yml }
 
-  - name: Launch benchmark
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl create -f {{ archive_dir }}/datapath-uperf.yml
-
-  - name: Wait for benchmark to complete
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl get benchmark/datapath-uperf -n benchmark-operator -o jsonpath="{.status.complete}"
-    register: complete
-    until: complete.stdout == "true"
-    retries: 500
-    delay: 60
-
-  # We will make the assumption the user did not change the name of the benchmark
-  - name: Check benchmark state
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl get benchmark/datapath-uperf -n benchmark-operator -o jsonpath="{.status.state}"
-    register: status
-
-  # Consider using handler in the event it failed to complete, we clean up.
-  - fail:
-      msg: "Benchmark failed to complete"
-    when: status.stdout != "Complete"
-
-  - name: Store console log output
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl logs -n benchmark-operator $(kubectl get pods -n benchmark-operator -l benchmark-operator-role=client -o custom-columns=:.metadata.name --no-headers) > {{archive_dir}}/datapath-uperf.log
-
-  # We will make the assumption the user did not change the name of the benchmark
-  - name: Capture run uuid
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl get benchmarks/datapath-uperf -n benchmark-operator --no-headers -o custom-columns=:.status.uuid | tee {{archive_dir}}/datapath-uuid
-    register: uuid
-
-  - set_fact:
-      benchmark_uuid: "{{ uuid.stdout }}"
-
-  - name: Cleanup Run
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl delete benchmark/datapath-uperf -n benchmark-operator
-    when: cleanup
-
-  - name : Check for uuid
-    fail:
-      msg: "UUID was not captured. Benchmark execution failed"
-    when: uuid|length < 1
+  - name: Run datapath benchmarks
+    include_tasks: run-benchmark.yml
+    with_items:
+      - {name: datapath-uperf-stream-tcp, file: datapath-uperf-stream-tcp.yml}
+      - {name: datapath-uperf-stream-udp, file: datapath-uperf-stream-udp.yml}
+      - {name: datapath-uperf-rr, file: datapath-uperf-rr.yml}
 
   when: bmo.rc == 0

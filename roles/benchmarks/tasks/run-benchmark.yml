@@ -1,0 +1,66 @@
+---
+  - name: Launch benchmarks
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl create -f {{ archive_dir }}/{{item.file}}
+
+  - name: Wait for benchmark to complete
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get benchmark/{{item.name}} -n benchmark-operator -o jsonpath="{.status.complete}"
+    register: complete
+    until: complete.stdout == "true"
+    retries: 500
+    delay: 60
+
+  # We will make the assumption the user did not change the name of the benchmark
+  - name: Check benchmark state
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get benchmark/{{item.name}} -n benchmark-operator -o jsonpath="{.status.state}"
+    register: status
+
+  # Consider using handler in the event it failed to complete, we clean up.
+  - fail:
+      msg: "Benchmark failed to complete"
+    when: status.stdout != "Complete"
+
+  - name: Store console log output
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl logs -n benchmark-operator $(kubectl get pods -n benchmark-operator -l benchmark-operator-role=client -o custom-columns=:.metadata.name --no-headers) > {{archive_dir}}/{{item.name}}.log
+
+  # We will make the assumption the user did not change the name of the benchmark
+  - name: Capture run uuid
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get benchmarks/{{item.name}} -n benchmark-operator --no-headers -o custom-columns=:.status.uuid | tee {{archive_dir}}/{{item.name}}-uuid
+    register: uuid
+
+  - set_fact:
+      benchmark_uuid: "{{ uuid.stdout }}"
+
+  - name: Check for run UUID
+    fail:
+      msg: "No benchmark UUID provided "
+    when: benchmark_uuid | length < 1
+
+  - name: Capture results
+    shell: |
+      cp {{ role_path }}/files/uperf.json {{archive_dir}}/
+      touchstone_compare -url {{es_url}} --config {{archive_dir}}/uperf.json -u {{benchmark_uuid}} | tee {{archive_dir}}/{{item.name}}-result.out
+    register: report
+
+  - debug:
+      var: report.stdout
+
+  - name: Cleanup Run
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl delete benchmark/{{item.name}} -n benchmark-operator
+    when: cleanup
+
+  - name : Check for uuid
+    fail:
+      msg: "UUID was not captured. Benchmark execution failed"
+    when: uuid|length < 1
