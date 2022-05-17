@@ -32,7 +32,7 @@ Store this file within this directory. Whatever you name it, update `group_vars/
 
 ```yaml
 gke:
-  zone: "us-west2-a"
+  region: "us-west2-a"
   project: "cilium-perf"
   auth_kind: "serviceaccount"
   sa_file: "my_sa.json"
@@ -81,7 +81,7 @@ To modify the cilium install params
  cilium*               # Binary which we used to install Cilium
  starttime             # When the Automation started
  cluster_name          # Name of the cluster in the event we have to manually clean up
- zone                # zone we deployed in
+ region                # Region we deployed in
  platform              # What Platform, GKE, OpenShift
  project               # Project we built the cluster in
  kubeconfig

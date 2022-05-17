@@ -2,7 +2,7 @@
 
 - name: Get current clouds
   google.cloud.gcp_container_cluster_info:
-    location: "{{ gke['zone'] }}"
+    location: "{{ gke['region'] }}"
     project: "{{ gke['project'] }}"
     auth_kind: "{{ gke['auth_kind'] }}"
     service_account_file: "{{ gke['sa_file'] }}"
