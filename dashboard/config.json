@@ -30,6 +30,7 @@
           },
           "buckets": [
             "run_id.keyword",
+            "uuid.keyword",
             "protocol.keyword",
             "message_size",
             "num_threads",
@@ -50,6 +51,7 @@
           },
           "buckets": [
             "run_id.keyword",
+            "uuid.keyword",
             "protocol.keyword",
             "message_size",
             "num_threads",

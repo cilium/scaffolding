@@ -9,7 +9,6 @@ from dash import Dash, dcc, html
 import plotly.express as px
 import os
 
-
 database="elasticsearch"
 es_url=os.getenv('es_url')
 conn=databases.grab(database,es_url)
@@ -41,6 +40,7 @@ for uuid in uuids :
         flatten_and_discard(result,compute,row_lists)
 
 data=pd.DataFrame(data=row_lists,columns=["","test_type",
+                                          "","run_id",
                                           "","uuid",
                                           "","protocol",
                                           "","message_size",

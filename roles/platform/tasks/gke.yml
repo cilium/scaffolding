@@ -14,20 +14,37 @@
 # to limit the number of clusters we have.
 #- debug: var=clusters
 
-- name: Cleanup GKE clusters
-  gcp_container_cluster:
-    name: "{{ item.name }}"
-    location: "{{ item.location }}"
-    project: "{{ gke['project'] }}"
-    auth_kind: "{{ gke['auth_kind'] }}"
-    service_account_file: "{{ gke['sa_file'] }}"
-    scopes:
-      - https://www.googleapis.com/auth/cloud-platform
-    state: absent
-  loop: "{{ clusters['resources'] }}"
+- block:
+  - name: Capture Cluster name from the archive_dir
+    slurp:
+      src: "{{archive_dir}}/cluster_name"
+    register: rm_cluster_name
+
+  - name: Capture Cluster region from the archive_dir
+    slurp:
+      src: "{{archive_dir}}/region"
+    register: cluster_loc
+
+  - name: Cleanup GKE clusters
+    gcp_container_cluster:
+      name: "{{ rm_cluster_name.content | b64decode | trim }}"
+      location: "{{ cluster_loc.content | b64decode | trim }}"
+      project: "{{ gke['project'] }}"
+      auth_kind: "{{ gke['auth_kind'] }}"
+      service_account_file: "{{ gke['sa_file'] }}"
+      scopes:
+        - https://www.googleapis.com/auth/cloud-platform
+      state: absent
+
+  - name: Add metadata about the cluster being deleted
+    copy:
+      content: "true"
+      dest: "{{archive_dir}}/destroyed"
+
   when: destroy
 
 - block:
+
   - set_fact:
       gke_cluster_name: "{{cluster_prefix}}-{{start_time}}"
 
