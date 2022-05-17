@@ -2,7 +2,6 @@ FROM docker.io/fedora:36
 
 RUN dnf install -y --nodocs \
     helm \
-    jq \
     python3-pip && \
   dnf clean all && \
   pip3 install --no-cache-dir \
