@@ -28,9 +28,12 @@ d=es.search(index="ripsaw-uperf-results",body=uuid_query)
 uuids = [value['key'] for value in d['aggregations']['name']['buckets']]
 
 row_lists=[]
+cpu_list=[]
 for uuid in uuids :
+    for compute in benchmark.compute_map['system-metrics'] :
+        smetrics=conn.emit_compute_dict(uuid,compute,'system-metrics','uuid',uuid)
+        flatten_and_discard(smetrics,compute,cpu_list)
     for compute in benchmark.compute_map['ripsaw-uperf-results'] :
-
         result=conn.emit_compute_dict(uuid,
                                       compute,
                                       "ripsaw-uperf-results",
@@ -44,6 +47,13 @@ data=pd.DataFrame(data=row_lists,columns=["","test_type",
                                           "","num_threads",
                                           "","num_pairs",
                                           "data","result"])
+
+cpudata=pd.DataFrame(data=cpu_list,columns=["","metric",
+                                          "","uuid",
+                                          "","node",
+                                          "","mode",
+                                          "","value"])
+
 
 stream=data.loc[(data['test_type']=="stream") &
        (data['protocol']=="tcp") &
@@ -70,7 +80,7 @@ fig = px.bar(df,
             x=list(df.keys()),
             y=['64','1024','16384'],
             barmode='group',
-            title="TCP Stream"
+            title="TCP Stream",
             )
 df = pd.pivot_table(stream_udp,values='result',
                index='message_size',
@@ -80,7 +90,7 @@ udpfig = px.bar(df,
             x=list(df.keys()),
             y=['64','1024','16384'],
             barmode='group',
-            title="UDP Stream"
+            title="UDP Stream",
             )
 
 df = pd.pivot_table(rr,values='result',
@@ -93,6 +103,14 @@ rrfig = px.bar(df,
             barmode='group',
             title="TCP RR"
             )
+
+df = pd.pivot_table(cpudata,values='value',
+               index='mode',
+               columns='uuid').to_dict()
+
+cpu_usage = px.bar(df,
+                  barmode='group',
+                  title="CPU Usage")
 
 app.layout = html.Div(children=[
    html.H1(children='Datapath Performance'),
@@ -108,6 +126,10 @@ app.layout = html.Div(children=[
       id='TCP RR',
       figure=rrfig
    ),
+      dcc.Graph(
+         id='CPU Usage',
+         figure=cpu_usage
+      ),
 ])
 
-app.run_server(debug=True)
+app.run_server(host="0.0.0.0",debug=True)
