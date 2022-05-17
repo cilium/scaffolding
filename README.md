@@ -1,5 +1,5 @@
 # scaffolding
-Ansible Automation to bring up a Performance SUT
+Ansible Automation to bring up a Performance SUT for Cilium Performance testing
 
 # Quickstart
 
@@ -50,24 +50,25 @@ Breaking down the `ansible-playbook` command :\
 `-e` -- Extra-var, which will set our `num_nodes` param. *required*\
 `-e` -- Extra-var, which will set our `kernel` version to `5.17` this is only available under GKE today.
 
-To Modify the cilium install params
+### Custom install params to pass to Cilium CLI
+To modify the cilium install params
 
 `$ ansible-playbook pipeline.yml --tags gke,prometheus,benchmark-operator,datapath -e "create=true" -e "num_nodes=2" -e "kernel=v5.18-rc6" -e "cilium_install_params='--helm-set bandwidthManager.enabled=true --helm-set bandwidthManager.bbr=false --helm-set kubeProxyReplacement=strict'" -vvv`
 
 ### Cleanup
-*Note* Currently, this will cleanup all clusters, use at your own risk.
-`ansible-playbook platform.yml --tags gke -e "destroy=true"`
+`ansible-playbook platform.yml --tags gke -e "destroy=true" -e "archive_dir=/location/where/cluster/artifacts/are"`
+
+## Providers
+- GKE
+- OCP
+
+## Tools
+- Prometheus (via Helm)
+- Benchmark Operator
+- Performance Dashboards (Grafana w/ customized dashboards)
 
 ## Known Nuances
-- GKE Cluster Destroy will destroy all clusters. We can switch to passing a kubeconfig and getting the cluster_name to destroy
 - Stopping OpenShift mid-install can result in the `metadata.json` to be missing for a cleanup. To circumvent this, we can build a net-new `metadata.json` to clean up objects in the specified platform.
-
-## Tools needed for execution
-- kubectl
-- gcloud
-- curl
-- git
-- helm
 
 ## Artifacts after run
 ```
@@ -80,73 +81,10 @@ To Modify the cilium install params
  kubeconfig
   bmo/                 # Benchmark-Operator
  kernel                # Kernel which was installed
- datapath-uperf.yml    # Workload
- datapath-uperf.log    # Console from workload
+ *-uperf.yml           # Workload(s)
+ *-uperf.log           # Console from workload
  datapath-uuid         # Benchmark UUID (to retrieve from ES)
  uperf.json            # For result collection (touchstone)
- datapath-result.out   # Result from performance run
+ *-result.out   # Result from performance run
+ destroyed             # If the cluster has been destroyed
 ```
-
-## Structure
-```
-├── roles
-│   ├── benchmarks
-│   │   ├── tasks
-│   │   │   ├── datapath.yml
-│   │   │   └── main.yml
-│   │   └── templates
-│   │       └── datapath-uperf.yml.j2
-│   ├── cilium
-│   │   └── tasks
-│   │       ├── gke.yml
-│   │       └── main.yml
-│   ├── kernel
-│   │   ├── files
-│   │   │   ├── cm-kernel.yaml
-│   │   │   └── ds-kernel.yaml
-│   │   └── tasks
-│   │       ├── gke.yml
-│   │       └── main.yml
-│   ├── platform
-│   │   ├── files
-│   │   │   └── install-config.yaml
-│   │   ├── tasks
-│   │   │   ├── gke.yml
-│   │   │   ├── main.yml
-│   │   │   └── ocp.yml
-│   │   ├── templates
-│   │   │   ├── install-config.yaml
-│   │   │   └── metadata.json
-│   │   └── vars
-│   │       └── main.yml
-│   ├── report
-│   │   ├── files
-│   │   │   └── uperf.json
-│   │   └── tasks
-│   │       └── main.yml
-│   ├── tools
-│   │   └── tasks
-│   │       └── main.yml
-│   └── validate
-│       └── tasks
-│           └── main.yml
-```
-
-
-## Setup
-Ansible is a bit weird with `--tags` it asumes `all` if no tag is passed.
-
-We will be using `--tags` for each cloud provider. Be sure to pass which provider you are interested in.
-
-## Providers
-- GKE (WIP)
-
-### GKE
-#### Setup
-Login to the Console, choose the project you want to build clusters. Create a service account (under IAM), create a key (json), save it locally here as `sa.json`
-
-#### Create cluster
-`ansible-playbook platform.yml --tags gke -e "create=true" -e "num_nodes=2"`
-This will create a 2 node cluster in GKE.
-
-
