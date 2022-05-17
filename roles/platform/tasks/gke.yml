@@ -1,8 +1,8 @@
 ---
 
 - name: Get current clouds
-  gcp_container_cluster_info:
-    location: "{{ gke['region'] }}"
+  google.cloud.gcp_container_cluster_info:
+    location: "{{ gke['zone'] }}"
     project: "{{ gke['project'] }}"
     auth_kind: "{{ gke['auth_kind'] }}"
     service_account_file: "{{ gke['sa_file'] }}"
@@ -47,6 +47,8 @@
 
   - set_fact:
       gke_cluster_name: "{{cluster_prefix}}-{{start_time}}"
+  - debug:
+      msg: GKE Cluster name {{ gke_cluster_name }}
 
   - name: Create GKE cluster
     google.cloud.gcp_container_cluster:
@@ -72,9 +74,14 @@
         - https://www.googleapis.com/auth/cloud-platform
       state: present
     register: cluster
+  
+  - name: Save cluster info to archive
+    copy:
+      content: "{{cluster}}"
+      dest: "{{archive_dir}}/cluster.json"
 
   - name: Create GKE node pool
-    gcp_container_node_pool:
+    google.cloud.gcp_container_node_pool:
       name: default
       initial_node_count: "{{ num_nodes | int}}"
       config:
@@ -98,13 +105,7 @@
 
   - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
     shell: |
-      export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
-      gcloud auth activate-service-account $(cat sa.json | jq .client_email|sed 's/"//g' ) --key-file=sa.json --project $(cat sa.json | jq .project_id|sed 's/"//g' )
-      export KUBECONFIG={{archive_dir}}/kubeconfig
-      gcloud config set project {{ gke['project'] }}
-      gcloud config set compute/zone {{ gke['region'] }}
-      gcloud auth activate-service-account --key-file {{ gke['sa_file'] }}
-      gcloud container clusters get-credentials {{ gke_cluster_name }}
+      python3 {{role_path}}/files/get-kubeconfig.py {{archive_dir}}/cluster.json {{gke['sa_file']}} {{archive_dir}}/kubeconfig
 
   - set_fact:
       kubeconfig: "{{archive_dir}}/kubeconfig"

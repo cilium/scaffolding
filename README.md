@@ -5,9 +5,15 @@ Ansible Automation to bring up a Performance SUT for Cilium Performance testing
 
 ## GKE
 
-Pull the container image with all the necessary tools -- sorry about the size, happy to have someone reduce it
+Pull the container image with all the necessary tools
 
 `$ podman pull quay.io/jtaleric/scaffolding`
+
+One can also build the container image from the project root, however please note that any files
+(ie including service account credentials) within the project directory will be included into the
+image
+
+`$ podman build . -t scaffolding`
 
 Kick it
 
@@ -26,7 +32,7 @@ Store this file within this directory. Whatever you name it, update `group_vars/
 
 ```yaml
 gke:
-  region: "us-west2-a"
+  zone: "us-west2-a"
   project: "cilium-perf"
   auth_kind: "serviceaccount"
   sa_file: "my_sa.json"
@@ -75,7 +81,7 @@ To modify the cilium install params
  cilium*               # Binary which we used to install Cilium
  starttime             # When the Automation started
  cluster_name          # Name of the cluster in the event we have to manually clean up
- region                # Region we deployed in
+ zone                # zone we deployed in
  platform              # What Platform, GKE, OpenShift
  project               # Project we built the cluster in
  kubeconfig
