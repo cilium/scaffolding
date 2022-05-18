@@ -1,5 +1,11 @@
 ---
 - block:
+
+  - name: Set kubeconfig
+    set_fact:
+      kubeconfig: "{{archive_dir}}/kubeconfig"
+    when: kubeconfig|length < 1
+
   - name: Capture nodes
     shell: |
      export KUBECONFIG={{kubeconfig}}
