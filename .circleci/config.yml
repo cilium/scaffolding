@@ -27,7 +27,7 @@ workflows:
   build-and-run-playbook:
     jobs:
       - build-and-run-playbook
-  build-and-run:
+  build-and-push:
     jobs:
       - docker/publish:
           filters:
