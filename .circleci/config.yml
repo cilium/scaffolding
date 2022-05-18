@@ -1,0 +1,23 @@
+version: 2.1
+orbs:
+  docker: circleci/docker@2.1.1
+workflows:
+  build-scaffolding-image:
+    jobs:
+      - docker/publish:
+          executor:
+            name: docker/docker
+            image: cimg/base
+            tag: stable
+          deploy: true
+          use-remote-docker: true
+          remote-docker-version: "20.10.14"
+          remote-docker-dlc: true
+          use-buildkit: true
+          docker-password: QUAY_PASS
+          docker-username: QUAY_LOGIN_USER
+          dockerfile: "Dockerfile"
+          docker-context: "."
+          registry: quay.io
+          image: $QUAY_USER/scaffolding
+          tag: latest
