@@ -1,9 +1,13 @@
 ---
 
+- name: Set kubeconfig
+  set_fact:
+    kubeconfig: "{{archive_dir}}/kubeconfig"
+  when: kubeconfig|length < 1
 
 - name: Pull specific cilium-cli version
   shell: |
-      curl -sSL --remote-name-all https://github.com/cilium/cilium-cli/releases/download/{{ cilium['cli_version'] }}/cilium-linux-amd64.tar.gz
+      curl -sSL --remote-name-all https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz
       tar xzvfC cilium-linux-amd64.tar.gz {{archive_dir}}
       rm cilium-linux-amd64.tar.gz
       export KUBECONFIG={{kubeconfig}}
@@ -12,4 +16,4 @@
 - name: Install using Cilium cli
   shell: |
       export KUBECONFIG={{kubeconfig}}
-      {{archive_dir}}/cilium install --version {{cilium['version']}} {{cilium_install_params}}
+      {{archive_dir}}/cilium install --version {{cilium_version}} {{cilium_install_params}}

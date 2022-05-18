@@ -58,7 +58,7 @@
     shell: |
       export KUBECONFIG={{kubeconfig}}
       kubectl delete benchmark/{{item.name}} -n benchmark-operator
-    when: cleanup
+    when: benchmark_cleanup
 
   - name : Check for uuid
     fail:

@@ -1,19 +1,26 @@
 ---
 start_time: "{{ansible_date_time.epoch}}"
 archive_dir: /tmp/auto_perf/{{start_time}}
+
+# Etiher create cluster or destroy a given cluster
 create: false
 destroy: false
+
+# Number of nodes for the initial cluster
+num_nodes: 1
+
+# Cluster name prefix
+cluster_prefix: cilium-perf-ci
+
+py_kubeconfig: false
 kubeconfig: ""
 ocp_install_dir: ""
 kernel: ""
-cluster_prefix: cilium-perf-ci
-cleanup: true
-cilium_install_params: "--config enable-envoy-config=true --kube-proxy-replacement=probe"
 
 # Cilium installation options
-cilium:
-  cli_version: v0.11.4
-  version: v1.12.0-rc1
+cilium_install_params: ""
+cilium_version: v1.12.0-rc1
+cilium_cli_version: v0.11.7
 
 # GKE Cluster configuration
 gke:
@@ -38,6 +45,7 @@ ocp:
   num_workers:
 
 # Benchmark Configuration
+benchmark_cleanup: true
 samples: 1
 es_url: https://elastic:password@server:port
 metric_collection_url: https://gist.githubusercontent.com/jtaleric/c2a9c4974cd82c358ce4e1b5fd2d40f3/raw/f735fc9c5c58e3d4657689106d4c7db9400eb474/rook-node-v2.yaml
