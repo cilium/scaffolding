@@ -1,10 +1,39 @@
 version: 2.1
 orbs:
   docker: circleci/docker@2.1.1
+jobs:
+  build-and-run-playbook:
+    executor:
+      name: docker/docker
+      image: cimg/base
+      tag: stable
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+      - docker/build:
+          docker-context: .
+          dockerfile: Dockerfile
+          image: scaffolding
+          tag: $CIRCLE_SHA1
+          registry: localhost
+          use-buildkit: true
+          cache_from: quay.io/$QUAY_USER/scaffolding:latest
+      - run: |
+          docker images
+          docker run localhost/scaffolding:$CIRCLE_SHA1 ls /scaffolding
 workflows:
-  build-scaffolding-image:
+  build-and-run-playbook:
+    jobs:
+      - build-and-run-playbook
+  build-and-run:
     jobs:
       - docker/publish:
+          filters:
+            branches:
+              only:
+                - main
           executor:
             name: docker/docker
             image: cimg/base
@@ -13,6 +42,7 @@ workflows:
           use-remote-docker: true
           remote-docker-version: "20.10.14"
           remote-docker-dlc: true
+          cache_from: $QUAY_USER/scaffolding
           use-buildkit: true
           docker-password: QUAY_PASS
           docker-username: QUAY_LOGIN_USER
