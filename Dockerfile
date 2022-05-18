@@ -14,8 +14,9 @@ RUN curl -sSL https://api.github.com/repos/cloud-bulldozer/benchmark-comparison/
   export bc_dir=/opt/$(ls /opt | grep cloud-bulldozer-benchmark-comparison) && \
   pip install $bc_dir && \
   rm -rf $bc_dir
-RUN ansible-galaxy collection install \
-    community.general \
-    google.cloud
+RUN mkdir -p ~/.ansible/collections/ansible_collections/google/cloud && \
+  curl -sSL https://galaxy.ansible.com/download/google-cloud-1.0.2.tar.gz | tar -xzf - -C ~/.ansible/collections/ansible_collections/google/cloud && \
+  mkdir -p  ~/.ansible/collections/ansible_collections/community/general && \
+  curl -sSL https://galaxy.ansible.com/download/community-general-5.0.0.tar.gz | tar -xzf - -C ~/.ansible/collections/ansible_collections/community/general
 
 COPY . /scaffolding
