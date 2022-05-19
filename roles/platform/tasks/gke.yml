@@ -112,11 +112,6 @@
         - https://www.googleapis.com/auth/cloud-platform
       state: present
 
-  - name: (python)Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
-    shell: |
-      python3 {{role_path}}/files/get-kubeconfig.py {{archive_dir}}/cluster.json {{gke['sa_file']}} {{archive_dir}}/kubeconfig
-    when: py_kubeconfig
-
   - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
     shell: |
       export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
