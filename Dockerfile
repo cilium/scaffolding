@@ -24,4 +24,5 @@ RUN mkdir -p ~/.ansible/collections/ansible_collections/google/cloud && \
   mkdir -p  ~/.ansible/collections/ansible_collections/community/general && \
   curl -sSL https://galaxy.ansible.com/download/community-general-5.0.0.tar.gz | tar -xzf - -C ~/.ansible/collections/ansible_collections/community/general
 
+WORKDIR /scaffolding
 COPY . /scaffolding
