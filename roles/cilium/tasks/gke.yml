@@ -5,6 +5,12 @@
     kubeconfig: "{{archive_dir}}/kubeconfig"
   when: kubeconfig|length < 1
 
+- name: Check if specific cilium-cli version is downloaded
+  shell: |
+    {{archive_dir}}/cilium version | head -n 1 | grep '{{cilium_cli_version}}'
+  register: cilium_cli_install
+  ignore_errors: true
+
 - name: Pull specific cilium-cli version
   shell: |
       curl -sSL --remote-name-all https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz
@@ -12,8 +18,17 @@
       rm cilium-linux-amd64.tar.gz
       export KUBECONFIG={{kubeconfig}}
       {{archive_dir}}/cilium version
+  when: cilium_cli_install.rc != 0
+
+- name: Check if Cilium is installed
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    {{archive_dir}}/cilium status --wait --wait-duration=5s
+  register: cilium_install
+  ignore_errors: true
 
 - name: Install using Cilium cli
   shell: |
       export KUBECONFIG={{kubeconfig}}
       {{archive_dir}}/cilium install --version {{cilium_version}} {{cilium_install_params}}
+  when: cilium_install.rc != 0
