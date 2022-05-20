@@ -8,7 +8,10 @@ RUN mkdir -p /usr/local/gcloud && \
   rm -rf /usr/local/gcloud/google-cloud-sdk/.install/backup
 ENV PATH="/usr/local/gcloud/google-cloud-sdk/bin:${PATH}"
 RUN dnf install -y --nodocs \
+    git \
     helm \
+    jq \
+    make \
     python3-pip && \
   dnf clean all && \
   pip3 install --no-cache-dir \
