@@ -115,7 +115,7 @@
   - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
     shell: |
       export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
-      gcloud auth activate-service-account $(cat sa.json | jq .client_email|sed 's/"//g' ) --key-file=sa.json --project $(cat sa.json | jq .project_id|sed 's/"//g' )
+      gcloud auth activate-service-account $(jq .client_email -r {{ gke['sa_file'] }}) --key-file={{ gke['sa_file'] }} --project $(jq .project_id -r {{ gke['sa_file'] }})
       export KUBECONFIG={{archive_dir}}/kubeconfig
       gcloud config set project {{ gke['project'] }}
       gcloud config set compute/zone {{ gke['region'] }}
