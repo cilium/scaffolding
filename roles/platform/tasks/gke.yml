@@ -121,7 +121,6 @@
       gcloud config set compute/zone {{ gke['region'] }}
       gcloud auth activate-service-account --key-file {{ gke['sa_file'] }}
       gcloud container clusters get-credentials {{ gke_cluster_name }}
-    when: not py_kubeconfig
 
   - set_fact:
       kubeconfig: "{{archive_dir}}/kubeconfig"
