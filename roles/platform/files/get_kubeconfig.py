@@ -4,15 +4,18 @@
 Create kubeconfig from output of `google.cloud.gcp_container_cluster`
 
 Use `google-auth` module to get an OAuth bearer token for the given
-service account, which can then be passed to kubectl in order to
-authenticate to the cluster.
+service account, which is used temporarily to create a cluster-admin
+service account. A token-based kubeconfig is then generated using said
+service account.
+
+Requires `google-auth` and `requests` to be installed.
 
 References:
 * https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins
 * https://github.com/mie00/gke-kubeconfig
 * https://google-auth.readthedocs.io/en/master/user-guide.html
-
-Requires `google-auth` and `requests` to be installed.
+* https://github.com/cilium/cilium-cli/blob/master/k8s/client.go#L495
+* https://github.com/cilium/cilium-cli/blob/master/k8s/client.go#L495
 """
 import argparse
 import base64
@@ -90,31 +93,10 @@ def get_google_sa_token(path_to_sa: str) -> str:
     return credentials.token
 
 
-def build_kubeconfig(
-    kubeconfig_template: str,
-    cluster_server: str,
-    cluster_name: str,
-    cluster_ca: str,
-    cluster_zone: str,
-    cluster_project: str,
-    user_token: str,
-) -> str:
-    """Use the given arguments to build a kubeconfig."""
-
-    return kubeconfig_template.format(
-        cluster_name=cluster_name,
-        cluster_server=cluster_server,
-        cluster_ca=cluster_ca,
-        cluster_zone=cluster_zone,
-        cluster_project=cluster_project,
-        user_token=user_token,
-    )
-
-
 def get_kubeconfig_params_from_gcp_container_cluster_json(
     gcp_container_cluster_json: str,
 ) -> t.Dict[str, str]:
-    """Get params for `build_kubeconfig` from `gcp_container_cluster` results."""
+    """Return kubeconfig template params from `gcp_container_cluster` results."""
 
     results = json.loads(gcp_container_cluster_json)
     return {
@@ -126,7 +108,7 @@ def get_kubeconfig_params_from_gcp_container_cluster_json(
 
 
 def run_kubectl_command(cmd: str, stdin: t.Optional[str] = None) -> str:
-    """Run the given kubectl command, assuming `set_kubeconfig`."""
+    """Run the given kubectl command, assuming kubeconfig has been set."""
 
     cmd = "kubectl " + cmd
     logging.info("Running '%s'", cmd)
@@ -154,25 +136,13 @@ def run_kubectl_command(cmd: str, stdin: t.Optional[str] = None) -> str:
     return result.stdout
 
 
-def generate_kubeconfig(
-    gke_ansible_json: str, kubeconfig_dest: str, token: str, project: str
+def write_and_test_kubeconfig(
+    kubeconfig: str,
+    kubeconfig_dest: str,
 ) -> None:
-    """Generate kubeconfig for ansible-provisioned cluster"""
+    """Create given kubeconfig to disk and test it can be used"""
 
-    logging.info(
-        "Parsing through gcp_container_cluster json: %s",
-        gke_ansible_json,
-    )
-    with open(gke_ansible_json, "r") as gke_ansible_json_file_handler:
-        gke_ansible_json = gke_ansible_json_file_handler.read()
-    kubeconfig_args = get_kubeconfig_params_from_gcp_container_cluster_json(
-        gke_ansible_json
-    )
-
-    kubeconfig_args["user_token"] = token
-    kubeconfig_args["cluster_project"] = project
-    kubeconfig = build_kubeconfig(KUBECONFIG_TEMPLATE, **kubeconfig_args)
-    with open(kubeconfig_dest, "w") as kubeconfig_file_handler:
+    with open(kubeconfig_dest, "w", encoding="utf-8") as kubeconfig_file_handler:
         kubeconfig_file_handler.write(kubeconfig)
     logging.info("Kubeconfig written to %s", kubeconfig_dest)
 
@@ -232,7 +202,6 @@ def create_argument_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-
     parser = create_argument_parser()
     args = parser.parse_args()
 
@@ -241,14 +210,37 @@ def main() -> None:
     kubeconfig_args = {
         "gke_ansible_json": args.gke_ansible_json,
         "kubeconfig_dest": args.kubeconfig_dest,
-        "project": args.gke_project
+        "project": args.gke_project,
     }
 
     logging.info("Getting token for gcp sa authentication")
     gcp_token = get_google_sa_token(args.service_account_file)
-    generate_kubeconfig(token=gcp_token, **kubeconfig_args)
-    sa_token = create_k8s_sa()
-    generate_kubeconfig(token=sa_token, **kubeconfig_args)
+
+    logging.info(
+        "Parsing through gcp_container_cluster json: %s",
+        args.gke_ansible_json,
+    )
+    with open(
+        args.gke_ansible_json, "r", encoding="utf-8"
+    ) as gke_ansible_json_file_handler:
+        gke_ansible_json = gke_ansible_json_file_handler.read()
+    kubeconfig_args = get_kubeconfig_params_from_gcp_container_cluster_json(
+        gke_ansible_json
+    )
+    kubeconfig_args["cluster_project"] = args.gke_project
+
+    kubeconfig_args["user_token"] = gcp_token
+    kubeconfig = KUBECONFIG_TEMPLATE.format(**kubeconfig_args)
+    logging.info("Creaing kubeconfig using gcp service account")
+    write_and_test_kubeconfig(kubeconfig, args.kubeconfig_dest)
+
+    logging.info(
+        "Creating k8s service account 'perfci-sa-admin' with cluster " "admin role"
+    )
+    kubeconfig_args["user_token"] = create_k8s_sa()
+    kubeconfig = KUBECONFIG_TEMPLATE.format(**kubeconfig_args)
+    logging.info("Creating kubeconfig using k8s service account 'perfci-sa-admin'")
+    write_and_test_kubeconfig(kubeconfig, args.kubeconfig_dest)
 
 
 if __name__ == "__main__":
