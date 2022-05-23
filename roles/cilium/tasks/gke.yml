@@ -30,5 +30,5 @@
 - name: Install using Cilium cli
   shell: |
       export KUBECONFIG={{kubeconfig}}
-      {{archive_dir}}/cilium install --version {{cilium_version}} {{cilium_install_params}}
+      {{archive_dir}}/cilium install --version {{cilium_version}} --ipv4-native-routing-cidr="{{gke['cluster_ipv4_cidr']}}" {{cilium_install_params}}
   when: cilium_install.rc != 0

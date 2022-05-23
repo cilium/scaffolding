@@ -64,6 +64,7 @@
       name: "{{ gke_cluster_name }}"
       location: "{{ gke['region'] }}"
       project: "{{ gke['project'] }}"
+      cluster_ipv4_cidr: "{{ gke['cluster_ipv4_cidr'] }}"
       initial_node_count: "{{ num_nodes | int}}"
       node_config:
         image_type: "{{ gke['image_type'] }}"
@@ -114,13 +115,7 @@
 
   - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
     shell: |
-      export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
-      gcloud auth activate-service-account $(jq .client_email -r {{ gke['sa_file'] }}) --key-file={{ gke['sa_file'] }} --project $(jq .project_id -r {{ gke['sa_file'] }})
-      export KUBECONFIG={{archive_dir}}/kubeconfig
-      gcloud config set project {{ gke['project'] }}
-      gcloud config set compute/zone {{ gke['region'] }}
-      gcloud auth activate-service-account --key-file {{ gke['sa_file'] }}
-      gcloud container clusters get-credentials {{ gke_cluster_name }}
+      python3 {{role_path}}/files/get_kubeconfig.py {{gke['sa_file']}} {{archive_dir}}/cluster.json {{archive_dir}}/kubeconfig {{gke['project']}}
 
   - set_fact:
       kubeconfig: "{{archive_dir}}/kubeconfig"
