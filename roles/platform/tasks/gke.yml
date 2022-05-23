@@ -64,6 +64,7 @@
       name: "{{ gke_cluster_name }}"
       location: "{{ gke['region'] }}"
       project: "{{ gke['project'] }}"
+      cluster_ipv4_cidr: "{{ gke['cluster_ipv4_cidr'] }}"
       initial_node_count: "{{ num_nodes | int}}"
       node_config:
         image_type: "{{ gke['image_type'] }}"
@@ -84,6 +85,11 @@
       state: present
     register: cluster
   
+  - name: Save cluster info to archive
+    copy:
+      content: "{{cluster}}"
+      dest: "{{archive_dir}}/cluster.json"
+
   - name: Save cluster info to archive
     copy:
       content: "{{cluster}}"
@@ -114,7 +120,7 @@
 
   - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
     shell: |
-      python3 {{role_path}}/files/get-kubeconfig.py {{archive_dir}}/cluster.json {{gke['sa_file']}} {{archive_dir}}/kubeconfig
+      python3 {{role_path}}/files/get_kubeconfig.py {{gke['sa_file']}} {{archive_dir}}/cluster.json {{archive_dir}}/kubeconfig {{gke['project']}}
 
   - set_fact:
       kubeconfig: "{{archive_dir}}/kubeconfig"
