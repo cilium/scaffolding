@@ -12,7 +12,6 @@ num_nodes: 1
 # Cluster name prefix
 cluster_prefix: cilium-perf-ci
 
-py_kubeconfig: false
 kubeconfig: ""
 ocp_install_dir: ""
 kernel: ""
