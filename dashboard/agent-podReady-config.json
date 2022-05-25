@@ -1,0 +1,20 @@
+{
+    "elasticsearch": {
+        "ripsaw-kube-burner": [
+            {
+                "filter": {
+                    "metricName.keyword": "podLatencyQuantilesMeasurement"
+                },
+                "buckets": [
+                    "uuid.keyword",
+                    "quantileName.keyword"
+                ],
+                "aggregations": {
+                    "P99": [
+                        "avg"
+                    ]
+                }
+            }
+        ]
+    }
+}

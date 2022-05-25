@@ -16,11 +16,11 @@ conn=databases.grab(database,es_url)
 """
 Grab all the UUIDs from the last day
 """
-uuid_query = { "query": { "range" : { "uperf_ts" : { "gte" : "now-3d", "lt" :  "now" } } }
+uuid_query = { "query": { "range" : { "uperf_ts" : { "gte" : "now-7d", "lt" :  "now" } } }
      ,"aggs": { "name": { "terms": { "field": "uuid.keyword" } } } }
 
 es = Elasticsearch(es_url)
-benchmark=Benchmark(open("config.json"), database)
+benchmark=Benchmark(open("datapath-config.json"), database)
 conn=databases.grab(database,es_url)
 
 d=es.search(index="ripsaw-uperf-results",body=uuid_query)
@@ -40,8 +40,8 @@ for uuid in uuids :
         flatten_and_discard(result,compute,row_lists)
 
 data=pd.DataFrame(data=row_lists,columns=["","test_type",
-                                          "","run_id",
                                           "","uuid",
+                                          "","run_id",
                                           "","protocol",
                                           "","message_size",
                                           "","num_threads",
@@ -59,6 +59,13 @@ stream=data.loc[(data['test_type']=="stream") &
        (data['protocol']=="tcp") &
        (data['data']=="avg(norm_byte)")&
        (data['num_threads']==1)]
+
+def convert_b(val):
+   # Return Mb
+   return val/(1024*1024)
+
+stream['result_mb'] = stream['result'].apply(lambda row: convert_b(row))
+
 stream_udp=data.loc[(data['test_type']=="stream") &
        (data['protocol']=="udp") &
        (data['data']=="avg(norm_byte)")&
@@ -72,15 +79,18 @@ rr_udp=data.loc[(data['test_type']=="rr") &
        (data['data']=="avg(norm_ltcy)")&
        (data['num_threads']==1)]
 
-df = pd.pivot_table(stream,values='result',
+df = pd.pivot_table(stream,values='result_mb',
                index='message_size',
                columns='uuid').to_dict()
 app = Dash(__name__)
 fig = px.bar(df,
-            x=list(df.keys()),
-            y=['64','1024','16384'],
+            y=list(df.keys()),
+            x=['64','1024','16384'],
             barmode='group',
             title="TCP Stream",
+            orientation='v',
+            width=2000,height=800,
+            labels=dict(x="Message Size",y="Mbps", color="Runs"),
             )
 df = pd.pivot_table(stream_udp,values='result',
                index='message_size',
@@ -118,15 +128,7 @@ app.layout = html.Div(children=[
       id='TCP Stream',
       figure=fig
    ),
-      dcc.Graph(
-      id='UDP Stream',
-      figure=udpfig
-   ),
-      dcc.Graph(
-      id='TCP RR',
-      figure=rrfig
-   ),
-      dcc.Graph(
+   dcc.Graph(
          id='CPU Usage',
          figure=cpu_usage
       ),

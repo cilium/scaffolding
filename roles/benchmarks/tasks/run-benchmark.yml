@@ -29,6 +29,7 @@
     shell: |
       export KUBECONFIG={{kubeconfig}}
       kubectl logs -n benchmark-operator $(kubectl get pods -n benchmark-operator -l benchmark-operator-role=client -o custom-columns=:.metadata.name --no-headers) > {{archive_dir}}/{{item.name}}.log
+    ignore_errors: true #not all benchmarks set this label (we should fix this)
 
   # We will make the assumption the user did not change the name of the benchmark
   - name: Capture run uuid
@@ -48,7 +49,7 @@
   - name: Capture results
     shell: |
       cp {{ role_path }}/files/uperf.json {{archive_dir}}/
-      touchstone_compare -url {{es_url}} --config {{archive_dir}}/uperf.json -u {{benchmark_uuid}} | tee {{archive_dir}}/{{item.name}}-result.out
+      touchstone_compare -url {{es_url}} --config {{archive_dir}}/{{item.report}} -u {{benchmark_uuid}} | tee {{archive_dir}}/{{item.name}}-result.out
     register: report
 
   - debug:

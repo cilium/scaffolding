@@ -1,0 +1,48 @@
+{
+    "elasticsearch": {
+        "ripsaw-kube-burner": [
+            {
+                "filter": {
+                    "metricName.keyword": "podLatencyQuantilesMeasurement"
+                },
+                "buckets": [
+                    "quantileName.keyword"
+                ],
+                "aggregations": {
+                    "P99": [
+                        "avg"
+                    ]
+                }
+            },
+            {
+                "filter": {
+                    "metricName.keyword": "containerCPU",
+                    "labels.container.keyword": "cilium-agent"
+                },
+                "buckets": [
+                    "labels.pod.keyword"
+                ],
+                "aggregations": {
+                    "value": [
+                        "avg"
+                    ]
+                }
+            },
+            {
+                "filter": {
+                    "metricName.keyword": "containerMemory",
+                    "labels.container.keyword": "cilium-agent"
+                },
+                "buckets": [
+                    "labels.pod.keyword"
+                ],
+                "aggregations": {
+                    "value": [
+                        "avg"
+                    ]
+                }
+            }
+
+        ]
+    }
+}

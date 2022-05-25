@@ -4,3 +4,9 @@
     include_tasks: datapath.yml
   tags:
     - datapath
+
+- block:
+  - name: Run agent performance test
+    include_tasks: agent.yml
+  tags:
+    - agent
