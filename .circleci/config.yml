@@ -1,53 +1,47 @@
 version: 2.1
+setup: true
 orbs:
   docker: circleci/docker@2.1.1
+  python: circleci/python@2.0.3
+  continuation: circleci/continuation@0.1.0
+executor:
+  base:
+    docker:
+      - image: cimg/base
+        tag: stable
 jobs:
-  build-and-run-playbook:
+  generate_config:
     executor:
-      name: docker/docker
-      image: cimg/base
-      tag: stable
+      name: python/default
+      tag: '3.10'
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-          version: 20.10.14
-      - docker/build:
-          docker-context: .
-          dockerfile: Dockerfile
-          image: scaffolding
-          tag: $CIRCLE_SHA1
-          registry: localhost
-          use-buildkit: true
-          cache_from: quay.io/$QUAY_USER/scaffolding:latest
-      - run: |
-          docker images
-          docker run localhost/scaffolding:$CIRCLE_SHA1 ls /scaffolding
+      - python/install-packages:
+          pkg-manager: pip
+          app-dir: ci/
+      - run:
+          name: Generate Pipeline Assets
+          command: |
+            mkdir -p /tmp/generated
+            python3 ci/circleci.py /tmp/generated test_es_url
+      - persist_to_workspace:
+          root: /tmp/generated/
+          paths:
+            - pipeline.yml
+      - store_artifacts:
+          path: /tmp/generated
+  run_config:
+    executor: continuation/default
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - continuation/continue:
+          parameters: '{}'
+          configuration_path: /tmp/workspace/pipeline.yml
 workflows:
-  build-and-run-playbook:
+  setup:
     jobs:
-      - build-and-run-playbook
-  build-and-push:
-    jobs:
-      - docker/publish:
-          filters:
-            branches:
-              only:
-                - main
-          executor:
-            name: docker/docker
-            image: cimg/base
-            tag: stable
-          deploy: true
-          use-remote-docker: true
-          remote-docker-version: "20.10.14"
-          remote-docker-dlc: true
-          cache_from: $QUAY_USER/scaffolding
-          use-buildkit: true
-          docker-password: QUAY_PASS
-          docker-username: QUAY_LOGIN_USER
-          dockerfile: "Dockerfile"
-          docker-context: "."
-          registry: quay.io
-          image: $QUAY_USER/scaffolding
-          tag: latest
+      - generate_config
+      - run_config:
+          requires:
+            - generate_config
