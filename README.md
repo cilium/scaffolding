@@ -94,3 +94,15 @@ To modify the cilium install params
  *-result.out   # Result from performance run
  destroyed             # If the cluster has been destroyed
 ```
+
+# CI
+
+The goal of scaffolding's CI is to automate the performance testingn of Cilium within a variety of different conditions.
+
+Each set of conditions is referred to a 'scenario', with each scenario represented as a set of variables contained within a [vars file](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#vars-from-a-json-or-yaml-file) that modifies the behavior of one of the scaffolding Ansible playbooks.
+
+The file [ci/matrix.jsonnet](ci/matrix.jsonnet) contains the current testing matrix as a list of JSON objects, with each JSON object representing a scenario.
+
+CI is implemented through CircleCI, with a [dynamically generated configuration](https://circleci.com/docs/2.0/dynamic-config/) provided by [ci/circleci.py](ci/circleci.py).
+
+This Python script will render the jsonnet testing matrix and then prepare a CircleCI configuration that will test each scenario within by rendering [ci/templates/pipeline.yml.j2](ci/templates/pipeline.yml/j2). 
