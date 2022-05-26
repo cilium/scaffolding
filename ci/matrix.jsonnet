@@ -26,9 +26,9 @@ local create_matrix_item(cilium_version, kernel) = {
 } + UNI_PARAMS;
 
 local cilium_versions = [
-    "v1.12-rc",
-    "v1.11-latest",
-    "v1.10-latest"
+    "v1.12.0-rc2",
+    "v1.11-5",
+    "v1.10-11"
 ];
 local kernel_versions = [
     "5.4",
@@ -36,7 +36,7 @@ local kernel_versions = [
 ];
 local extras = [
     create_matrix_item(
-        "v1.12-rc",
+        "v1.12.0-rc2",
         "5.18"
     )
 ];
@@ -51,4 +51,4 @@ local matrix = [
 ];
 
 // matrix + extras
-[ create_matrix_item("v1.12-rc", "5.18") ]
+[ create_matrix_item("v1.12.0-rc2", "5.18") ]
