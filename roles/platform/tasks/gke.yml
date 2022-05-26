@@ -64,7 +64,6 @@
       name: "{{ gke_cluster_name }}"
       location: "{{ gke['region'] }}"
       project: "{{ gke['project'] }}"
-      cluster_ipv4_cidr: "{{ gke['cluster_ipv4_cidr'] }}"
       initial_node_count: "{{ num_nodes | int}}"
       node_config:
         image_type: "{{ gke['image_type'] }}"
