@@ -31,7 +31,7 @@
   - name: Restart GKE nodes
     shell: |
       export KUBECONFIG={{kubeconfig}}
-      kubectl node restart all --force
+      kubectl node restart all --force --restart-deadline=600s --kubelet-deadline=600s
 
   - name: Delete DS
     shell: |
