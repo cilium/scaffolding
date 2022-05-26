@@ -1,6 +1,7 @@
 FROM docker.io/fedora:36
 
 RUN dnf install -y --nodocs \
+    gettext \
     git \
     helm \
     jq \
