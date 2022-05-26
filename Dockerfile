@@ -22,6 +22,9 @@ RUN mkdir -p ~/.ansible/collections/ansible_collections/google/cloud && \
   curl -sSL https://galaxy.ansible.com/download/google-cloud-1.0.2.tar.gz | tar -xzf - -C ~/.ansible/collections/ansible_collections/google/cloud && \
   mkdir -p  ~/.ansible/collections/ansible_collections/community/general && \
   curl -sSL https://galaxy.ansible.com/download/community-general-5.0.0.tar.gz | tar -xzf - -C ~/.ansible/collections/ansible_collections/community/general
+RUN curl -sSLO https://github.com/MnrGreg/kubectl-node-restart/releases/download/v1.0.6/v1.0.6.zip && \
+  python3 -c 'import zipfile ; zipfile.ZipFile("v1.0.6.zip").extractall()' && \
+  install -o root -g root -m 0755 node-restart.sh /usr/local/bin/kubectl-node-restart
 
 WORKDIR /scaffolding
 COPY . /scaffolding
