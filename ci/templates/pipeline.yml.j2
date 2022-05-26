@@ -130,7 +130,12 @@ jobs:
       - store_artifacts:
           path: /tmp/workspace
   {{ playbook_step("create-platform", "platform.yml", "gke", "") }}
-  {{ playbook_step("set-kernel", "kernel.yml", "gke", "") }}
+  {{ playbook_step("install-cilium", "install-cilium.yml", "gke", "") }}
+  {{ playbook_step("set-kernel", "kernel.yml", "gke,kernel", "") }}
+  {{ playbook_step("install-tools", "tools.yml", "gke,benchmark-operator,prometheus", "") }}
+  {{ playbook_step("validate", "validate.yml", "gke", "") }}
+  {{ playbook_step("datapath", "benchmark.yml", "datapath", "") }}
+  {{ playbook_step("agent", "benchmark.yml", "agent", "") }}
   {{ playbook_step("teardown", "platform.yml", "gke", "-e 'destroy=true' -e 'create=false'") }}
 workflows:
   pipeline:
@@ -148,14 +153,39 @@ workflows:
           {% if build_image %}
             - build-image
           {% endif %}
+      - install-cilium:
+          name: cilium-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - platform-{{ scenario }}
       - set-kernel:
           name: kernel-{{ scenario }}
           varsfile: {{ scenario }}
           requires:
-            - platform-{{ scenario }}
+            - cilium-{{ scenario }}
+      - install-tools:
+          name: tools-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - kernel-{{ scenario }}
+      - validate:
+          name: validate-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - tools-{{ scenario }}
+      - datapath:
+          name: datapath-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - validate-{{ scenario }}
+      - agent:
+          name: agent-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - datapath-{{ scenario }}
       - teardown:
           name: teardown-{{ scenario }}
           varsfile: {{ scenario }}
           requires:
-            - kernel-{{ scenario }}
+            - agent-{{ scenario }}
     {% endfor %}
