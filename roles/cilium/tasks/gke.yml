@@ -27,8 +27,28 @@
   register: cilium_install
   ignore_errors: true
 
+- name: Store Cilium version
+  copy:
+    content: "{{cilium_version}}"
+    dest: "{{archive_dir}}/cilium_version"
+
+- name: Store Cilium-cli version
+  copy:
+    content: "{{cilium_cli_version}}"
+    dest: "{{archive_dir}}/cilium_version-cli"
+
+- name: Get Cluster IPv4 CIDR
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    # 'kubectl cluster-info dump' gives:
+    # <junk>--cluster-cidr=x.y.z.a\bc<junk>
+    kubectl cluster-info dump | \
+      grep -m 1 -o -E -- '--cluster-cidr=[0-9./]+' | \
+      cut -d'=' -f2
+  register: cluster_ipv4_cidr
+
 - name: Install using Cilium cli
   shell: |
       export KUBECONFIG={{kubeconfig}}
-      {{archive_dir}}/cilium install --version {{cilium_version}} --ipv4-native-routing-cidr="{{gke['cluster_ipv4_cidr']}}" {{cilium_install_params}}
+      {{archive_dir}}/cilium install --version {{cilium_version}} --ipv4-native-routing-cidr="{{cluster_ipv4_cidr.stdout}}" {{cilium_install_params}}
   when: cilium_install.rc != 0

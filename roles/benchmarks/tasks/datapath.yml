@@ -39,6 +39,9 @@
 - set_fact:
     start_time: "{{ start_time.stdout | default('test-start')}}"
 
+- set_fact:
+    run_id: "{{test_kernel}}-{{cilium_version}}"
+
 # Doubtfully will work with OpenShift as they use openshift-monitoring
 - name: Retrieve Prometheus Server information
   shell: |
@@ -53,6 +56,10 @@
       kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l node-role.kubernetes.io/worker= | wc -l
     register: labeled_node_count
 
+  - name: Store report generation json in archive_dir
+    shell: |
+      cp {{ role_path }}/files/uperf.json {{archive_dir}}/
+
   - name: Label nodes
     shell: |
       export KUBECONFIG={{kubeconfig}}
@@ -66,15 +73,15 @@
       src: "{{item.file}}"
       dest: "{{archive_dir}}/{{item.name}}"
     with_items:
-      - { file: datapath-uperf-stream-tcp.yml.j2, name: datapath-uperf-stream-tcp.yml }
-      - { file: datapath-uperf-stream-udp.yml.j2, name: datapath-uperf-stream-udp.yml }
+      - { file: datapath-uperf-stream-tcp.yml.j2, name: datapath-uperf-stream-tcp.yml}
+      - { file: datapath-uperf-stream-udp.yml.j2, name: datapath-uperf-stream-udp.yml}
       - { file: datapath-uperf-rr.yml.j2, name: datapath-uperf-rr.yml }
 
   - name: Run datapath benchmarks
     include_tasks: run-benchmark.yml
     with_items:
-      - {name: datapath-uperf-stream-tcp, file: datapath-uperf-stream-tcp.yml}
-      - {name: datapath-uperf-stream-udp, file: datapath-uperf-stream-udp.yml}
-      - {name: datapath-uperf-rr, file: datapath-uperf-rr.yml}
+      - {name: datapath-uperf-stream-tcp, file: datapath-uperf-stream-tcp.yml, report: uperf.json}
+      - {name: datapath-uperf-stream-udp, file: datapath-uperf-stream-udp.yml, report: uperf.json}
+      - {name: datapath-uperf-rr, file: datapath-uperf-rr.yml, report: uperf.json}
 
   when: bmo.rc == 0

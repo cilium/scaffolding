@@ -1,0 +1,31 @@
+apiVersion: ripsaw.cloudbulldozer.io/v1alpha1
+kind: Benchmark
+metadata:
+  name: agent-pod-density
+  namespace: benchmark-operator
+spec:
+  metadata:
+    collection: true
+    targeted: false
+  elasticsearch:
+    url: {{ es_url }}
+  system_metrics:
+    collection: false
+    es_url: {{ es_url }}
+    prom_url: http://{{ prom_server.stdout }}
+    prom_token: {{ prom_token }}
+    metrics_profile: {{ metric_collection_url }}
+  prometheus:
+    es_url: {{ es_url }}
+    prom_url: http://{{ prom_server.stdout }}
+    prom_token: {{ prom_token }}
+  workload:
+    name: kube-burner
+    args:
+      workload: pod-density
+      remote_metrics_profile: {{metric_collection_url}}
+      job_iterations: {{num_nodes|int*100-num_pods|int }}
+      cleanup: true
+      log_level: info
+      step: 30s
+      qps: {{benchmark_qps | default(10)}}
