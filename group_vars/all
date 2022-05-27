@@ -1,6 +1,7 @@
 ---
 start_time: "{{ansible_date_time.epoch}}"
 archive_dir: /tmp/auto_perf/{{start_time}}
+scaffolding_index: scaffolding
 
 # Etiher create cluster or destroy a given cluster
 create: false

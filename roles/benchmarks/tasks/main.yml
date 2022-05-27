@@ -1,4 +1,11 @@
 ---
+
+- block:
+  - name: Capture metadata
+    include_tasks: metadata.yml
+  tags:
+    - always
+
 - block:
   - name: Run datapath performance test
     include_tasks: datapath.yml

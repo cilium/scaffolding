@@ -26,6 +26,9 @@ spec:
       remote_metrics_profile: {{metric_collection_url}}
       job_iterations: {{num_nodes|int*100-num_pods|int }}
       cleanup: true
+      verify_objects: true
+      error_on_verify: true
       log_level: info
       step: 30s
       qps: {{benchmark_qps | default(10)}}
+      burst: {{benchmark_qps | default(10)}}
