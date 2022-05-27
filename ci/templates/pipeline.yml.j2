@@ -1,6 +1,22 @@
 {% set ns = namespace(local_tag='ci') %}
-{% set ns.local_image = "localhost/scaffolding:" + ns.local_tag %}
+{% set ns.local_image = "scaffolding:" + ns.local_tag %}
 {% set ns.remote_image = "quay.io/${QUAY_USER}/scaffolding:latest" %}
+{% macro setup_remote_docker() %}
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+{% endmacro %}
+{% macro save_image_to_workspace() %}
+      - run:
+          name: Save image to workspace
+          command: |
+            mkdir -p /tmp/workspace
+            docker save {{ ns.local_image }} > /tmp/workspace/scaffolding_image.tar
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - scaffolding_image.tar
+{% endmacro %}
 {% macro playbook_step(job_name, playbook, tags, extra_args) %}
   {{ job_name }}:
     executor: base
@@ -11,9 +27,7 @@
       ARCHIVE_DIR: /tmp/workspace/archive
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-          version: 20.10.14
+      {{ setup_remote_docker() }}
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -55,22 +69,6 @@
           path: /tmp/archive
           when: always
 {% endmacro %}
-{% macro setup_remote_docker() %}
-      - setup_remote_docker:
-          docker_layer_caching: true
-          version: 20.10.14
-{% endmacro %}
-{% macro save_image_to_workspace() %}
-      - run:
-          name: Save image to workspace
-          command: |
-            mkdir -p /tmp/workspace
-            docker save scaffolding:ci > /tmp/workspace/scaffolding_image.tar
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - scaffolding_image.tar
-{% endmacro %}
 version: 2.1
 orbs:
   docker: circleci/docker@2.1.1
@@ -91,7 +89,7 @@ jobs:
             set -x
             export DOCKER_BUILDKIT=1
             docker pull {{ ns.remote_image }}
-            docker build . -t scaffolding:ci --cache-from={{ ns.remote_image }} --progress=plain
+            docker build . -t {{ ns.local_image }} --cache-from={{ ns.remote_image }} --progress=plain
             set +x
       {{ save_image_to_workspace() }}
   pull-image:
