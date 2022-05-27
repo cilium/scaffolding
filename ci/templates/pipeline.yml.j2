@@ -1,10 +1,6 @@
-{% set ns = namespace(local_tag='ciimage') %}
+{% set ns = namespace(local_tag='ci') %}
 {% set ns.local_image = "localhost/scaffolding:" + ns.local_tag %}
 {% set ns.remote_image = "quay.io/${QUAY_USER}/scaffolding:latest" %}
-{% set ns.image = ns.local_image %}
-{% if not build_image %}
-    {% set ns.image = "quay.io/${QUAY_USER}/scaffolding:latest" %}
-{% endif %}
 {% macro playbook_step(job_name, playbook, tags, extra_args) %}
   {{ job_name }}:
     executor: base
@@ -20,12 +16,10 @@
           version: 20.10.14
       - attach_workspace:
           at: /tmp/workspace
-    {% if build_image %}
       - run:
           name: Load scaffolding Docker image
           command: |
               docker load < /tmp/workspace/scaffolding_image.tar
-    {% endif %}
       - run:
           name: Setup environment variables
           command: |
@@ -45,7 +39,7 @@
           name: Run the {{ playbook }} playbook
           command: |
             set -x
-            docker run --volumes-from workspace --name scaffolding_container {{ ns.image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=$ARCHIVE_DIR" {{ extra_args }} {{ playbook }} -vvv
+            docker run --volumes-from workspace --name scaffolding_container {{ ns.local_image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=$ARCHIVE_DIR" {{ extra_args }} {{ playbook }} -vvv
             set +x
       - run:
           name: Save archive
@@ -61,6 +55,22 @@
           path: /tmp/archive
           when: always
 {% endmacro %}
+{% macro setup_remote_docker() %}
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+{% endmacro %}
+{% macro save_image_to_workspace() %}
+      - run:
+          name: Save image to workspace
+          command: |
+            mkdir -p /tmp/workspace
+            docker save scaffolding:ci > /tmp/workspace/scaffolding_image.tar
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - scaffolding_image.tar
+{% endmacro %}
 version: 2.1
 orbs:
   docker: circleci/docker@2.1.1
@@ -70,39 +80,35 @@ executors:
     docker:
       - image: cimg/base:stable
 jobs:
-{% if build_image %}
   build-image:
     executor: base
     steps:
-        - run:
-            name: Evaluate cache-from image name
-            command: |
-                # This image is templated with another environment variable
-                # The docker/build step does not support env variable
-                # evaluation within the 'cache_from' parameter
-                echo CACHE_FROM={{ ns.local_image }} >> $BASH_ENV
-        - checkout
-        - setup_remote_docker:
-            docker_layer_caching: true
-            version: 20.10.14
-        - run:
-            name: Build Dockerfile
-            command: |
-                set -x
-                export DOCKER_BUILDKIT=1
-                docker pull {{ ns.remote_image }}
-                docker build . -t {{ ns.local_image }} --cache-from={{ ns.remote_image }} --progress=plain
-                set +x
-        - run:
-            name: Save image to workspace
-            command: |
-              mkdir -p /tmp/workspace
-              docker save {{ ns.local_image }} > /tmp/workspace/scaffolding_image.tar
-        - persist_to_workspace:
-            root: /tmp/workspace
-            paths:
-              - scaffolding_image.tar
-{% endif %}
+      - checkout
+      {{ setup_remote_docker() }}
+      - run:
+          name: Build Dockerfile
+          command: |
+            set -x
+            export DOCKER_BUILDKIT=1
+            docker pull {{ ns.remote_image }}
+            docker build . -t scaffolding:ci --cache-from={{ ns.remote_image }} --progress=plain
+            set +x
+      {{ save_image_to_workspace() }}
+  pull-image:
+    executor: base
+    steps:
+      {{ setup_remote_docker() }}
+      - run:
+          name: Pull scaffolding image
+          command: |
+            set -x
+            docker pull {{ ns.remote_image }}
+            set +x
+      - run:
+          name: Set image's tag for CI use
+          command: |
+            docker tag {{ ns.remote_image }} {{ ns.local_image }}
+      {{ save_image_to_workspace() }}
   setup-workspace:
     executor:
       name: python/default
@@ -141,7 +147,11 @@ workflows:
   pipeline:
     jobs:
     {% if build_image %}
-      - build-image
+      - build-image:
+          name: setup-image
+    {% else %}
+      - pull-image:
+          name: setup-image
     {% endif %}
       - setup-workspace
     {% for scenario in scenarios %}
@@ -150,9 +160,7 @@ workflows:
           varsfile: {{ scenario }}
           requires:
             - setup-workspace
-          {% if build_image %}
-            - build-image
-          {% endif %}
+            - setup-image
       - install-cilium:
           name: cilium-{{ scenario }}
           varsfile: {{ scenario }}
