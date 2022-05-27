@@ -6,7 +6,7 @@
           docker_layer_caching: true
           version: 20.10.14
 {% endmacro %}
-{% macro save_image_to_workspace() %}
+{% macro save_image() %}
       - run:
           name: Save image to workspace
           command: |
@@ -16,6 +16,8 @@
           root: /tmp/workspace
           paths:
             - scaffolding_image.tar
+      - store_artifacts:
+          path: /tmp/workspace/scaffolding_image.tar
 {% endmacro %}
 {% macro playbook_step(job_name, playbook, tags, extra_args) %}
   {{ job_name }}:
@@ -91,7 +93,7 @@ jobs:
             docker pull {{ ns.remote_image }}
             docker build . -t {{ ns.local_image }} --cache-from={{ ns.remote_image }} --progress=plain
             set +x
-      {{ save_image_to_workspace() }}
+      {{ save_image() }}
   pull-image:
     executor: base
     steps:
@@ -106,7 +108,7 @@ jobs:
           name: Set image's tag for CI use
           command: |
             docker tag {{ ns.remote_image }} {{ ns.local_image }}
-      {{ save_image_to_workspace() }}
+      {{ save_image() }}
   setup-workspace:
     executor:
       name: python/default
@@ -137,7 +139,7 @@ jobs:
   {{ playbook_step("install-cilium", "install-cilium.yml", "gke", "") }}
   {{ playbook_step("set-kernel", "kernel.yml", "gke,kernel", "") }}
   {{ playbook_step("install-tools", "tools.yml", "gke,benchmark-operator,prometheus", "") }}
-  {{ playbook_step("validate", "validate.yml", "gke", "") }}
+  {{ playbook_step("validate", "validate.yml", "", "") }}
   {{ playbook_step("datapath", "benchmark.yml", "datapath", "") }}
   {{ playbook_step("agent", "benchmark.yml", "agent", "") }}
   {{ playbook_step("teardown", "platform.yml", "gke", "-e 'destroy=true' -e 'create=false'") }}
