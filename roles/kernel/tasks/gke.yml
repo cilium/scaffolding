@@ -31,7 +31,7 @@
   - name: Restart GKE nodes
     shell: |
       export KUBECONFIG={{kubeconfig}}
-      kubectl node restart all --force --restart-deadline=600s --kubelet-deadline=600s
+      for n in $(kubectl get nodes -o custom-columns=:.metadata.name --no-headers); do kubectl node restart --force -s 0 -rd 600 -l kubernetes.io/hostname=$n & done
 
   - name: Delete DS
     shell: |
