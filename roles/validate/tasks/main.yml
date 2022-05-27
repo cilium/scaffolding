@@ -8,7 +8,7 @@
 - name: Check cilium status
   shell: |
     export KUBECONFIG={{kubeconfig}}
-    {{archive_dir}} cilium status
+    {{archive_dir}}/cilium status
 
 - name : Cilium Connectivity Check
   shell: |
@@ -16,6 +16,5 @@
     export KUBECONFIG={{kubeconfig}}
     {{archive_dir}}/cilium connectivity test | tee {{archive_dir}}/connectivity-test.out
   register: connectivity_check
-  tags: gke
 
 - debug: var=connectivity_check.stdout_lines
