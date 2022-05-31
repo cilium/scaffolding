@@ -10,6 +10,11 @@
     export KUBECONFIG={{kubeconfig}}
     {{archive_dir}}/cilium status
 
+- name: Wait for cilium to be up
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    {{archive_dir}}/cilium status --wait --wait-duration=5m
+
 - name : Cilium Connectivity Check
   shell: |
     set -o pipefail
