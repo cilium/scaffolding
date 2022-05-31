@@ -5,6 +5,8 @@ archive_dir: /tmp/auto_perf/{{start_time}}
 # Etiher create cluster or destroy a given cluster
 create: false
 destroy: false
+# Toggle creating kubeconfig and logging in to platform
+auth: true
 
 # Number of nodes for the initial cluster
 num_nodes: 1
