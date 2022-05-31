@@ -8,6 +8,7 @@ RUN mkdir -p /usr/local/gcloud && \
   rm -rf /usr/local/gcloud/google-cloud-sdk/.install/backup
 ENV PATH="/usr/local/gcloud/google-cloud-sdk/bin:${PATH}"
 RUN dnf install -y --nodocs \
+    gettext \
     git \
     helm \
     jq \
