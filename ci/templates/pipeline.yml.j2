@@ -137,7 +137,7 @@ jobs:
           path: /tmp/workspace
   {{ playbook_step("create-platform", "platform.yml", "gke", "") }}
   {{ playbook_step("install-cilium", "install-cilium.yml", "gke", "") }}
-  {{ playbook_step("set-kernel", "kernel.yml", "gke,kernel", "") }}
+  {{ playbook_step("set-kernel", "kernel.yml", "gke", "") }}
   {{ playbook_step("install-tools", "tools.yml", "gke,benchmark-operator,prometheus", "") }}
   {{ playbook_step("validate", "validate.yml", "always", "") }}
   {{ playbook_step("datapath", "benchmark.yml", "datapath", "") }}
