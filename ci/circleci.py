@@ -163,11 +163,6 @@ def get_argument_parser() -> argparse.ArgumentParser:
         """,
     )
     parser.add_argument(
-        "es_url",
-        help="Set output elasticsearch URL.",
-        default=None,
-    )
-    parser.add_argument(
         "--just-varfiles",
         help="If given, only varfiles will be written",
         action=argparse.BooleanOptionalAction,
@@ -190,7 +185,6 @@ def main():
     (output_dir / VARS_DIR_PATH).mkdir(parents=True, exist_ok=True)
 
     matrix_handler = MatrixHandler()
-    matrix_handler.add_vars(ES_URL=args.es_url)
     matrix_handler.load()
     matrix_handler.write(output_dir)
     scenario_list = list(matrix_handler.scenarios.keys())
@@ -201,7 +195,6 @@ def main():
     template_handler = TemplateHandler()
     template_handler.add_vars(
         build_image=args.build_image,
-        es_url=args.es_url,
         scenarios=scenario_list,
         vars_dir=VARS_DIR_PATH,
     )

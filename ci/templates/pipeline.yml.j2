@@ -55,7 +55,7 @@
           name: Run the {{ playbook }} playbook
           command: |
             set -x
-            docker run --volumes-from workspace --name scaffolding_container {{ ns.local_image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=$ARCHIVE_DIR" {{ extra_args }} {{ playbook }} -vvv
+            docker run --volumes-from workspace --name scaffolding_container {{ ns.local_image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=$ARCHIVE_DIR" {{ extra_args }} {{ playbook }} -e "es_url=${ES_URL}"-vvv
             set +x
       - run:
           name: Save archive
@@ -123,7 +123,7 @@ jobs:
       - run:
           name: Generate varfiles
           command: |
-            python3 ci/circleci.py /tmp/workspace/ {{ es_url }} --just-varfiles
+            python3 ci/circleci.py /tmp/workspace/ --just-varfiles
       - run:
           name: Setup GKE sa file
           command: |

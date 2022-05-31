@@ -10,7 +10,6 @@
 //
 // Parameters universal to all items in the matrix
 local UNI_PARAMS = {
-    'es_url': std.extVar('ES_URL'),
     'num_nodes': 2,
     'cluster_prefix': 'circleci-cilium-perf-ci',
     'create': true,

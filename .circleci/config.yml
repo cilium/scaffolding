@@ -23,7 +23,7 @@ jobs:
           name: Generate Pipeline Assets
           command: |
             mkdir -p /tmp/generated
-            python3 ci/circleci.py /tmp/generated test_es_url --build-image
+            python3 ci/circleci.py /tmp/generated --build-image
       - persist_to_workspace:
           root: /tmp/generated/
           paths:
