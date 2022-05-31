@@ -28,10 +28,14 @@
       export KUBECONFIG={{kubeconfig}}
       kubectl rollout status ds/node-initializer
 
+  # Assumption we are logged into the account, might need to add login method to use gcloud cli
   - name: Restart GKE nodes
     shell: |
-      export KUBECONFIG={{kubeconfig}}
-      for n in $(kubectl get nodes -o custom-columns=:.metadata.name --no-headers); do kubectl node restart --force -s 0 -rd 600 -l kubernetes.io/hostname=$n & done
+      export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
+      gcloud auth activate-service-account $(jq -r .client_email {{ gke['sa_file'] }}) --key-file={{ gke['sa_file'] }} --project $(jq -r .project_id {{ gke['sa_file'] }})
+      yes | gcloud config set project {{ gke['project'] }}
+      gcloud compute instances reset --zone {{ gke['region'] }} {{ item }}
+    loop: "{{ node_list.stdout_lines }}"
 
   - name: Delete DS
     shell: |
