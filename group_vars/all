@@ -7,6 +7,9 @@ scaffolding_index: scaffolding
 create: false
 destroy: false
 
+apply_tool_label: true
+tool_label: "scaffolding/app:tools"
+
 # Number of nodes for the initial cluster
 num_nodes: 1
 

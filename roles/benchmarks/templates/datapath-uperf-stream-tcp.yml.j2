@@ -24,7 +24,18 @@ spec:
       serviceip: false
       networkpolicy: false
       debug: false
+{% if server_node.stdout is defined %}
+
+      pin: true
+      pin_server: {{server_node.stdout }}
+      pin_client: {{client_node.stdout }}
+
+{% else %}
+
       pin: false
+
+{% endif %}
+
       samples: {{ samples }}
       pair: 1
       nthrs:

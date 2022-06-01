@@ -35,12 +35,6 @@
     ignore_errors: true
     register: kernel_capture
 
-  - name: Retrieve number of nodes
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl get nodes -o wide -o jsonpath="{.items[*].status.nodeInfo.kernelVersion}" | wc -w
-    ignore_errors: true
-    register: node_count
 
   - name: Retrieve start time
     shell: |
@@ -55,7 +49,6 @@
   - set_fact:
       start_time: "{{ start_time.stdout | default('test-start')}}"
       test_platform: "{{ platform.stdout | default('test-platform')}}"
-      num_nodes: "{{node_count.stdout|int}}"
       run_id: "{{test_kernel}}-{{cilium_version}}"
       num_pods: "{{pod_count.stdout|int}}"
 
@@ -80,10 +73,20 @@
     - name: Label nodes
       shell: |
         export KUBECONFIG={{kubeconfig}}
-        for node in `kubectl get nodes -o custom-columns=:.metadata.name --no-headers`; do
+        for node in `kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l "{{tool_label.split(":")[0]}} notin ({{tool_label.split(":")[1]}})"`; do
           kubectl label node/$node node-role.kubernetes.io/worker=
         done
       when: labeled_node_count.stdout|int == 0
+
+    - name: Retrieve number of nodes
+      shell: |
+        export KUBECONFIG={{kubeconfig}}
+        kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l node-role.kubernetes.io/worker= | wc -l
+      ignore_errors: true
+      register: node_count
+
+    - set_fact:
+        num_workers: "{{node_count.stdout|int}}"
 
     - name: Generate agent performance benchmarks
       template:
