@@ -12,7 +12,6 @@
 local UNI_PARAMS = {
     'num_nodes': 2,
     'cluster_prefix': 'circleci-cilium-perf-ci',
-    'create': true,
     'gke': {
         'sa_file': '/tmp/workspace/sa.json'
     },

@@ -135,7 +135,7 @@ jobs:
             - sa.json
       - store_artifacts:
           path: /tmp/workspace
-  {{ playbook_step("create-platform", "platform.yml", "gke", "") }}
+  {{ playbook_step("create-platform", "platform.yml", "gke", "-e 'destroy=false' -e 'create=true'") }}
   {{ playbook_step("install-cilium", "install-cilium.yml", "gke", "") }}
   {{ playbook_step("set-kernel", "kernel.yml", "gke", "") }}
   {{ playbook_step("install-tools", "tools.yml", "gke,benchmark-operator,prometheus", "") }}
