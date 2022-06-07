@@ -63,10 +63,30 @@
   - name: Label nodes
     shell: |
       export KUBECONFIG={{kubeconfig}}
-      for node in `kubectl get nodes -o custom-columns=:.metadata.name --no-headers`; do
+      for node in `kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l "{{tool_label.split(":")[0]}} notin ({{tool_label.split(":")[1]}})"`; do
         kubectl label node/$node node-role.kubernetes.io/worker=
       done
     when: labeled_node_count.stdout|int == 0
+
+  - name: Check for node labels
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l node-role.kubernetes.io/worker= | wc -l
+    register: node_count
+
+  - name: Determine server node (> 2 nodes)
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l node-role.kubernetes.io/worker= -o jsonpath="{.items[0].metadata.name}"
+    when: node_count.stdout|int >= 2
+    register: server_node
+
+  - name: Determine client node (> 2 nodes)
+    shell: |
+      export KUBECONFIG={{kubeconfig}}
+      kubectl get nodes -o custom-columns=:.metadata.name --no-headers -l node-role.kubernetes.io/worker= -o jsonpath="{.items[1].metadata.name}"
+    when: node_count.stdout|int >= 2
+    register: client_node
 
   - name: Generate data-path performance benchmarks
     template:

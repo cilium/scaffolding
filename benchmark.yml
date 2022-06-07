@@ -3,4 +3,3 @@
   gather_facts: true
   roles:
   - role: benchmarks
-    tags: datapath
