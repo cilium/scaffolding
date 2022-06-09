@@ -45,7 +45,7 @@
       content: "true"
       dest: "{{archive_dir}}/destroyed"
 
-  when: destroy
+  when: destroy | bool
 
 - block:
 
@@ -122,4 +122,4 @@
         - https://www.googleapis.com/auth/cloud-platform
       state: present
 
-  when: create
+  when: create | bool

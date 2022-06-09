@@ -18,4 +18,4 @@
   - set_fact:
       kubeconfig: "{{archive_dir}}/kubeconfig"
   
-  when: auth
+  when: auth | bool

@@ -26,7 +26,7 @@
     - debug:
         msg: "{{labeled_node}}"
 
-  when: apply_tool_label
+  when: apply_tool_label | bool
   tags: prometheus,benchmark-operator
 
 #
