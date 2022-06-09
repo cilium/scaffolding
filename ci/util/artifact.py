@@ -1361,7 +1361,8 @@ def main(
     if token_file:
         token = Path(token).read_text().strip()
     if output_dir is None:
-        output_dir = Path(".")
+        output_dir = "."
+    output_dir = Path(output_dir)
 
     if url_file is not None:
         url_file = Path(url_file)
