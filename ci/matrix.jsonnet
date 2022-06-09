@@ -3,11 +3,6 @@
 // Each entry in the outputted array is JSON-formatted vars file that can be
 // passed to ansible.
 //
-// Be sure to pass ES_URL as an external
-// variable:
-//
-//     jsonnet --ext-str "ES_URL=$ES_URL" matrix.jsonnet
-//
 // Parameters universal to all items in the matrix
 local UNI_PARAMS = {
     'num_nodes': 2,

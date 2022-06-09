@@ -157,14 +157,14 @@ def get_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "output_dir",
         help="""Directory to output results to. Will create the following files/dirs:
-        - matrix.json: Testing matrix (if varfiles mode is used)
+        - matrix.json: Testing matrix
         - vars/: Ansible variable files passed to CircleCI workflow
-        - pipeline.yml: CircleCI workflow (if pipeline mode is used)
+        - pipeline.yml: CircleCI workflow
         """,
     )
     parser.add_argument(
         "--just-varfiles",
-        help="If given, only varfiles will be written",
+        help="If given, only varfiles will be written to output_dir",
         action=argparse.BooleanOptionalAction,
         default=False,
     )
