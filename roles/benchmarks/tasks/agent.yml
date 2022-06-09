@@ -11,10 +11,10 @@
   register: bmo
 
 - block:
-  - name: Apply kube-burner SA
-    shell: |
-      export KUBECONFIG={{kubeconfig}}
-      kubectl apply -f {{archive_dir}}/bmo/resources/kube-burner-role.yml
+#  - name: Apply kube-burner SA
+#    shell: |
+#      export KUBECONFIG={{kubeconfig}}
+#      kubectl apply -f {{archive_dir}}/bmo/resources/kube-burner-role.yml
 
   - name: Capture current pod count
     shell: |
