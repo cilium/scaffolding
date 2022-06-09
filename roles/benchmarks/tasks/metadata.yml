@@ -1,0 +1,58 @@
+---
+- name: Setup kubeconfig
+  set_fact:
+    kubeconfig: "{{archive_dir}}/kubeconfig"
+  when: kubeconfig|length < 1
+
+- name: Retrieve cilium version
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    {{archive_dir}}/cilium version | grep running | awk '{print $4}'
+  register: cilium_running_version
+
+- set_fact:
+    cilium_version: "{{ cilium_running_version.stdout }}"
+  when: test_platform is undefined
+
+- name: Retrieve k8s version
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    kubectl version -o json| jq .serverVersion.gitVersion | sed 's/"//g'
+  register: gitversion
+
+- name: Attempt to determine platform - GKE
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    kubectl get nodes $(kubectl get nodes -o custom-columns=:.metadata.name --no-headers) -o json | grep "gke.gcr.io"
+  register: gke_check
+  when: test_platform is undefined
+
+- set_fact:
+    test_platform: "gke"
+  when: gke_check.rc == 0
+
+- name: Retrieve region
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    kubectl get nodes -o jsonpath="{.items[0].metadata.labels.topology\.kubernetes\.io\/region}"
+  register: region_capture
+
+- name: Retrieve kernel
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    kubectl get nodes -o wide -o jsonpath="{.items[0].status.nodeInfo.kernelVersion}" | tee {{archive_dir}}/kernel
+  ignore_errors: true
+  register: kernel_capture
+
+- name: Retrieve instance size
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    kubectl get nodes $(kubectl get nodes -o custom-columns=:.metadata.name --no-headers) -o jsonpath="{.items[0].metadata.labels.node\.kubernetes\.io/instance-type}"
+  ignore_errors: true
+  register: worker_size
+
+- set_fact:
+    k8s_version: "{{gitversion.stdout | default('unknown-k8s')}}"
+    kernel: "{{ kernel_capture.stdout | default('test-kernel')}}"
+    region: "{{region_capture.stdout | default('unknown-region')}}"
+    worker_size: "{{worker_size.stdout | default('unknown')}}"
