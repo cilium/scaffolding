@@ -179,8 +179,6 @@ class PipelineVCS:
 class Pipeline:
     """
     Response item to the 'pipeline' CircleCI API endpoint.
-
-    See `PipelineList`.
     """
 
     id: str
@@ -199,21 +197,9 @@ class Pipeline:
 
 
 @dataclasses.dataclass
-class PipelineList:
-    """
-    Response to the 'pipeline' CircleCI API endpoint.
-    """
-
-    items: t.List[Pipeline]
-    next_page_token: str
-
-
-@dataclasses.dataclass
 class Workflow:
     """
     Response item to the 'workflow' CircleCI API endpoint.
-
-    See `WorkflowList`.
     """
 
     pipeline_id: str
@@ -234,21 +220,9 @@ class Workflow:
 
 
 @dataclasses.dataclass
-class WorkflowList:
-    """
-    Response to the 'workflow' CircleCI API endpoint.
-    """
-
-    items: t.List[Workflow]
-    next_page_token: str
-
-
-@dataclasses.dataclass
 class Job:
     """
     Response item to the `jobs` CircleCI API endpoint.
-
-    See `JobList`.
     """
 
     dependencies: t.List[str]
@@ -269,36 +243,14 @@ class Job:
 
 
 @dataclasses.dataclass
-class JobList:
-    """
-    Response to the `jobs` CircleCI API endpoint.
-    """
-
-    items: t.List[Job]
-    next_page_token: str
-
-
-@dataclasses.dataclass
 class Artifact:
     """
     Response item to the `artifacts` CircleCI API endpoint.
-
-    See `ArtifactList`.
     """
 
     path: str
     node_index: int
     url: str
-
-
-@dataclasses.dataclass
-class ArtifactList:
-    """
-    Response to the `artifacts` CircleCI API endpoint.
-    """
-
-    items: t.List[Artifact]
-    next_page_token: str
 
 
 @dataclasses.dataclass
@@ -531,6 +483,13 @@ class CircleApiHandler:
 
         if isinstance(resp, list):
             return [self._construct_resp(item, dataclass) for item in resp]
+        
+        # Handle paginated responses
+        # Currently ignore need for making another request using the 
+        # next page token, as for our use cases we should be able
+        # to fit all our results for each endpoint in one page
+        if "items" in resp.keys() and "next_page_token" in resp.keys():
+            return self._construct_resp(resp["items"], dataclass)
 
         self._validate_resp_keys(resp, self._get_field_names_from_dc(dataclass))
 
@@ -643,6 +602,10 @@ class CircleApiHandler:
         ValueError
             If the given response cannot be turned into a list of
             `Organization` dataclasses.
+        
+        Returns
+        -------
+        List of Organizations
         """
 
         result = self._do_request(
@@ -712,7 +675,7 @@ class CircleApiHandler:
 
     @_requires("api_key", "org", "project")
     @_cached
-    def pipelines(self) -> PipelineList:
+    def pipelines(self) -> t.List[Pipeline]:
         """
         Provide list of pipelines within the current Project.
 
@@ -722,11 +685,11 @@ class CircleApiHandler:
         ------
         ValueError
             If the given response cannot be turned into a
-            `PipelineList` dataclass.
+            list of `Pipeline` dataclasses.
 
         Returns
         -------
-        PipelineList
+        list of Pipeline
         """
 
         result = self._do_request(
@@ -735,7 +698,7 @@ class CircleApiHandler:
             self.context.api_key,  # type: ignore
         )
 
-        return self._construct_resp(result, PipelineList)
+        return self._construct_resp(result, Pipeline)
 
     @_requires("api_key", "org", "project")
     @_cached
@@ -754,7 +717,7 @@ class CircleApiHandler:
             If pipeline with given id cannot be found.
         """
 
-        pipelines = self.pipelines().items
+        pipelines = self.pipelines()
         for pipeline in pipelines:
             if pipeline.id == id:
                 return pipeline
@@ -762,7 +725,7 @@ class CircleApiHandler:
 
     @_requires("api_key", "pipeline")
     @_cached
-    def workflows(self) -> WorkflowList:
+    def workflows(self) -> t.List[Workflow]:
         """
         Provide list of Workflows within current Pipeline.
 
@@ -771,12 +734,12 @@ class CircleApiHandler:
         Raises
         ------
         ValueError
-            If the given response cannot be turned into a `WorkflowList`
-            dataclass.
+            If the given response cannot be turned into a list of
+            `Workflow` dataclasses.
 
         Returns
         -------
-        WorkflowList
+        List of Workflow
         """
 
         result = self._do_request(
@@ -785,7 +748,7 @@ class CircleApiHandler:
             self.context.api_key,  # type: ignore
         )
 
-        return self._construct_resp(result, WorkflowList)
+        return self._construct_resp(result, Workflow)
 
     @_requires("api_key", "pipeline")
     @_cached
@@ -804,7 +767,7 @@ class CircleApiHandler:
             If workflow with given id cannot be found.
         """
 
-        workflows = self.workflows().items
+        workflows = self.workflows()
         for workflow in workflows:
             if workflow.id == id:
                 return workflow
@@ -812,7 +775,7 @@ class CircleApiHandler:
 
     @_requires("api_key", "workflow")
     @_cached
-    def jobs(self) -> JobList:
+    def jobs(self) -> t.List[Job]:
         """
         Provide list of Jobs within current Workflow.
 
@@ -821,12 +784,12 @@ class CircleApiHandler:
         Raises
         ------
         ValueError
-            If the given response cannot be turned into a `JobList`
-            dataclass
+            If the given response cannot be turned into a list of
+            `Jobs` dataclasses
 
         Returns
         -------
-        JobList
+        List of Jobs
         """
 
         result = self._do_request(
@@ -835,7 +798,7 @@ class CircleApiHandler:
             self.context.api_key,  # type: ignore
         )
 
-        return self._construct_resp(result, JobList)
+        return self._construct_resp(result, Job)
 
     @_requires("api_key", "workflow")
     @_cached
@@ -854,7 +817,7 @@ class CircleApiHandler:
             If job with given id cannot be found.
         """
 
-        jobs = self.jobs().items
+        jobs = self.jobs()
         for job in jobs:
             if job.id == id:
                 return job
@@ -862,7 +825,7 @@ class CircleApiHandler:
 
     @_requires("api_key", "project", "job")
     @_cached
-    def artifacts(self) -> ArtifactList:
+    def artifacts(self) -> t.List[Artifact]:
         """
         Provide list of Artifacts within the current Job.
 
@@ -871,12 +834,12 @@ class CircleApiHandler:
         Raises
         ------
         ValueError
-            If the given response cannot be turned into an `ArtifactList`
-            dataclass
+            If the given response cannot be turned into a
+            list of `Artifact` dataclasses
 
         Returns
         -------
-        ArtifactList
+        List of Artifacts
         """
 
         result = self._do_request(
@@ -886,7 +849,7 @@ class CircleApiHandler:
             self.context.api_key,  # type: ignore
         )
 
-        return self._construct_resp(result, ArtifactList)
+        return self._construct_resp(result, Artifact)
 
 
 class Prompt:
