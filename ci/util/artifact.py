@@ -14,13 +14,18 @@ Uses the CircleCI API, which requires the following input:
 
 * CircleCI API Key Token
 * Project Name
+
+Requires the following external dependencies:
+
+* click
+* questionary
+* rich
 """
 import base64
 import concurrent.futures
 import dataclasses
 import http.client
 import json
-import queue
 import sys
 import threading
 import typing as t
@@ -483,9 +488,9 @@ class CircleApiHandler:
 
         if isinstance(resp, list):
             return [self._construct_resp(item, dataclass) for item in resp]
-        
+
         # Handle paginated responses
-        # Currently ignore need for making another request using the 
+        # Currently ignore need for making another request using the
         # next page token, as for our use cases we should be able
         # to fit all our results for each endpoint in one page
         if "items" in resp.keys() and "next_page_token" in resp.keys():
@@ -602,7 +607,7 @@ class CircleApiHandler:
         ValueError
             If the given response cannot be turned into a list of
             `Organization` dataclasses.
-        
+
         Returns
         -------
         List of Organizations
