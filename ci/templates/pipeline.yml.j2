@@ -57,6 +57,7 @@
             set -x
             docker run --volumes-from workspace --name scaffolding_container {{ ns.local_image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=$ARCHIVE_DIR" {{ extra_args }} -e "es_url=${ES_URL}" -vvv {{ playbook }}
             set +x
+          no_output_timeout: 60m
       - run:
           name: Save archive
           command: |

@@ -49,6 +49,6 @@
   - name: Check node status
     shell: |
       export KUBECONFIG={{kubeconfig}}
-      kubectl wait --for=condition=Ready nodes --all --timeout=600s
+      kubectl wait --for=condition=Ready nodes --all --timeout=1200s
 
   when: kernel | length > 1
