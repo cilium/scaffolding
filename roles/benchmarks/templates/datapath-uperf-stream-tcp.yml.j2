@@ -2,7 +2,7 @@
 apiVersion: ripsaw.cloudbulldozer.io/v1alpha1
 kind: Benchmark
 metadata:
-  name: datapath-uperf-stream-tcp
+  name: {{item.name}}
   namespace: benchmark-operator
 spec:
   metadata:
@@ -19,8 +19,12 @@ spec:
   workload:
     name: uperf
     args:
-      run_id: {{ start_time }}-{{ test_platform}}-{{ test_kernel }}-datapath-stream-tcp
-      hostnetwork: false
+{% if item.hostNetwork is true %}
+      run_id: {{run_id}}-hostNet-datapath-stream-tcp
+{% else %}
+      run_id: {{run_id}}-hostNet-datapath-stream-tcp
+{% endif %}
+      hostnetwork: {{item.hostNetwork }}
       serviceip: false
       networkpolicy: false
       debug: false

@@ -91,17 +91,37 @@
   - name: Generate data-path performance benchmarks
     template:
       src: "{{item.file}}"
-      dest: "{{archive_dir}}/{{item.name}}"
+      dest: "{{archive_dir}}/{{item.name}}.yml"
     with_items:
-      - { file: datapath-uperf-stream-tcp.yml.j2, name: datapath-uperf-stream-tcp.yml}
-      - { file: datapath-uperf-stream-udp.yml.j2, name: datapath-uperf-stream-udp.yml}
-      - { file: datapath-uperf-rr.yml.j2, name: datapath-uperf-rr.yml }
+      - { file: datapath-uperf-stream-tcp.yml.j2, name: datapath-uperf-stream-tcp, hostNetwork: false }
+      - { file: datapath-uperf-stream-udp.yml.j2, name: datapath-uperf-stream-udp, hostNetwork: false }
+      - { file: datapath-uperf-rr.yml.j2, name: datapath-uperf-rr, hostNetwork: false }
 
-  - name: Run datapath benchmarks
+  - name: Generate hostNetwork data-path performance benchmarks
+    template:
+      src: "{{item.file}}"
+      dest: "{{archive_dir}}/{{item.name}}.yml"
+    with_items:
+      - { file: datapath-uperf-stream-tcp.yml.j2, name: datapath-host-uperf-stream-tcp, hostNetwork: true }
+      - { file: datapath-uperf-stream-udp.yml.j2, name: datapath-host-uperf-stream-udp, hostNetwork: true }
+      - { file: datapath-uperf-rr.yml.j2, name: datapath-host-uperf-rr, hostNetwork: true }
+
+  - name: Run hostNetwork datapath benchmarks
     include_tasks: run-benchmark.yml
     with_items:
       - {name: datapath-uperf-stream-tcp, file: datapath-uperf-stream-tcp.yml, report: uperf.json}
       - {name: datapath-uperf-stream-udp, file: datapath-uperf-stream-udp.yml, report: uperf.json}
       - {name: datapath-uperf-rr, file: datapath-uperf-rr.yml, report: uperf.json}
+
+  - name: Run datapath benchmarks
+    include_tasks: run-benchmark.yml
+    with_items:
+      - {name: datapath-host-uperf-stream-tcp, file: datapath-host-uperf-stream-tcp.yml, report: uperf.json}
+      - {name: datapath-host-uperf-stream-udp, file: datapath-host-uperf-stream-udp.yml, report: uperf.json}
+      - {name: datapath-host-uperf-rr, file: datapath-host-uperf-rr.yml, report: uperf.json}
+      - {name: datapath-uperf-stream-tcp, file: datapath-uperf-stream-tcp.yml, report: uperf.json}
+      - {name: datapath-uperf-stream-udp, file: datapath-uperf-stream-udp.yml, report: uperf.json}
+      - {name: datapath-uperf-rr, file: datapath-uperf-rr.yml, report: uperf.json}
+
 
   when: bmo.rc == 0
