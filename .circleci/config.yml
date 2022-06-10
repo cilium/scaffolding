@@ -1,5 +1,12 @@
 version: 2.1
 setup: true
+parameters:
+  run_pipeline:
+    type: boolean
+    default: false
+  build_images:
+    type: boolean
+    default: false
 orbs:
   docker: circleci/docker@2.1.1
   python: circleci/python@2.0.3
@@ -35,9 +42,23 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/workspace
-      - continuation/continue:
-          parameters: '{}'
-          configuration_path: /tmp/workspace/pipeline.yml
+      - when:
+          condition:
+            or:
+              - and:
+                  - << pipeline.git.tag >>
+                  - equal: [ main, << pipeline.git.branch >> ]
+              - << pipeline.parameters.build_images >>
+          steps:
+            - continuation/continue:
+                parameters: '{}'
+                configuration_path: /tmp/workspace/build.yml
+      - when:
+          condition: << pipeline.parameters.run_pipeline >>
+          steps:
+            - continuation/continue:
+                parameters: '{}'
+                configuration_path: /tmp/workspace/pipeline.yml
 workflows:
   setup:
     jobs:

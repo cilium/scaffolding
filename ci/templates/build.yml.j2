@@ -1,0 +1,44 @@
+version: 2.1
+orbs:
+  docker: circleci/docker@2.1.1
+jobs:
+  build-and-push:
+    executor: docker/docker
+    parameters:
+      tag:
+        type: string
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+      - checkout
+      - docker/check:
+          docker-password: QUAY_PASS
+          docker-username: QUAY_LOGIN_USER
+      - docker/build:
+          use-buildkit: true
+          cache_from: quay.io/$QUAY_USER/scaffolding:latest
+          image: $QUAY_USER/scaffolding
+          registry: quay.io
+          tag: << parameters.tag >>
+      - docker/push:
+          image: $QUAY_USER/scaffolding
+          registry: quay.io
+          tag: << parameters.tag >>
+
+workflows:
+  update-scaffolding-image-tag:
+    jobs:
+      - build-and-push:
+          tag: $CIRCLE_BRANCH
+          filters:
+            tags:
+              only: /^v.*/
+  update-scaffolding-image-latest:
+    jobs:
+      - build-and-push:
+          tag: latest
+          filters:
+            branches:
+              only:
+                - main
