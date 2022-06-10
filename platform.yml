@@ -3,5 +3,3 @@
   gather_facts: true
   roles:
   - role: platform
-  - role: auth
-

@@ -121,5 +121,9 @@
       scopes:
         - https://www.googleapis.com/auth/cloud-platform
       state: present
+  
+  - name: Do Auth
+    include_role:
+      name: auth
 
   when: create | bool
