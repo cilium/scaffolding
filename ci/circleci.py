@@ -15,7 +15,6 @@ from pathlib import Path
 
 import _jsonnet as jsonnet
 import jinja2
-import yaml
 
 logging.basicConfig(format="%(levelname)s:%(lineno)s:%(message)s", level=logging.DEBUG)
 
@@ -119,12 +118,7 @@ class MatrixHandler:
         logging.info(
             "Got the following testing matrix:\n%s", pprint.pformat(self.matrix)
         )
-        for scenario in self.matrix:
-            logging.debug("Converting scenario to yaml: %s", scenario)
-            varfile = yaml.dump(scenario)
-            name = scenario["_name"]
-            logging.debug("Resulting yaml: %s", varfile)
-            self.scenarios[name] = varfile
+        self.scenarios = {scenario["_name"]: json.dumps(scenario) for scenario in self.matrix}
         self.loaded = True
 
     def write(self, output_path: Path):
