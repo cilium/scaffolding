@@ -30,7 +30,7 @@ function list {
 
 function download {
     list
-    echo $LIST | jq -cj '.[]|., "\n"' | while read line
+    echo $LIST | jq -cj '.items[]|., "\n"' | while read line
     do
         path=$(echo $line | jq -r .path)
         if echo $path | grep -E "${DOWNLOAD_MATCH}" -q; then
@@ -38,7 +38,7 @@ function download {
             echo $line
             echo "----------"
             mkdir -p $(dirname "${path}")
-            curl -o $path $url 
+            curl -Lo $path $url 
         fi
     done
 }
