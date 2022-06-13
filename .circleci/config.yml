@@ -42,6 +42,19 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/workspace
+      - run:
+          name: Show image build triggers
+          command: |
+            echo Condition variables for building images:
+            echo pipeline.git.tag \"<< pipeline.git.tag >>\"
+            echo pipeline.git.branch \"<< pipeline.git.branch >>\"
+            echo pipeline.parameters.build_images \"<< pipeline.parameters.build_images >>\"
+            if [[ -n "<< pipeline.git.tag >>" || "<<pipeline.git.branch>>" == "main" || "<< pipeline.parameters.build_images >>" == "true" ]]
+            then
+              echo "Building images"
+            else
+              echo "Skipping image build"
+            fi
       - when:
           condition:
             or:
@@ -53,6 +66,17 @@ jobs:
             - continuation/continue:
                 parameters: '{}'
                 configuration_path: /tmp/workspace/build.yml
+      - run:
+          name: Show pipeline triggers
+          command: |
+            echo Condition variables for running pipeline:
+            echo pipeline.parameters.run_pipeline \"<< pipeline.parameters.run_pipeline >>\"
+            if [[ "<< pipeline.parameters.run_pipeline >>" == "true" ]]
+            then
+              echo "Running pipeline"
+            else
+              echo "Skipping pipeline"
+            fi
       - when:
           condition: << pipeline.parameters.run_pipeline >>
           steps:
