@@ -55,7 +55,7 @@
           name: Run the {{ playbook }} playbook
           command: |
             set -x
-            docker run --volumes-from workspace --name scaffolding_container {{ ns.local_image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=$ARCHIVE_DIR" {{ extra_args }} -e "es_url=${ES_URL}" -vvv {{ playbook }}
+            docker run --volumes-from workspace --name scaffolding_container {{ ns.local_image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=${ARCHIVE_DIR}" {{ extra_args }} -e "es_url=${ES_URL}" -e "cluster_id=${CIRCLE_BUILD_NUM}" -vvv {{ playbook }}
             set +x
           no_output_timeout: 60m
       - run:

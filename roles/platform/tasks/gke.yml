@@ -50,7 +50,7 @@
 - block:
 
   - set_fact:
-      gke_cluster_name: "{{cluster_prefix}}-{{start_time}}"
+      gke_cluster_name: "{{cluster_prefix}}-{{cluster_id}}"
   - debug:
       msg: GKE Cluster name {{ gke_cluster_name }}
 
