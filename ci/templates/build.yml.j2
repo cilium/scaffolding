@@ -33,6 +33,7 @@ jobs:
           image: $QUAY_USER/scaffolding
           registry: quay.io
           tag: << parameters.tag >>
+          extra_build_args: '--build-arg BUILDKIT_INLINE_CACHE=1'
       - docker/push:
           image: $QUAY_USER/scaffolding
           registry: quay.io
