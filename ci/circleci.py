@@ -23,6 +23,7 @@ TEMPLATES_PATH: Path = ROOT_PATH / "templates"
 MATRIX_OUTPUT_NAME: str = "matrix.json"
 MATRIX_PATH: Path = ROOT_PATH / "matrix.jsonnet"
 VARS_DIR_PATH: str = "vars"
+SETUP_CONFIG_PATH: Path = (ROOT_PATH / ".." / ".circleci/config.yml").resolve()
 
 
 def render_and_write_templates(output_path: Path, **kwargs) -> None:
@@ -51,7 +52,7 @@ def render_and_write_templates(output_path: Path, **kwargs) -> None:
         template = environment.get_template(template_name)
         result = template.render(**kwargs)
         logging.debug(
-            "Rendered %s as %s",
+            "Rendered %s as\n%s",
             template_name,
             result,
         )
@@ -111,6 +112,33 @@ def render_and_write_matrix(output_path: Path, **kwargs) -> t.Dict[str, str]:
     return scenarios
 
 
+def get_setup_pipeline_parameters() -> str:
+    """
+    Return yaml string of setup pipeline's parameters.
+
+    Per spec of CircleCI Dynamic configurations, any continued
+    pipelines must have the same parameters as the setup pipeline.
+    This function grabs the yaml representing the parameters
+    from the setup pipeline and returns it, allowing it to be
+    substituted into rendered pipelines.
+    """
+
+    # This is pretty crud, but should be fine for our purposes
+    # parameters are after "setup" and before "orbs" keys
+    capture = False
+    parameters = ""
+    with open(SETUP_CONFIG_PATH, "r") as config_handler:
+        for line in config_handler.readlines():
+            if line.startswith("setup: true"):
+                capture = True
+                continue
+            elif line.startswith("orbs:"):
+                break
+            if capture:
+                parameters += line
+    return parameters
+
+
 def get_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -160,7 +188,8 @@ def main():
         build_image=args.build_image,
         scenarios=scenario_list,
         vars_dir=VARS_DIR_PATH,
-        local_build=args.local
+        local_build=args.local,
+        parameters_str=get_setup_pipeline_parameters()
     )
 
 

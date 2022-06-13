@@ -15,10 +15,7 @@
 
 set -eo pipefail
 
-PROJECT_SLUG=""
-BUILD_NUM=""
-API_PREFIX="https://circleci.com/api/v1.1/project/"
-DOWNLOAD_MATCH=""
+API_PREFIX="https://circleci.com/api/v2/project/"
 
 API_URL=""
 function make_api_url {
