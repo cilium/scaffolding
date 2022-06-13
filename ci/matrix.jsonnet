@@ -5,12 +5,11 @@
 //
 // Parameters universal to all items in the matrix
 local UNI_PARAMS = {
-    'num_nodes': 2,
+    'num_nodes': 1,
     'cluster_prefix': 'circleci-cilium-perf-ci',
     'gke': {
         'sa_file': '/tmp/workspace/sa.json'
     },
-    'start_time': '1653585502'
 };
 local create_matrix_item(cilium_version, kernel) = {
     'cilium_version': cilium_version,
@@ -44,4 +43,4 @@ local matrix = [
 ];
 
 // matrix + extras
-[ create_matrix_item("v1.12.0-rc2", "5.18") ]
+matrix
