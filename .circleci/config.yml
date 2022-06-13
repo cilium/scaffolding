@@ -4,7 +4,7 @@ parameters:
   run_pipeline:
     type: boolean
     default: false
-  build_images:
+  skip_image_build_pipeline:
     type: boolean
     default: false
 orbs:
@@ -48,8 +48,8 @@ jobs:
             echo Condition variables for building images:
             echo pipeline.git.tag \"<< pipeline.git.tag >>\"
             echo pipeline.git.branch \"<< pipeline.git.branch >>\"
-            echo pipeline.parameters.build_images \"<< pipeline.parameters.build_images >>\"
-            if [[ -n "<< pipeline.git.tag >>" || "<<pipeline.git.branch>>" == "main" || "<< pipeline.parameters.build_images >>" == "true" ]]
+            echo pipeline.parameters.skip_image_build_pipeline \"<< pipeline.parameters.skip_image_build_pipeline >>\"
+            if [[ -n "<< pipeline.git.tag >>" || "<<pipeline.git.branch>>" == "main" ]] && [[ "<< pipeline.parameters.skip_image_build_pipeline >>" == "false" ]]
             then
               echo "Building images"
             else
@@ -57,11 +57,11 @@ jobs:
             fi
       - when:
           condition:
-            or:
-              - and:
+            and:
+              - or:
                   - << pipeline.git.tag >>
                   - equal: [ main, << pipeline.git.branch >> ]
-              - << pipeline.parameters.build_images >>
+              - not: << pipeline.parameters.skip_image_build_pipeline >>
           steps:
             - continuation/continue:
                 parameters: '{}'
