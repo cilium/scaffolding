@@ -44,7 +44,7 @@ def render_and_write_templates(output_path: Path, **kwargs) -> None:
     templates = environment.list_templates()
     logging.info("Rendering the following templates: %s", ", ".join(templates))
     logging.info(
-        "Using the following context: %s", pprint.pformat(**kwargs, indent=4)
+        "Using the following context: %s", pprint.pformat(kwargs, indent=4)
     )
     for template_name in templates:
         logging.debug("Rendering %s", template_name)
@@ -133,6 +133,12 @@ def get_argument_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=False,
     )
+    parser.add_argument(
+        "--local",
+        help="Render templates with fixes for local testing with CircleCI CLI",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
     return parser
 
 
@@ -154,6 +160,7 @@ def main():
         build_image=args.build_image,
         scenarios=scenario_list,
         vars_dir=VARS_DIR_PATH,
+        local_build=args.local
     )
 
 
