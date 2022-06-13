@@ -3,7 +3,12 @@ orbs:
   docker: circleci/docker@2.1.1
 jobs:
   build-and-push:
-    executor: docker/docker
+    docker:
+      - image: cimg/base:stable
+      {% if local_build %}
+        # See https://github.com/CircleCI-Public/circleci-cli/issues/291
+        user: root
+      {% endif %}
     parameters:
       tag:
         type: string
@@ -11,10 +16,16 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
           version: 20.10.14
+      {% if local_build %}
+      - run:
+         name: Work around git permissions issue
+         command: git config --global --add safe.directory /tmp/_circleci_local_build_repo
+      {% endif %}
       - checkout
       - docker/check:
           docker-password: QUAY_PASS
           docker-username: QUAY_LOGIN_USER
+          registry: quay.io
       - docker/build:
           use-buildkit: true
           cache_from: quay.io/$QUAY_USER/scaffolding:latest
@@ -30,7 +41,7 @@ workflows:
   update-scaffolding-image-tag:
     jobs:
       - build-and-push:
-          tag: $CIRCLE_BRANCH
+          tag: $CIRCLE_TAG
           filters:
             tags:
               only: /^v.*/
