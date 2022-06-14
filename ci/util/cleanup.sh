@@ -12,4 +12,4 @@ then
     echo "Exiting"
     exit 0
 fi
-echo "$list" | tail -n +2 | cut -d' ' -f1 | xargs gcloud container clusters delete --quiet
+echo "$list" | tail -n +2 | cut -d' ' -f1 | xargs -n 1 -P 0 gcloud container clusters delete --quiet
