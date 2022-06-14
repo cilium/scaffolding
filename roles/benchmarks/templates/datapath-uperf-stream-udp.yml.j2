@@ -2,7 +2,7 @@
 apiVersion: ripsaw.cloudbulldozer.io/v1alpha1
 kind: Benchmark
 metadata:
-  name: datapath-uperf-stream-udp
+  name: {{item.name}}
   namespace: benchmark-operator
 spec:
   metadata:
@@ -19,8 +19,12 @@ spec:
   workload:
     name: uperf
     args:
+{% if item.hostNetwork is true %}
+      run_id: {{run_id}}-hostNet-datapath-stream-udp
+{% else %}
       run_id: {{run_id}}-datapath-stream-udp
-      hostnetwork: false
+{% endif %}
+      hostnetwork: {{ item.hostNetwork }}
       serviceip: false
       networkpolicy: false
       debug: false

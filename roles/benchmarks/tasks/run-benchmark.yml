@@ -34,7 +34,7 @@
 - name: Capture run uuid
   shell: |
     export KUBECONFIG={{kubeconfig}}
-    kubectl get benchmarks/{{item.name}} -n benchmark-operator --no-headers -o custom-columns=:.status.uuid | tee {{archive_dir}}/{{item.name}}-uuid
+    kubectl get benchmarks/{{item.name}} -n benchmark-operator --no-headers -o custom-columns=:.status.uuid | tee {{archive_dir}}/{{item.name}}-{{run_id}}-uuid
   register: uuid
 
 - set_fact:
@@ -67,7 +67,7 @@
 - name: Capture results
   shell: |
     cp {{ role_path }}/files/uperf.json {{archive_dir}}/
-    touchstone_compare -url {{es_url}} --config {{archive_dir}}/{{item.report}} -u {{benchmark_uuid}} | tee {{archive_dir}}/{{item.name}}-result.out
+    touchstone_compare -url {{es_url}} --config {{archive_dir}}/{{item.report}} -u {{benchmark_uuid}} | tee {{archive_dir}}/{{item.name}}-{{run_id}}-result.out
   register: report
 
 - debug:
