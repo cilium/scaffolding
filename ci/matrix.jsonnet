@@ -5,7 +5,7 @@
 //
 // Parameters universal to all items in the matrix
 local UNI_PARAMS = {
-    'num_nodes': 1,
+    'num_nodes': 2,
     'cluster_prefix': 'circleci-cilium-perf-ci',
     'gke': {
         'sa_file': '/tmp/workspace/sa.json'
