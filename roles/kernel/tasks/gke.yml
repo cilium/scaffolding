@@ -50,5 +50,23 @@
     shell: |
       export KUBECONFIG={{kubeconfig}}
       kubectl wait --for=condition=Ready nodes --all --timeout=1200s
+  
+  - name: Ensure kernel versions match
+    shell: |
+      set -eo pipefail
+      export KUBECONFIG={{kubeconfig}}
+      kernels=$(kubectl get nodes -o go-template --template {% raw %}'{{range .items}}{{.status.nodeInfo.kernelVersion}}{{" "}}{{end}}'{% endraw %})
+      echo "Looking for matches on {{ kernel }}"
+      for kernel in $kernels
+      do
+          if [[ $kernel != {{ kernel }}* ]]
+          then
+              echo "Did not match: $kernel"
+              exit 1
+          else
+              echo "Matched: $kernel"
+          fi
+      done
 
+ 
   when: kernel | length > 1
