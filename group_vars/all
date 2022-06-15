@@ -26,7 +26,7 @@ kernel: ""
 # Cilium installation options
 cilium_install_params: ""
 cilium_version: v1.12.0-rc1
-cilium_cli_version: v0.11.7
+cilium_cli_version: v0.11.8
 
 # GKE Cluster configuration
 gke:
