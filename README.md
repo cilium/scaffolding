@@ -124,9 +124,9 @@ CircleCI has a CLI which allows us to run jobs locally. This may not work for ev
 
 The process for doing this is essentially:
 
-1. Render configuration templates:
+1. Render configuration templates for local use:
 
-`python3 ci/circleci.py <output_dir>`
+`python3 ci/circleci.py --local <output_dir>`
 
 2. Process configuration into something that the CircleCI CLI can use (and validate):
 
