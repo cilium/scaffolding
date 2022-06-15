@@ -97,12 +97,60 @@ To modify the cilium install params
 
 # CI
 
-The goal of scaffolding's CI is to automate the performance testingn of Cilium within a variety of different conditions.
+The goal of scaffolding's CI is to automate the performance testing of Cilium within a variety of different conditions.
 
 Each set of conditions is referred to a 'scenario', with each scenario represented as a set of variables contained within a [vars file](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#vars-from-a-json-or-yaml-file) that modifies the behavior of one of the scaffolding Ansible playbooks.
 
 The file [ci/matrix.jsonnet](ci/matrix.jsonnet) contains the current testing matrix as a list of JSON objects, with each JSON object representing a scenario.
 
-CI is implemented through CircleCI, with a [dynamically generated configuration](https://circleci.com/docs/2.0/dynamic-config/) provided by [ci/circleci.py](ci/circleci.py).
+CI is implemented through CircleCI, with [dynamically generated configurations](https://circleci.com/docs/2.0/dynamic-config/) created by [ci/circleci.py](ci/circleci.py).
 
-This Python script will render the jsonnet testing matrix and then prepare a CircleCI configuration that will test each scenario within by rendering [ci/templates/pipeline.yml.j2](ci/templates/pipeline.yml/j2). 
+There are two different configurations which can be triggered:
+
+1. `pipeline.yml`: CircleCI configuration that will test each scenario within [ci/matrix.jsonnet](ci/matrix.jsonnet) by rendering [ci/templates/pipeline.yml.j2](ci/templates/pipeline.yml/j2). Performs some setup tasks and then runs each scenario in parallel. This must be triggered manually.
+2. `build.yml`: Builds and updates the scaffolding container image on Quay. This is triggered on a push to main or when a tag is created.
+
+## Triggering
+
+Triggering a run on the CI can be done through the web UI, however a utility script also exists for triggering a run from the command line.
+
+The script, [ci/util/trigger.sh](ci/util/trigger.sh), requires a [personal API token](https://circleci.com/docs/2.0/managing-api-tokens/#creating-a-personal-api-token), as all the script does is make an API call to the CircleCI API server.
+
+Once you have a token, view the head of the script for usage details.
+
+## Local Testing
+
+CircleCI has a CLI which allows us to run jobs locally. This may not work for everything, as the CLI cannot replicate the execution environment perfectly, but it's a great starting point to find bugs and test out changes.
+
+The process for doing this is essentially:
+
+1. Render configuration templates:
+
+`python3 ci/circleci.py <output_dir>`
+
+2. Process configuration into something that the CircleCI CLI can use (and validate):
+
+`circleci config process <output_dir>/<config>.yml > processed.yml`
+`circleci config validate processed.yml`
+
+3. Run a job within the processed config
+
+`circleci local execute -c processed.yml --job <job_name>`
+
+Be sure to view the processed configuration that you are passing into `circleci local execute`, as job names may change depending on how the configuration is parameterized.
+
+## Other CI Notes
+
+Available cilium versions can be listed by using:
+
+`cilium install --list-versions`
+
+To help improve build times, buildkit's inline caching is utilized. To manually build and push the container image, be sure to enable it:
+
+`docker build . -t scaffolding:latest --build-arg BUILDKIT_INLINE_CACHE=1`
+
+Other utility scripts:
+
+* [ci/util/artifact.sh](ci/util/artifact.sh): View and download artifacts for a job.
+* [ci/util/ppmatrix.sh](ci/util/ppmatrix.sh): Pretty-print rendered [matrix.jsonnet](ci/matrix.jsonnet).
+* [ci/util/cleanup.sh](ci/util/cleanup.sh): Cleanup GKE clusters created by the CI.
