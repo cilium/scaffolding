@@ -142,8 +142,8 @@ jobs:
   {{ playbook_step("set-kernel", "kernel.yml", "gke", "") }}
   {{ playbook_step("install-tools", "tools.yml", "gke,benchmark-operator,prometheus", "") }}
   {{ playbook_step("validate", "validate.yml", "gke", "") }}
-  {{ playbook_step("datapath", "benchmark.yml", "datapath", "") }}
-  {{ playbook_step("agent", "benchmark.yml", "agent", "") }}
+  {{ playbook_step("datapath", "benchmark.yml", "gke,datapath", "") }}
+  {{ playbook_step("agent", "benchmark.yml", "gke,agent", "") }}
   {{ playbook_step("teardown", "platform.yml", "gke", "-e 'destroy=true' -e 'create=false'") }}
 workflows:
   pipeline:
