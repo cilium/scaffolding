@@ -97,7 +97,7 @@ To modify the cilium install params
 
 # CI
 
-The goal of scaffolding's CI is to automate the performance testing of Cilium within a variety of different conditions.
+The goal of scaffolding's CI is to automate the performance testing of K8s CNIs within a variety of different conditions.
 
 Each set of conditions is referred to a 'scenario', with each scenario represented as a set of variables contained within a [vars file](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#vars-from-a-json-or-yaml-file) that modifies the behavior of one of the scaffolding Ansible playbooks.
 
@@ -118,7 +118,7 @@ The script, [ci/util/trigger.sh](ci/util/trigger.sh), requires a [personal API t
 
 Once you have a token, view the head of the script for usage details.
 
-## Local Testing
+## Testing
 
 CircleCI has a CLI which allows us to run jobs locally. This may not work for everything, as the CLI cannot replicate the execution environment perfectly, but it's a great starting point to find bugs and test out changes.
 
@@ -138,6 +138,17 @@ The process for doing this is essentially:
 `circleci local execute -c processed.yml --job <job_name>`
 
 Be sure to view the processed configuration that you are passing into `circleci local execute`, as job names may change depending on how the configuration is parameterized.
+
+To test running pipelines in their entirety, you need to use a fork to set up the project within CircleCI's web UI. (See [create-project](https://circleci.com/docs/2.0/create-project) for an overview.)
+
+The following configuration is expected:
+
+- [Environment variables](https://circleci.com/docs/2.0/env-vars#setting-an-environment-variable-in-a-project)
+  - `ES_URL`: Fully qualified URL to ElasticSearch where results will be sent to. Note that the benchmark playbook will hang if this is not set.
+  - `QUAY_LOGIN_USER`: Username for authenticating to quay.io.
+  - `QUAY_PASS`: Password for authenticating to quay.io.
+  - `QUAY_USER`: User hosting the repository for the scaffolding image (ie `quay.io/$QUAY_USER/scaffolding`)
+  - `GKE_SAFILE_B64`: Base64 encoded service account credential file for GKE. You can create this using: `cat sa.json | base64`
 
 ## Other CI Notes
 
