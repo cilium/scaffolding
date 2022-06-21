@@ -91,7 +91,7 @@ To modify the cilium install params
  *-uperf.log           # Console from workload
  datapath-uuid         # Benchmark UUID (to retrieve from ES)
  uperf.json            # For result collection (touchstone)
- *-result.out   # Result from performance run
+ *-result.out          # Result from performance run
  destroyed             # If the cluster has been destroyed
 ```
 
