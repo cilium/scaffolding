@@ -19,8 +19,8 @@ local create_matrix_item(cilium_version, kernel) = {
 
 local cilium_versions = [
     "v1.12.0-rc2",
-    "v1.11.5",
-    "v1.10.11"
+    "v1.11.6",
+    "v1.10.12"
 ];
 local kernel_versions = [
     "5.4",
