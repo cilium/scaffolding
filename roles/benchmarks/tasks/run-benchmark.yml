@@ -67,7 +67,7 @@
 - name: Capture results
   shell: |
     cp {{ role_path }}/files/uperf.json {{archive_dir}}/
-    touchstone_compare -url {{es_url}} --config {{archive_dir}}/{{item.report}} -u {{benchmark_uuid}} | tee {{archive_dir}}/{{item.name}}-{{run_id}}-result.out
+    touchstone_compare -url {{es_url}} --config {{archive_dir}}/{{item.report}} -u {{benchmark_uuid}} | tee {{archive_dir}}/{{item.name}}-{{run_id}}-{{item.file}}-result.out
   register: report
 
 - debug:
