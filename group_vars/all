@@ -7,7 +7,7 @@ scaffolding_index: scaffolding
 create: false
 destroy: false
 # Toggle creating kubeconfig and logging in to platform
-auth: true
+auth: false
 
 apply_tool_label: true
 tool_label: "scaffolding/app:tools"
