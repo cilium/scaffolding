@@ -35,6 +35,7 @@ jobs:
           root: /tmp/generated/
           paths:
             - pipeline.yml
+            - build.yml
       - store_artifacts:
           path: /tmp/generated
   run_config:
