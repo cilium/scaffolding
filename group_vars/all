@@ -9,6 +9,9 @@ destroy: false
 # Toggle creating kubeconfig and logging in to platform
 auth: false
 
+# String label to add into metadata
+scope: ''
+
 apply_tool_label: true
 tool_label: "scaffolding/app:tools"
 
@@ -26,7 +29,7 @@ kernel: ""
 # Cilium installation options
 cilium_install_params: ""
 cilium_version: v1.12.0-rc1
-cilium_cli_version: v0.11.8
+cilium_cli_version: v0.11.10
 
 # GKE Cluster configuration
 gke:
