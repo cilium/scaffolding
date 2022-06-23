@@ -3,6 +3,7 @@
   gather_facts: true
   roles:
   - role: platform
+  - role: auth
   - role: cilium
   - role: kernel
   - role: tools

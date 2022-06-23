@@ -77,7 +77,7 @@
   shell: |
     export KUBECONFIG={{kubeconfig}}
     kubectl delete benchmark/{{item.name}} -n benchmark-operator
-  when: benchmark_cleanup
+  when: benchmark_cleanup | bool
 
 
 - name: Cleanup kube-burner namespace

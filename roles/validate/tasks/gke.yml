@@ -1,0 +1,25 @@
+---
+
+- name: Setup kubeconfig
+  set_fact:
+    kubeconfig: "{{archive_dir}}/kubeconfig"
+  when: kubeconfig|length < 1
+
+- name: Check cilium status
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    {{archive_dir}}/cilium status
+
+- name: Wait for cilium to be up
+  shell: |
+    export KUBECONFIG={{kubeconfig}}
+    {{archive_dir}}/cilium status --wait --wait-duration=5m
+
+- name : Cilium Connectivity Check
+  shell: |
+    set -o pipefail
+    export KUBECONFIG={{kubeconfig}}
+    {{archive_dir}}/cilium connectivity test | tee {{archive_dir}}/connectivity-test.out
+  register: connectivity_check
+
+- debug: var=connectivity_check.stdout_lines

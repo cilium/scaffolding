@@ -35,18 +35,22 @@
       scopes:
         - https://www.googleapis.com/auth/cloud-platform
       state: absent
+    register: cleanup_result
+    retries: 5
+    delay: 60
+    until: not cleanup_result.failed
 
   - name: Add metadata about the cluster being deleted
     copy:
       content: "true"
       dest: "{{archive_dir}}/destroyed"
 
-  when: destroy
+  when: destroy | bool
 
 - block:
 
   - set_fact:
-      gke_cluster_name: "{{cluster_prefix}}-{{start_time}}"
+      gke_cluster_name: "{{cluster_prefix}}-{{cluster_id}}"
   - debug:
       msg: GKE Cluster name {{ gke_cluster_name }}
 
@@ -83,6 +87,11 @@
         - https://www.googleapis.com/auth/cloud-platform
       state: present
     register: cluster
+  
+  - name: Save cluster info to archive
+    copy:
+      content: "{{cluster}}"
+      dest: "{{archive_dir}}/cluster.json"
 
   - name: Save cluster info to archive
     copy:
@@ -111,18 +120,9 @@
       scopes:
         - https://www.googleapis.com/auth/cloud-platform
       state: present
+  
+  - name: Do Auth
+    include_role:
+      name: auth
 
-  - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
-    shell: |
-      export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
-      gcloud auth activate-service-account $(jq .client_email -r {{ gke['sa_file'] }}) --key-file={{ gke['sa_file'] }} --project $(jq .project_id -r {{ gke['sa_file'] }})
-      export KUBECONFIG={{archive_dir}}/kubeconfig
-      gcloud config set project {{ gke['project'] }}
-      gcloud config set compute/zone {{ gke['region'] }}
-      gcloud auth activate-service-account --key-file {{ gke['sa_file'] }}
-      gcloud container clusters get-credentials {{ gke_cluster_name }}
-
-  - set_fact:
-      kubeconfig: "{{archive_dir}}/kubeconfig"
-
-  when: create
+  when: create | bool

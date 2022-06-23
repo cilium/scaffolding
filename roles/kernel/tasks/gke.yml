@@ -32,7 +32,7 @@
   - name: Restart GKE nodes
     shell: |
       export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file']}}
-      gcloud auth activate-service-account $(cat sa.json | jq .client_email|sed 's/"//g' ) --key-file=sa.json --project $(cat sa.json | jq .project_id|sed 's/"//g' )
+      gcloud auth activate-service-account $(jq -r .client_email {{ gke['sa_file'] }}) --key-file={{ gke['sa_file'] }} --project $(jq -r .project_id {{ gke['sa_file'] }})
       yes | gcloud config set project {{ gke['project'] }}
       gcloud compute instances reset --zone {{ gke['region'] }} {{ item }}
     loop: "{{ node_list.stdout_lines }}"
@@ -49,6 +49,24 @@
   - name: Check node status
     shell: |
       export KUBECONFIG={{kubeconfig}}
-      kubectl wait --for=condition=Ready nodes --all --timeout=600s
+      kubectl wait --for=condition=Ready nodes --all --timeout=1200s
+  
+  - name: Ensure kernel versions match
+    shell: |
+      set -eo pipefail
+      export KUBECONFIG={{kubeconfig}}
+      kernels=$(kubectl get nodes -o go-template --template {% raw %}'{{range .items}}{{.status.nodeInfo.kernelVersion}}{{" "}}{{end}}'{% endraw %})
+      echo "Looking for matches on {{ kernel }}"
+      for kernel in $kernels
+      do
+          if [[ $kernel != {{ kernel }}* ]]
+          then
+              echo "Did not match: $kernel"
+              exit 1
+          else
+              echo "Matched: $kernel"
+          fi
+      done
 
+ 
   when: kernel | length > 1

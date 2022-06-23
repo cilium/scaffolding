@@ -1,0 +1,201 @@
+{% set ns = namespace(local_tag='ci') %}
+{% set ns.local_image = "scaffolding:" + ns.local_tag %}
+{% set ns.remote_image = "quay.io/${QUAY_USER}/scaffolding:latest" %}
+{% macro setup_remote_docker() %}
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+{% endmacro %}
+{% macro save_image() %}
+      - run:
+          name: Save image to workspace
+          command: |
+            mkdir -p /tmp/workspace
+            docker save {{ ns.local_image }} > /tmp/workspace/scaffolding_image.tar
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - scaffolding_image.tar
+      - store_artifacts:
+          path: /tmp/workspace/scaffolding_image.tar
+{% endmacro %}
+{% macro playbook_step(job_name, playbook, tags, extra_args) %}
+  {{ job_name }}:
+    executor: base
+    parameters:
+      varsfile:
+        type: string
+    environment:
+      ARCHIVE_DIR: /tmp/workspace/archive
+    steps:
+      - checkout
+      {{ setup_remote_docker() }}
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Load scaffolding Docker image
+          command: |
+              docker load < /tmp/workspace/scaffolding_image.tar
+      - run:
+          name: Setup environment variables
+          command: |
+            set -x
+            echo "export ARCHIVE_DIR=/tmp/workspace/archive" >> $BASH_ENV
+            echo "export VARSFILE=/tmp/workspace/{{ vars_dir }}/<< parameters.varsfile >>.yml" >> $BASH_ENV
+            set +x
+      - run:
+          name: Create workspace volume container
+          command: |
+            set -x
+            docker create -v /tmp --name workspace alpine:3.4 /bin/true
+            docker cp /tmp/workspace workspace:/tmp
+            docker run --volumes-from workspace alpine:3.4 ls -lR /tmp/workspace
+            set +x
+      - run:
+          name: Run the {{ playbook }} playbook
+          command: |
+            set -x
+            docker run --volumes-from workspace --name scaffolding_container {{ ns.local_image }} ansible-playbook --tags="{{ tags }}" -e @${VARSFILE} -e "archive_dir=${ARCHIVE_DIR}" {{ extra_args }} -e "es_url=${ES_URL}" -e "cluster_id=${CIRCLE_BUILD_NUM}" -vvv {{ playbook }}
+            set +x
+          no_output_timeout: 60m
+      - run:
+          name: Save archive
+          command: |
+            set -x
+            docker cp scaffolding_container:$ARCHIVE_DIR /tmp/archive
+            set +x
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - archive
+      - store_artifacts:
+          path: /tmp/archive
+          when: always
+{% endmacro %}
+version: 2.1
+{{ parameters_str }}
+orbs:
+  docker: circleci/docker@2.1.1
+  python: circleci/python@2.0.3
+executors:
+  base:
+    docker:
+      - image: cimg/base:stable
+jobs:
+  build-image:
+    executor: base
+    steps:
+      - checkout
+      {{ setup_remote_docker() }}
+      - run:
+          name: Build Dockerfile
+          command: |
+            set -x
+            export DOCKER_BUILDKIT=1
+            docker pull {{ ns.remote_image }}
+            docker build . -t {{ ns.local_image }} --cache-from={{ ns.remote_image }} --progress=plain
+            set +x
+      {{ save_image() }}
+  pull-image:
+    executor: base
+    steps:
+      {{ setup_remote_docker() }}
+      - run:
+          name: Pull scaffolding image
+          command: |
+            set -x
+            docker pull {{ ns.remote_image }}
+            set +x
+      - run:
+          name: Set image's tag for CI use
+          command: |
+            docker tag {{ ns.remote_image }} {{ ns.local_image }}
+      {{ save_image() }}
+  setup-workspace:
+    executor:
+      name: python/default
+      tag: '3.10'
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - python/install-packages:
+          pkg-manager: pip
+          app-dir: ci/
+      - run:
+          name: Generate varfiles
+          command: |
+            python3 ci/circleci.py /tmp/workspace/ --just-varfiles
+      - run:
+          name: Setup GKE sa file
+          command: |
+            echo ${GKE_SAFILE_B64} | base64 -d > /tmp/workspace/sa.json
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - vars/
+            - sa.json
+      - store_artifacts:
+          path: /tmp/workspace
+  {{ playbook_step("create-platform", "platform.yml", "gke", "-e 'destroy=false' -e 'create=true'") }}
+  {{ playbook_step("install-cilium", "install-cilium.yml", "gke", "") }}
+  {{ playbook_step("set-kernel", "kernel.yml", "gke", "") }}
+  {{ playbook_step("install-tools", "tools.yml", "gke,benchmark-operator,prometheus", "") }}
+  {{ playbook_step("validate", "validate.yml", "gke", "") }}
+  {{ playbook_step("datapath", "benchmark.yml", "gke,datapath", "") }}
+  {{ playbook_step("agent", "benchmark.yml", "gke,agent", "") }}
+  {{ playbook_step("teardown", "platform.yml", "gke", "-e 'destroy=true' -e 'create=false'") }}
+workflows:
+  pipeline:
+    jobs:
+    {% if build_image %}
+      - build-image:
+          name: setup-image
+    {% else %}
+      - pull-image:
+          name: setup-image
+    {% endif %}
+      - setup-workspace
+    {% for scenario in scenarios %}
+      - create-platform:
+          name: platform-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - setup-workspace
+            - setup-image
+      - install-cilium:
+          name: cilium-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - platform-{{ scenario }}
+      - set-kernel:
+          name: kernel-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - cilium-{{ scenario }}
+      - install-tools:
+          name: tools-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - kernel-{{ scenario }}
+      - validate:
+          name: validate-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - tools-{{ scenario }}
+      - datapath:
+          name: datapath-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - validate-{{ scenario }}
+      - agent:
+          name: agent-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - datapath-{{ scenario }}
+      - teardown:
+          name: teardown-{{ scenario }}
+          varsfile: {{ scenario }}
+          requires:
+            - agent-{{ scenario }}
+    {% endfor %}

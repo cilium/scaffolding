@@ -1,15 +1,7 @@
 ---
 
-- name: Setup kubeconfig
-  set_fact:
-    kubeconfig: "{{archive_dir}}/kubeconfig"
-  when: kubeconfig|length < 1
-
-- name : Cilium Connectivity Check
-  shell: |
-    export KUBECONFIG={{kubeconfig}}
-    {{archive_dir}}/cilium connectivity test | tee {{archive_dir}}/connectivity-test.out
-  register: connectivity_check
-  tags: gke
-
-- debug: var=connectivity_check.stdout_lines
+- block:
+  - name: Validate GKE cloud
+    include_tasks: gke.yml
+  tags:
+    - gke

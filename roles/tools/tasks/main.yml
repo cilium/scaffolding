@@ -20,13 +20,13 @@
     - name : Apply Scaffolding tool label to node
       shell: |
         export KUBECONFIG={{kubeconfig}}
-        kubectl label node $(kubectl get nodes $(kubectl get nodes -o custom-columns=:.metadata.name --no-headers) -o jsonpath="{.items[0].metadata.name}") {{tool_label|trim|replace(':','=')}} --overwrite
+        kubectl label node $(kubectl get nodes -o custom-columns=:.metadata.name --no-headers | head -n 1) {{tool_label|trim|replace(':','=')}} --overwrite
       register: labeled_node
 
     - debug:
         msg: "{{labeled_node}}"
 
-  when: apply_tool_label
+  when: apply_tool_label | bool
   tags: prometheus,benchmark-operator
 
 #

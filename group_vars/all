@@ -6,6 +6,11 @@ scaffolding_index: scaffolding
 # Etiher create cluster or destroy a given cluster
 create: false
 destroy: false
+# Toggle creating kubeconfig and logging in to platform
+auth: false
+
+# String label to add into metadata
+scope: ''
 
 apply_tool_label: true
 tool_label: "scaffolding/app:tools"
@@ -15,6 +20,7 @@ num_nodes: 1
 
 # Cluster name prefix
 cluster_prefix: cilium-perf-ci
+cluster_id: "{{ start_time }}"
 
 kubeconfig: ""
 ocp_install_dir: ""
@@ -23,7 +29,7 @@ kernel: ""
 # Cilium installation options
 cilium_install_params: ""
 cilium_version: v1.12.0-rc1
-cilium_cli_version: v0.11.7
+cilium_cli_version: v0.11.10
 
 # GKE Cluster configuration
 gke:

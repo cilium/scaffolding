@@ -1,0 +1,22 @@
+---
+- block:
+  - name: Capture Cluster name from the archive_dir
+    set_fact:
+      gke_cluster_name: "{{ lookup('file', archive_dir + '/' + 'cluster_name') }}"
+  - debug:
+      msg: GKE Cluster name {{ gke_cluster_name }}
+  - name: Activate GKE SA
+    shell: |
+      export GOOGLE_APPLICATION_CREDENTIALS={{ gke['sa_file'] }}
+      gcloud auth activate-service-account $(jq .client_email -r {{ gke['sa_file'] }}) --key-file={{ gke['sa_file'] }} --project $(jq .project_id -r {{ gke['sa_file'] }})
+      gcloud config set project {{ gke['project'] }}
+      gcloud config set compute/zone {{ gke['region'] }}
+      gcloud auth activate-service-account --key-file {{ gke['sa_file'] }}
+  - name: Generate kubeconfig due to - https://github.com/ansible/ansible/issues/66096
+    shell: |
+      export KUBECONFIG={{archive_dir}}/kubeconfig
+      gcloud container clusters get-credentials {{ gke_cluster_name }}
+  - set_fact:
+      kubeconfig: "{{archive_dir}}/kubeconfig"
+  
+  when: auth | bool

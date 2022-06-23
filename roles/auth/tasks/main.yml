@@ -1,0 +1,6 @@
+---
+- block:
+  - name: Login to GCP and Create GKE Kubeconfig
+    include_tasks: gke.yml
+  tags:
+    - gke
