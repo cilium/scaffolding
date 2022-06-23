@@ -88,16 +88,25 @@
     - set_fact:
         num_workers: "{{node_count.stdout|int}}"
 
+    - set_fact:
+        podDensity_uuid: "{{ (999999999999999999999 | random | string + (lookup('pipe', 'date +%s%N'))) | to_uuid() | string }}"
+
+    - set_fact:
+        podDensity: "{{ podDensity|default([]) + [ {'file': 'agent-pod-density.yml.j2','name': 'agent-pod-density-'+item|string+'.yml','report': 'pod-density.json'} ] }}"
+      loop: "{{ range(0, samples,1)|list }}"
+
     - name: Generate agent performance benchmarks
       template:
         src: "{{item.file}}"
         dest: "{{archive_dir}}/{{item.name}}"
-      with_items:
-        - { file: agent-pod-density.yml.j2, name: agent-pod-density.yml }
+      with_items: "{{ podDensity }}"
+
+    - set_fact:
+        podDensityBenchmarks: "{{ podDensityBenchmarks|default([]) + [ {'name': 'agent-pod-density', 'file': 'agent-pod-density-'+item|string+'.yml','report': 'pod-density.json'} ] }}"
+      loop: "{{ range(0, samples,1)|list }}"
 
     - name: Run agent benchmarks
       include_tasks: run-benchmark.yml
-      with_items:
-        - {name: agent-pod-density, file: agent-pod-density.yml, report: pod-density.json}
+      with_items: "{{ podDensityBenchmarks }}"
 
   when: bmo.rc == 0
