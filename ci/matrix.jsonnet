@@ -10,7 +10,8 @@ local UNI_PARAMS = {
     'gke': {
         'sa_file': '/tmp/workspace/sa.json'
     },
-    'auth': true
+    'auth': true,
+    'scope': 'circleci'
 };
 local create_matrix_item(cilium_version, kernel) = {
     'cilium_version': cilium_version,
