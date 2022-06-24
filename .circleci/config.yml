@@ -35,6 +35,7 @@ jobs:
           root: /tmp/generated/
           paths:
             - pipeline.yml
+            - build.yml
       - store_artifacts:
           path: /tmp/generated
   run_config:
@@ -86,7 +87,13 @@ jobs:
 workflows:
   setup:
     jobs:
-      - generate_config
+      - generate_config:
+          filters:
+            tags:
+              only: /.*/
       - run_config:
           requires:
             - generate_config
+          filters:
+            tags:
+              only: /.*/
