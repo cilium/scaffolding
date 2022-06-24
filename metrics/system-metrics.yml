@@ -72,7 +72,7 @@
   metricName: alerts
 
 # Cilium specific metrics
-- query: avg(histogram_quantile(0.90, rate(cilium_endpoint_regeneration_time_stats_seconds_bucket{k8s_app="cilium", scope!="total"}[5m]))) by (scope)"
+- query: avg(histogram_quantile(0.90, rate(cilium_endpoint_regeneration_time_stats_seconds_bucket{k8s_app="cilium", scope!="total"}[5m]))) by (scope)
   metricName: ciliumEndpointRegeneration
  
 - query: cilium_bpf_maps_virtual_memory_max_bytes{k8s_app="cilium"} + cilium_bpf_progs_virtual_memory_max_bytes{k8s_app="cilium"}

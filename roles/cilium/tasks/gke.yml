@@ -40,5 +40,5 @@
 - name: Install using Cilium cli
   shell: |
       export KUBECONFIG={{kubeconfig}}
-      {{archive_dir}}/cilium install --version {{cilium_version}} {{cilium_install_params}}
+      {{archive_dir}}/cilium install --version {{cilium_version}} {{cilium_install_params}} --helm-set prometheus.enabled=true --helm-set operator.prometheus.enabled=true
   when: cilium_install.rc != 0
