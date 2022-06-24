@@ -87,7 +87,13 @@ jobs:
 workflows:
   setup:
     jobs:
-      - generate_config
+      - generate_config:
+          filters:
+            tags:
+              only: /.*/
       - run_config:
           requires:
             - generate_config
+          filters:
+            tags:
+              only: /.*/
