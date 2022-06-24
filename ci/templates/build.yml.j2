@@ -45,6 +45,8 @@ workflows:
       - build-and-push:
           tag: $CIRCLE_TAG
           filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^v.*/
   update-scaffolding-image-latest:
