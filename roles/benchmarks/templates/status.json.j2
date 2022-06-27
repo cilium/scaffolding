@@ -10,5 +10,5 @@
  "num_nodes" : "{{num_nodes}}",
  "region" : "{{region}}",
  "state" : "{{benchmark_state}}",
- "scope": "{{scope}}"
+ "scope": "{{ (scope is not defined or scope == '') | ternary('manual', scope) }}"
 }
