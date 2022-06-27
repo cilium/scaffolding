@@ -28,6 +28,41 @@
 
   when: apply_tool_label | bool
   tags: prometheus,benchmark-operator
+#
+# Using Helm Install the community Parca Dev
+# If Parca is already installed, skip
+#
+- block:
+    - name: Add Parca Dev Helm Repo
+      shell: |
+        export KUBECONFIG={{kubeconfig}}
+        helm repo add parca https://parca-dev.github.io/helm-charts/
+        helm repo update
+
+    - name: Generate parca values file
+      template:
+        src: parca-values.yml.j2
+        dest: "{{archive_dir}}/parca-values.yml"
+
+    - name: Check for existing install
+      shell: |
+        export KUBECONFIG={{kubeconfig}}
+        helm status -n parca my-parca | grep deployed
+      register: parca_install
+      ignore_errors: true
+
+    - name: Install ParcaDev
+      shell: |
+        export KUBECONFIG={{kubeconfig}}
+        helm install my-parca parca/parca -n parca -f {{archive_dir}}/parca-values.yml --create-namespace
+      when: parca_install.rc == 1
+
+    - name: Check ParcaDev install
+      shell: |
+        export KUBECONFIG={{kubeconfig}}
+        helm status -n parca my-parca | grep deployed
+      when: parca_install.rc == 1
+  tags: parcadev
 
 #
 # Using Helm Install the community Prometheus
@@ -58,7 +93,7 @@
   - name: Install Prometheus
     shell: |
       export KUBECONFIG={{kubeconfig}}
-      helm install prometheus prometheus-community/prometheus --namespace prometheus --namespace prometheus -f {{archive_dir}}/prom-values.yml --create-namespace 
+      helm install prometheus prometheus-community/prometheus --namespace prometheus --namespace prometheus -f {{archive_dir}}/prom-values.yml --create-namespace
     when: apply_tool_label and prom_install.rc == 1
 
   - name: Check Prometheus install
