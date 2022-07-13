@@ -1,7 +1,0 @@
----
-
-- block:
-  - name: Validate GKE cloud
-    include_tasks: gke.yml
-  tags:
-    - gke
