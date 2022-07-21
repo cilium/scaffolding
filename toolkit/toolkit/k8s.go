@@ -12,6 +12,11 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+// FindKubeconfig attempts to resolve the location of the kubeconfig, returning its path.
+// The following places will be uses, in order from first to last:
+// 1. KUBECONFIG - environment variable
+// 2. ./kubeconfig - kubeconfig in current working directory
+// 3. ~/.kube/config - user's default kubeconfig
 func FindKubeconfig(logger *log.Logger) string {
 	logFoundKube := func(kubeconfig string, loc string) {
 		logger.WithFields(
@@ -42,6 +47,8 @@ func FindKubeconfig(logger *log.Logger) string {
 	return ""
 }
 
+// NewK8sClientSetOrDie attempts to use the given kubeconfig path to create a new k8s clientset object.
+// Upon failure, `ExitWithError` is called, which terminates execution.
 func NewK8sClientSetOrDie(logger *log.Logger, kubeconfigPath string) k8s.Interface {
 	logAttempt := func(prefix string, kubeconfig string) {
 		logger.Info(fmt.Sprintf("%s kubeconfig %s", prefix, kubeconfig))
