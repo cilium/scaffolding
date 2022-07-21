@@ -26,7 +26,8 @@ func ListCiliumCliVersions(ctx context.Context) ([]*github.RepositoryRelease, er
 	return releases, nil
 }
 
-// DownloadCiliumCliBin downloads the `tar.`
+// DownloadCiliumCliBin downloads a cilium-cli tarball release artifact from GitHub.
+// Sha256 verification is performed on the downloaded tarball against the sha provided in the release artifacts.
 func DownloadCiliumCliBin(
 	logger *log.Logger,
 	release *github.RepositoryRelease,
