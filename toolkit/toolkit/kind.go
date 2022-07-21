@@ -31,18 +31,34 @@ nodes:
 	KindNodeImageV18    = "kindest/node:v1.18.20@sha256:738cdc23ed4be6cc0b7ea277a2ebcc454c8373d7d8fb991a7fcdbd126188e6d7"
 )
 
+// KindConfigNodeParams is a bare-bones representation of various parameters which can be set to configure a kind node within the `KindConfigTemplate`.
+// It is eventually passed into `KindConfigTemplate` through `KindConfigTemplateParams`.
 type KindConfigNodeParams struct {
 	Role  string `json:"role"`
 	Image string `json:"image"`
 }
 
+// KindConfigTemplateParams is used to set values within the `KindConfigTemplate`.
 type KindConfigTemplateParams struct {
 	Name  string                 `json:"name"`
 	NoCNI bool                   `json:"noCNI"`
 	Nodes []KindConfigNodeParams `json:"nodes"`
 }
 
-func NewKindConfig(logger *log.Logger, name string, nWorkers int, nControlPlanes int, withCNI bool, image string) (string, error) {
+// NewKindConfig uses given parameters to render a kind configuration (kind.x-k8s.io/v1alpha4).
+// name will set the cluster's name.
+// nWorkers determines how many worker nodes will be created.
+// nControlPlanes determines how many control plane nodes will be created.
+// withCNI toggles kind setting up its default CNI upon cluster creation.
+// image determines which container image will be used for nodes.
+func NewKindConfig(
+	logger *log.Logger,
+	name string,
+	nWorkers int,
+	nControlPlanes int,
+	withCNI bool,
+	image string,
+) (string, error) {
 	kindConfigTemplateParams := KindConfigTemplateParams{
 		Name:  name,
 		NoCNI: !withCNI,
