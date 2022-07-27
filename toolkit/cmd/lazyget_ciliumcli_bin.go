@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"runtime"
 
 	"github.com/cilium/scaffolding/toolkit/toolkit"
 	log "github.com/sirupsen/logrus"
@@ -12,20 +11,15 @@ import (
 
 var (
 	ListOnly bool
-	Platform string
-	Arch     string
-	Dest     string
 )
 
 func init() {
-	lazyGetCmd.AddCommand(lazyGetCiliumCliBin)
-	lazyGetCiliumCliBin.PersistentFlags().BoolVarP(&ListOnly, "list", "l", false, "list available versions")
-	lazyGetCiliumCliBin.PersistentFlags().StringVarP(&Platform, "platform", "p", runtime.GOOS, "explicitly set platform")
-	lazyGetCiliumCliBin.PersistentFlags().StringVarP(&Arch, "arch", "a", runtime.GOARCH, "explicitly set architecture")
-	lazyGetCiliumCliBin.PersistentFlags().StringVarP(&Dest, "dest", "d", ".", "download directory")
+	lazyGetCmd.AddCommand(lazyGetCiliumCliBinCmd)
+	lazyGetCiliumCliBinCmd.PersistentFlags().BoolVarP(&ListOnly, "list", "l", false, "list available versions")
+	addDownloadFlags(lazyGetCiliumCliBinCmd)
 }
 
-var lazyGetCiliumCliBin = &cobra.Command{
+var lazyGetCiliumCliBinCmd = &cobra.Command{
 	Use:   "cilium-cli",
 	Short: "download version of cilium-cli binary",
 	Args:  cobra.MaximumNArgs(1),
@@ -60,6 +54,7 @@ var lazyGetCiliumCliBin = &cobra.Command{
 				if err != nil {
 					toolkit.ExitWithError(Logger, err)
 				}
+
 				break
 			}
 			Logger.WithFields(logFields).Debug("not a match")
