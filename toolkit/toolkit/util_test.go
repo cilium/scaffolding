@@ -1,12 +1,132 @@
 package toolkit
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+func errHasPrefix(err error, prefix string) bool {
+	return strings.HasPrefix(err.Error(), prefix)
+}
+
+func TestExtractFromTarRaisesErrorOnFileNotFound(t *testing.T) {
+	tmpdir := t.TempDir()
+
+	failWithError := func(err error) {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	newTestTarball := func() (string, string, []byte) {
+		testFileName := "testfile"
+		testFileContent := []byte("i am a test file")
+		testFilePath := filepath.Join(tmpdir, testFileName)
+		os.WriteFile(
+			testFilePath,
+			testFileContent,
+			0755,
+		)
+		testFileStat, err := os.Lstat(testFilePath)
+		if err != nil {
+			failWithError(err)
+		}
+
+		tarPath := filepath.Join(tmpdir, "testfile.tar.gz")
+		tarWriter, err := os.Create(tarPath)
+		if err != nil {
+			failWithError(err)
+		}
+
+		gzw := gzip.NewWriter(tarWriter)
+		defer gzw.Close()
+		tw := tar.NewWriter(gzw)
+		defer tw.Close()
+
+		header, err := tar.FileInfoHeader(testFileStat, testFileStat.Name())
+		if err != nil {
+			failWithError(err)
+		}
+
+		if err := tw.WriteHeader(header); err != nil {
+			failWithError(err)
+		}
+
+		testFileReader, err := os.Open(testFilePath)
+		if err != nil {
+			failWithError(err)
+		}
+		defer testFileReader.Close()
+
+		if _, err := io.Copy(tw, testFileReader); err != nil {
+			failWithError(err)
+		}
+
+		if err = os.Remove(testFilePath); err != nil {
+			failWithError(err)
+		}
+
+		return tarPath, testFileName, testFileContent
+	}
+
+	tb, tf, tc := newTestTarball()
+	err := ExtractFromTar(tb, "idontexist", tmpdir)
+	if err == nil {
+		t.Error("no error raised when target file not found in tarball")
+		t.FailNow()
+	}
+	if !errHasPrefix(err, "unable to find file") {
+		t.Error("unexpected error raised when target file not in tarball")
+		t.Error(err)
+		t.FailNow()
+	}
+
+	err = ExtractFromTar(tb, tf, tmpdir)
+	if err != nil {
+		failWithError(err)
+	}
+
+	extractedContent, err := os.ReadFile(
+		filepath.Join(tmpdir, tf),
+	)
+	if err != nil {
+		failWithError(err)
+	}
+	if string(extractedContent) != string(tc) {
+		t.Errorf("extracted content does not match expected content: %s", extractedContent)
+		t.FailNow()
+	}
+}
+
+func TestExtractFromTarRaisesErrorsOnInputValidationFail(t *testing.T) {
+	tmpdir := t.TempDir()
+	var err error
+
+	// raise an error if dest does not exist
+	err = ExtractFromTar("", "", tmpdir+"idontexist")
+	if !errHasPrefix(err, "expected dest to be path to existing directory") {
+		t.Error("unable to validate destination dir exists")
+		t.FailNow()
+	}
+
+	// raise an error if tarball is dir
+	err = ExtractFromTar(tmpdir, "", tmpdir)
+	if !errHasPrefix(err, "expected tar to be path to existing tarball") {
+		t.Error("unable to validate tarball is not a directory")
+	}
+
+	// raise an error if tarball does not exist
+	err = ExtractFromTar(tmpdir+"idontexist", "", tmpdir)
+	if !errHasPrefix(err, "expected tar to be path to existing tarball") {
+		t.Error("unable to validate tarball exists")
+	}
+}
 
 func TestPathExistsReturnsCorrectBoolForPath(t *testing.T) {
 	tmpdir := t.TempDir()

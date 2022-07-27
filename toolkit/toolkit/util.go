@@ -1,6 +1,8 @@
 package toolkit
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,11 +12,90 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
+
+//https://medium.com/@skdomino/taring-untaring-files-in-go-6b07cf56bc07
+func ExtractFromTar(tarball string, file string, dest string) error {
+	dest, _ = filepath.Abs(dest)
+
+	if !PathIsDir(dest) {
+		return fmt.Errorf(
+			"expected dest to be path to existing directory, got something else: %s",
+			dest,
+		)
+	}
+
+	if PathIsDir(tarball) || !PathExists(tarball) {
+		return fmt.Errorf(
+			"expected tar to be path to existing tarball, got something else: %s",
+			tarball,
+		)
+	}
+
+	destPath := filepath.Join(dest, file)
+
+	tfr, err := os.Open(tarball)
+	if err != nil {
+		return err
+	}
+
+	gzr, err := gzip.NewReader(tfr)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+
+		switch {
+		// if no more files in tarball, and we
+		// haven't found our file, error out
+		case err == io.EOF:
+			return fmt.Errorf(
+				"unable to find file %s in tarball %s",
+				file, tarball,
+			)
+		// return any other error
+		case err != nil:
+			return err
+		// if the header is nil, just skip it (not sure how this happens)
+		case header == nil:
+			continue
+		case header.Typeflag == tar.TypeDir:
+			continue
+		case filepath.Base(header.Name) != file:
+			continue
+		}
+
+		// found our file
+		f, err := os.OpenFile(
+			destPath,
+			os.O_CREATE|os.O_RDWR,
+			os.FileMode(header.Mode),
+		)
+		if err != nil {
+			return err
+		}
+
+		// copy over contents
+		if _, err := io.Copy(f, tr); err != nil {
+			return err
+		}
+
+		// manually close here after each file operation; defering would cause each file close
+		// to wait until all operations have completed.
+		f.Close()
+		return nil
+	}
+}
 
 func ExitWithError(logger *log.Logger, err error) {
 	logger.WithFields(
