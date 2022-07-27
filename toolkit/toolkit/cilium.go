@@ -107,13 +107,22 @@ func DownloadCiliumCliBin(
 	// If we have <sha256> <filename>, just get the sha
 	binSha = strings.Split(binSha, " ")[0]
 
-	logger.WithField("sha256", binSha).Debug("expected sha256 for cilium-cli bin")
+	logger.WithField("sha256", binSha).Debug("expected sha256 for cilium-cli tarball")
 
 	_, err = DownloadFile(targetDest, targetUrl, string(binSha), true)
 	if err != nil {
-		return fmt.Errorf("unable to download cilium-cli bin: %s", err)
+		return fmt.Errorf("unable to download cilium-cli tarball: %s", err)
 	}
 
+	logger.Info("extracting cilium bin from tarball")
+	err = ExtractFromTar(
+		targetName,
+		"cilium",
+		dest,
+	)
+	if err != nil {
+		return fmt.Errorf("unable to extract cilium-cli bin from tarball: %s", err)
+	}
 	logger.Info("success")
 
 	return err
