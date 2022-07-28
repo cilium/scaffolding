@@ -15,7 +15,7 @@ var lazyGetCraneBin = &cobra.Command{
 	Short: "download latest version of crane binary",
 	Run: func(_ *cobra.Command, args []string) {
 		err := toolkit.DownloadCraneBin(
-			CmdCtx, Logger, Platform, Arch, Dest,
+			CmdCtx, Logger, Platform, Arch, Dest, Keep,
 		)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)

@@ -49,7 +49,7 @@ var lazyGetCiliumCliBinCmd = &cobra.Command{
 			if targetVersion == release.GetTagName() {
 				Logger.WithFields(logFields).Debug("found release")
 				err := toolkit.DownloadCiliumCliBin(
-					Logger, release, Platform, Arch, Dest,
+					Logger, release, Platform, Arch, Dest, Keep,
 				)
 				if err != nil {
 					toolkit.ExitWithError(Logger, err)

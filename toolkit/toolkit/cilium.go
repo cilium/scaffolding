@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -34,6 +35,7 @@ func DownloadCiliumCliBin(
 	platform string,
 	arch string,
 	dest string,
+	keep bool,
 ) error {
 	dest, _ = filepath.Abs(dest)
 	if !PathExists(dest) {
@@ -57,71 +59,96 @@ func DownloadCiliumCliBin(
 		},
 	).Info("ensuring cilium-cli with following params")
 
-	targetName := fmt.Sprintf("cilium-%s-%s.tar.gz", platform, arch)
-	targetUrl := ""
-	targetDest := filepath.Join(dest, targetName)
-	targetShaName := targetName + ".sha256sum"
-	targetShaUrl := ""
-	targetShaDest := filepath.Join(dest, targetShaName)
+	tarballName := fmt.Sprintf("cilium-%s-%s.tar.gz", platform, arch)
+	tarballUrl := ""
+	tarballDest := filepath.Join(dest, tarballName)
+	tarballShaName := tarballName + ".sha256sum"
+	tarballShaUrl := ""
+	tarballShaDest := filepath.Join(dest, tarballShaName)
 
 	logger.WithFields(
 		log.Fields{
-			"shafile": targetShaDest,
-			"bin":     targetDest,
+			"shafile": tarballShaDest,
+			"bin":     tarballDest,
 		},
 	).Debug("determined destinations on disk")
 
 	for _, asset := range release.Assets {
 		name := asset.GetName()
-		if name == targetName {
-			targetUrl = asset.GetBrowserDownloadURL()
-		} else if name == targetShaName {
-			targetShaUrl = asset.GetBrowserDownloadURL()
+		if name == tarballName {
+			tarballUrl = asset.GetBrowserDownloadURL()
+		} else if name == tarballShaName {
+			tarballShaUrl = asset.GetBrowserDownloadURL()
 		}
-		if targetUrl != "" && targetShaUrl != "" {
+		if tarballUrl != "" && tarballShaUrl != "" {
 			break
 		}
 	}
 
-	if targetUrl == "" || targetShaUrl == "" {
-		return fmt.Errorf("unable to find asset urls for cilium-cli, results: bin: %s, sha: %s", targetUrl, targetShaUrl)
+	if tarballUrl == "" || tarballShaUrl == "" {
+		return fmt.Errorf("unable to find asset urls for cilium-cli, results: bin: %s, sha: %s", tarballUrl, tarballShaUrl)
 	}
 
 	logger.WithFields(
 		log.Fields{
-			"cilium-cli-bin": targetUrl,
-			"cilum-cli-sha":  targetShaUrl,
+			"cilium-cli-bin": tarballUrl,
+			"cilum-cli-sha":  tarballShaUrl,
 		},
 	).Debug("downloading urls for cilium-cli bin")
 
-	_, err := DownloadFile(targetShaDest, targetShaUrl, "", false)
+	_, err := DownloadFile(tarballShaDest, tarballShaUrl, "", false)
 	if err != nil {
 		return fmt.Errorf("unable to download cilum-cli sha: %s", err)
 	}
 
-	binShaBytes, err := ioutil.ReadFile(targetShaDest)
+	tarballShaBytes, err := ioutil.ReadFile(tarballShaDest)
 	if err != nil {
 		return fmt.Errorf("unable to read sha256 file: %s", err)
 	}
-	binSha := string(binShaBytes)
+	tarballSha := string(tarballShaBytes)
 	// If we have <sha256> <filename>, just get the sha
-	binSha = strings.Split(binSha, " ")[0]
+	tarballSha = strings.Split(tarballSha, " ")[0]
 
-	logger.WithField("sha256", binSha).Debug("expected sha256 for cilium-cli tarball")
+	logger.WithField("sha256", tarballSha).Debug("expected sha256 for cilium-cli tarball")
 
-	_, err = DownloadFile(targetDest, targetUrl, string(binSha), true)
+	bytesWritten, err := DownloadFile(tarballDest, tarballUrl, string(tarballSha), true)
 	if err != nil {
 		return fmt.Errorf("unable to download cilium-cli tarball: %s", err)
 	}
 
+	if bytesWritten == 0 {
+		logger.WithFields(
+			log.Fields{
+				"sha256":  tarballSha,
+				"tarball": tarballDest,
+			},
+		).Info("did not download cilium tarball, already present")
+	}
+
 	logger.Info("extracting cilium bin from tarball")
 	err = ExtractFromTar(
-		targetName,
+		tarballDest,
 		"cilium",
 		dest,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to extract cilium-cli bin from tarball: %s", err)
+	}
+
+	if !keep {
+		logger.Info("cleaning up")
+
+		logger.WithField("tarball", tarballDest).Debug("removing tarball")
+		err = os.Remove(tarballDest)
+		if err != nil {
+			return fmt.Errorf("unable to remove cilium tarball: %s", err)
+		}
+
+		logger.WithField("checksum", tarballShaDest).Debug("removing checksum")
+		err = os.Remove(tarballShaDest)
+		if err != nil {
+			return fmt.Errorf("unable to remove cilium tarball checksum file: %s", err)
+		}
 	}
 	logger.Info("success")
 

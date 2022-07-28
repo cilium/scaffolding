@@ -10,6 +10,8 @@ import (
 
 	"github.com/google/go-github/github"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func GetLatestCraneRelease(ctx context.Context) (*github.RepositoryRelease, error) {
@@ -31,6 +33,7 @@ func DownloadCraneBin(
 	platform string,
 	arch string,
 	dest string,
+	keep bool,
 ) error {
 	dest, _ = filepath.Abs(dest)
 	if !PathExists(dest) {
@@ -56,7 +59,8 @@ func DownloadCraneBin(
 		arch = "x86_64"
 	}
 	// they also capitalize the platform
-	platform = strings.Title(strings.ToLower(platform))
+	caser := cases.Title(language.AmericanEnglish)
+	platform = caser.String(strings.ToLower(platform))
 
 	logger.WithFields(
 		log.Fields{
@@ -67,12 +71,12 @@ func DownloadCraneBin(
 		},
 	).Info("ensuring crane bin with following params")
 
-	targetName := fmt.Sprintf(
+	tarballName := fmt.Sprintf(
 		"go-containerregistry_%s_%s.tar.gz",
 		platform, arch,
 	)
-	targetUrl := ""
-	targetDest := filepath.Join(dest, targetName)
+	tarballUrl := ""
+	tarballDest := filepath.Join(dest, tarballName)
 	checksumName := "checksums.txt"
 	checksumUrl := ""
 	checksumDest := filepath.Join(dest, checksumName)
@@ -80,30 +84,30 @@ func DownloadCraneBin(
 	logger.WithFields(
 		log.Fields{
 			"checksum-file": checksumDest,
-			"bin":           targetDest,
+			"tarball":       tarballDest,
 		},
 	).Debug("determined destinations on disk")
 
 	for _, asset := range latestRelease.Assets {
 		name := asset.GetName()
-		if name == targetName {
-			targetUrl = asset.GetBrowserDownloadURL()
+		if name == tarballName {
+			tarballUrl = asset.GetBrowserDownloadURL()
 		} else if name == checksumName {
 			checksumUrl = asset.GetBrowserDownloadURL()
 		}
-		if targetUrl != "" && checksumUrl != "" {
+		if tarballUrl != "" && checksumUrl != "" {
 			break
 		}
 	}
 
-	if targetUrl == "" || checksumUrl == "" {
-		return fmt.Errorf("unable to find asset urls for crane, results: bin: %s, checksums: %s", targetUrl, checksumUrl)
+	if tarballUrl == "" || checksumUrl == "" {
+		return fmt.Errorf("unable to find asset urls for crane, results: bin: %s, checksums: %s", tarballUrl, checksumUrl)
 	}
 
 	logger.WithFields(
 		log.Fields{
 			"checksum-file": checksumUrl,
-			"bin":           targetUrl,
+			"tarball":       tarballUrl,
 		},
 	).Debug("downloading urls for crane bin")
 
@@ -123,38 +127,61 @@ func DownloadCraneBin(
 	defer checksumHandler.Close()
 	scanner := bufio.NewScanner(checksumHandler)
 
-	targetSha := ""
+	tarballSha := ""
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), "  ")
 		sha, file := line[0], line[1]
-		if file == targetName {
-			targetSha = sha
+		if file == tarballName {
+			tarballSha = sha
 			break
 		}
 	}
 	if err = scanner.Err(); err != nil {
 		return fmt.Errorf("something bad happened while reading checksums.txt: %s", err)
 	}
-	if targetSha == "" {
-		return fmt.Errorf("unable to find %s in checksums file", targetName)
+	if tarballSha == "" {
+		return fmt.Errorf("unable to find %s in checksums file", tarballName)
 	}
 
-	logger.WithField("sha256", targetSha).Debug("expected sha256 for crane tarball")
-
-	_, err = DownloadFile(targetDest, targetUrl, targetSha, true)
+	logger.WithField("sha256", tarballSha).Debug("expected sha256 for crane tarball")
+	bytesWritten, err := DownloadFile(tarballDest, tarballUrl, tarballSha, true)
 	if err != nil {
 		return fmt.Errorf("unable to download crane tarball: %s", err)
 	}
 
+	if bytesWritten == 0 {
+		logger.WithFields(
+			log.Fields{
+				"sha256":  tarballSha,
+				"tarball": tarballDest,
+			},
+		).Info("did not download crane tarball, already present")
+	}
+
 	logger.Info("extracting crane bin from tarball")
 	err = ExtractFromTar(
-		targetName,
+		tarballDest,
 		"crane",
 		dest,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to extract crane bin from tarball: %s", err)
 	}
+
+	if !keep {
+		logger.Info("cleaning up")
+		logger.WithField("tarball", tarballDest).Debug("removing tarball")
+		err = os.Remove(tarballDest)
+		if err != nil {
+			return fmt.Errorf("unable to remove crane tarball: %s", err)
+		}
+		logger.WithField("checksums", checksumDest).Debug("removing checksums file")
+		err = os.Remove(checksumDest)
+		if err != nil {
+			return fmt.Errorf("unable to remove crane checksums file: %s", err)
+		}
+	}
+
 	logger.Info("success")
 
 	return err
