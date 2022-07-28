@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry
+  labels:
+    app: registry
+spec:
+  ports:
+  - name: registry
+    port: 5000
+    targetPort: registry
+  selector:
+    app: registry
