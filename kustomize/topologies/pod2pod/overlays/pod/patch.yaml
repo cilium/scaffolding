@@ -1,11 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pod2pod
-  labels:
-    app: pod2pod
+  name: dummy
 spec:
-  replicas: 2
+  replicas: 1
   template:
     spec:
       topologySpreadConstraints:
