@@ -106,25 +106,39 @@ func TestExtractFromTarRaisesErrorOnFileNotFound(t *testing.T) {
 
 func TestExtractFromTarRaisesErrorsOnInputValidationFail(t *testing.T) {
 	tmpdir := t.TempDir()
+	tfPath := filepath.Join(tmpdir, "testfile")
+	os.WriteFile(
+		tfPath,
+		[]byte("i am a test file"),
+		0755,
+	)
+
 	var err error
 
 	// raise an error if dest does not exist
 	err = ExtractFromTar("", "", tmpdir+"idontexist")
-	if !errHasPrefix(err, "expected dest to be path to existing directory") {
+	if !errHasPrefix(err, "given destination directory does not exist") {
 		t.Error("unable to validate destination dir exists")
 		t.FailNow()
 	}
 
-	// raise an error if tarball is dir
-	err = ExtractFromTar(tmpdir, "", tmpdir)
-	if !errHasPrefix(err, "expected tar to be path to existing tarball") {
-		t.Error("unable to validate tarball is not a directory")
+	// raise an error if dest is not a directory
+	err = ExtractFromTar("", "", tfPath)
+	if !errHasPrefix(err, "given destination directory is not actually a directory") {
+		t.Error("unable to validate destination dir is a dir")
+		t.FailNow()
 	}
 
 	// raise an error if tarball does not exist
 	err = ExtractFromTar(tmpdir+"idontexist", "", tmpdir)
-	if !errHasPrefix(err, "expected tar to be path to existing tarball") {
+	if !errHasPrefix(err, "given tarball does not exist") {
 		t.Error("unable to validate tarball exists")
+	}
+
+	// raise an error if tarball is dir
+	err = ExtractFromTar(tmpdir, "", tmpdir)
+	if !errHasPrefix(err, "given tarball is actually a directory") {
+		t.Error("unable to validate tarball is not a directory")
 	}
 }
 

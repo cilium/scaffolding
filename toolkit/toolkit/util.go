@@ -23,17 +23,26 @@ import (
 func ExtractFromTar(tarball string, file string, dest string) error {
 	dest, _ = filepath.Abs(dest)
 
+	if !PathExists(dest) {
+		return fmt.Errorf(
+			"given destination directory does not exist: %s", dest,
+		)
+	}
 	if !PathIsDir(dest) {
 		return fmt.Errorf(
-			"expected dest to be path to existing directory, got something else: %s",
-			dest,
+			"given destination directory is not actually a directory: %s", dest,
 		)
 	}
 
-	if PathIsDir(tarball) || !PathExists(tarball) {
+	if !PathExists(tarball) {
 		return fmt.Errorf(
-			"expected tar to be path to existing tarball, got something else: %s",
+			"given tarball does not exist: %s",
 			tarball,
+		)
+	}
+	if PathIsDir(tarball) {
+		return fmt.Errorf(
+			"given tarball is actually a directory: %s", tarball,
 		)
 	}
 
