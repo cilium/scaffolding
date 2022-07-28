@@ -17,12 +17,6 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "toolkit",
 	Short: "collection of tools to assist in running performance benchmarks",
-	Long: `for k8s related commands, if a kubeconfig is not given the following locations will be tried (in order):
-	
-	1. KUBECONFIG env var
-	2. ./kubeconfig
-	3. ~/.kube/config
-	`,
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
 		if Verbose {
 			Logger.SetLevel(log.DebugLevel)
@@ -36,6 +30,11 @@ func Execute() error {
 
 func init() {
 	// k8s stuff
-	rootCmd.PersistentFlags().StringVarP(&Kubeconfig, "kubeconfig", "k", "", "path to kubeconfig for k8s-related commands")
+	rootCmd.PersistentFlags().StringVarP(
+		&Kubeconfig, "kubeconfig", "k", "",
+		`path to kubeconfig for k8s-related commands
+if not given will try the following (in order):
+KUBECONFIG, ./kubeconfig, ~/.kube/config`,
+	)
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "show debug logs")
 }
