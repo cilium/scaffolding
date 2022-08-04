@@ -13,7 +13,7 @@ spec:
         app: pod2pod-client
     spec:
       nodeSelector:
-        scaffolding/role: client
+        role.scaffolding/p2pclient: true
       containers:
       - name: main
         image: k8s.gcr.io/pause:3.1
