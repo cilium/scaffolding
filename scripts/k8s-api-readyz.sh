@@ -20,7 +20,20 @@ CONFIG=$(kubectl config view --raw -o json)
 CLUSTER=$(echo "$CONFIG" | jq '.clusters[] | select(.name=="'$CURRENT_CONTEXT'")')
 CLUSTER_NAME=$(echo "$CLUSTER" | jq -r '.name')
 CLUSTER_URL=$(echo "$CLUSTER" | jq -r '.cluster.server')
-CA=$(echo "$CLUSTER" | jq -r '.cluster."certificate-authority-data"' | base64 -d)
+
+CADATA=""
+INSECURE=""
+if [ "$(echo $CLUSTER | jq -r '.cluster | has("certificate-authority-data")')" == "true" ]; then
+    CADATA=$(echo "$CLUSTER" | jq -r '.cluster."certificate-authority-data"' | base64 -d)
+elif [ "$(echo $CLUSTER | jq -r '.cluster | has("certificate-authority")')" == "true" ]; then
+    CADATA="$(cat $(echo "$CLUSTER" | jq -r '.cluster."certificate-authority"'))"
+else
+    echo "unable to gather certificate authority for k8s api server, using --insecure"
+fi
 
 echo "${CLUSTER_NAME} (${CLUSTER_URL})"
-curl $VERBOSE $CLUSTER_URL'/readyz?verbose' --cacert <(echo "$CA")
+if [ -z "$CADATA" ]; then
+    curl $VERBOSE $CLUSTER_URL'/readyz?verbose' --insecure
+else
+    curl $VERBOSE $CLUSTER_URL'/readyz?verbose'  --cacert <(echo "$CADATA")
+fi
