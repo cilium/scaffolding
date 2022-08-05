@@ -1,0 +1,7 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: pod2pod-server
+spec:
+  selector:
+    app: pod2pod-server
