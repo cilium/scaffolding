@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+- grafana.yaml
+- service.yaml
+- datasources.yaml
+- dashboards.yaml
+- ./dashboards/node-exporter-dashboard.yaml
+- ./dashboards/docker-monitoring-dashboard.yaml

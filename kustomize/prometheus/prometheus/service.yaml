@@ -1,0 +1,15 @@
+# https://grafana.com/docs/grafana-cloud/kubernetes-monitoring/prometheus/prometheus_operator/
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+spec:
+  ports:
+  - name: web
+    port: 9090
+    targetPort: web
+  selector:
+    prometheus: prometheus
+  sessionAffinity: ClientIP

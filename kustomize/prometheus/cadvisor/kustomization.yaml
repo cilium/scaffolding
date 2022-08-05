@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- https://github.com/google/cadvisor//deploy/kubernetes/base
+- service.yaml
+- service-monitor.yaml
+patches:
+- path: daemonset-patch.yaml
+  target:
+    kind: DaemonSet

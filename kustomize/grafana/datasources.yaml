@@ -1,0 +1,16 @@
+# prometheus svc is defined in kustomize/prometheus/service.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+data:
+  prometheus.yaml: |-
+    apiVersion: 1
+    datasources:
+      - access: proxy
+        editable: false
+        name: prometheus
+        orgId: 1
+        type: prometheus
+        version: 1
+        url: http://prometheus.monitoring.svc:9090

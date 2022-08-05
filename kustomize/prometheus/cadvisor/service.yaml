@@ -1,0 +1,15 @@
+# uses labels and ports from https://github.com/google/cadvisor/blob/master/deploy/kubernetes/base/daemonset.yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: cadvisor
+  labels:
+    name: cadvisor
+spec:
+  selector:
+    name: cadvisor
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
