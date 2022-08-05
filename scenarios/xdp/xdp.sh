@@ -26,6 +26,8 @@ SVC_NODE="minikube"  # where our netperf client will target
 label_nodes() {
     kubectl label node $MONITORING_NODE role.scaffolding/monitoring=true
     kubectl label node $SERVER_NODE role.scaffolding/pod2pod-server=true
+    # we won't use this client, but it needs to go somewhere
+    kubectl label node $SERVER_NODE role.scaffolding/pod2pod-client=true
     kubectl label node $SERVER_NODE role.scaffolding/monitored=true
 }
 
@@ -40,7 +42,8 @@ delete_kube_proxy() {
 
     for node in $MONITORING_NODE $CLIENT_NODE $SERVER_NODE
     do
-        $SSH $node "/bin/bash -c 'iptables-save | grep -v KUBE | iptables-restore'"
+        $SSH $node "sudo /bin/bash -c 'iptables-save | grep -v KUBE | iptables-restore'"
+        $SSH $node "sudo /bin/bash -c 'echo '"'"'net.ipv4.conf.*.rp_filter = 0'"'"' > /etc/sysctl.d/99-override_cilium_rp_filter.conf && systemctl restart systemd-sysctl'"
     done
 }
 
@@ -95,7 +98,7 @@ wait_cilium_ready() {
 
 # run netperf against svc/pod2pod-server, which is a nodePort service
 run_netperf() {
-    ip=$(kubectl get node $SVC_NODE -ojsonpath='{.status.addresses[0].address}')
+    ip=$(kubectl get svc pod2pod-server -ojsonpath='{.status.loadBalancer.ingress[0].ip}')
     # defined in the manifest, our nodeport target is 30000
 
     # -H: target ip
@@ -104,7 +107,6 @@ run_netperf() {
     # -j: keep additional test stats
     netperf \
         -H $ip \
-        -p 30000 \
         -t TCP_STREAM \
         -l 60s \
         -j
@@ -153,7 +155,7 @@ kustomize build . > $ARTIFACTS/manifest.yaml
 
 # Why create || replace?
 # See https://github.com/prometheus-community/helm-charts/issues/1500
-kubectl create -f $ARTIFACTS/manifest.yaml || kubectl replace -f $ARTIFACTS/manifest.yaml || true
+kubectl create -f $ARTIFACTS/manifest.yaml || kubectl replace -f $ARTIFACTS/manifest.yaml
 
 # Wait for everything to show ready
 wait_ready
@@ -162,5 +164,6 @@ wait_ready
 # For instance, during this time you can pull up grafana
 # kubectl port-forward svc/grafana -n monitoring 3000:3000
 # admin:admin
+# If running on minikube, need to do a `minikube tunnel` call
 breakpoint
 run_netperf
