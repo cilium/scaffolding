@@ -37,12 +37,11 @@ patchesStrategicMerge:
   metadata:
     name: pod2pod-server
   spec:
-    type: NodePort
+    type: LoadBalancer
     ports:
-    - name: server
-      protocol: TCP
-      port: 12865
-      targetPort: 12865
+      - protocol: TCP
+        port: 12865
+        targetPort: 12865
 images:
 - name: k8s.gcr.io/pause:3.1
   newName: nixery.dev/bash/coreutils/iproute2/iputils/bind/netperf
