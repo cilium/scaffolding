@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ---
 # exec_with_registry.sh
+# ---
 # port-forward the 'registry' service to localhost on port
 # 5000, execute the given command, and kill the port forward.
 # can be used to facilitate pushing images to the registry.
 set -eo pipefail
 
-VERBOSE=""
 if [ "${1}" == '-d' ]
 then
     set -x

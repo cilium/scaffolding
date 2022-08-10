@@ -7,7 +7,6 @@
 # its name, and using its spec to find the ip/port
 set -eo pipefail
 
-VERBOSE=""
 if [ "${1}" == '-d' ]
 then
     set -x

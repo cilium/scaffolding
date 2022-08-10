@@ -5,11 +5,10 @@
 # get a node's internal ip address
 set -eo pipefail
 
-VERBOSE=""
 if [ "${1}" == '-d' ]
 then
     set -x
-    VERBOSE="--verbose"
+    shift 1
 fi
 
 kubectl get node $1 -ojson | \

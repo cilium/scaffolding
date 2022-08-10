@@ -7,7 +7,6 @@
 # cwd rather than /usr/local/bin
 set -eo pipefail
 
-VERBOSE=""
 if [ "${1}" == '-d' ]
 then
     set -x

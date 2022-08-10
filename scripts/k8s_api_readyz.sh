@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ---
 # k8s-api-readyz.sh
+# ---
 # get ip and ca of k8s api server from kubeconfig, then contact
 # `/readyz?verbose`
 #

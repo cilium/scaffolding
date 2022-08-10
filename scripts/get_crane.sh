@@ -5,7 +5,6 @@
 # Download crane binary from github.com/google/go-containerregistry
 set -eo pipefail
 
-VERBOSE=""
 if [ "${1}" == '-d' ]
 then
     set -x
