@@ -1,0 +1,20 @@
+# https://grafana.com/docs/grafana-cloud/kubernetes-monitoring/prometheus/prometheus_operator/
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+spec:
+  image: quay.io/prometheus/prometheus:v2.37.0
+  nodeSelector:
+    kubernetes.io/os: linux
+    role.scaffolding/monitoring: "true"
+  replicas: 1
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  serviceAccountName: prometheus
+  version: v2.37.0
+  serviceMonitorSelector: {}

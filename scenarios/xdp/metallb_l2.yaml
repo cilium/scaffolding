@@ -1,0 +1,19 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: mk-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 192.168.39.250-192.168.39.254
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: mk-lb
+  namespace: metallb-system
+spec:
+  nodeSelectors:
+  - matchLabels:
+      role.scaffolding/lb: "true"

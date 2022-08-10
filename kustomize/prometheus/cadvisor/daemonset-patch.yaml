@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+spec:
+  template:
+    spec:
+      nodeSelector:
+        role.scaffolding/monitored: "true"
+      containers:
+      - name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:v0.45.0

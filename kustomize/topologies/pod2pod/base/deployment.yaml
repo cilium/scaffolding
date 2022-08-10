@@ -1,0 +1,19 @@
+  apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod2pod
+  labels:
+    app: pod2pod
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: pod2pod
+  template:
+    metadata:
+      labels:
+        app: pod2pod
+    spec:
+      containers:
+        - name: main
+          image: k8s.gcr.io/pause:3.1

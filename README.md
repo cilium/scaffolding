@@ -1,167 +1,301 @@
-# scaffolding
-Ansible Automation to bring up a Performance SUT for Cilium Performance testing
+# Scaffolding
 
-# Quickstart
+scaffolding's aim is to provide a framework for writing simple scripts to execute performance benchmarks, with a focus on keeping the process quick, flexible and simple.
 
-## GKE
+The project is organized as follows:
 
-Pull the container image with all the necessary tools
+* `./toolkit`: go package which automates simple tasks that would be too tedious or repetitive to implement scripting with other CLI tools.
+* `./scripts`: collection of bash scripts which implement commonly used/required functionality.
+* `./kustomize`: collection of [kustomize](https://kustomize.io/) templates for applying commonly used manifests.
+* `./scenarios`: implementation scripts for running benchmarks within different scenarios for some purpose.
 
-`$ podman pull quay.io/jtaleric/scaffolding`
+## toolkit
 
-One can also build the container image from the project root, however please note that any files
-(ie including service account credentials) within the project directory will be included into the
-image
+```
+collection of tools to assist in running performance benchmarks
 
-`$ podman build . -t scaffolding`
+Usage:
+  toolkit [command]
 
-Kick it
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  lazyget     get a thing so you don't have to
+  verify      verify the state of things
 
-`$ podman run -ti --name scaffold --hostname scaffolding --network host quay.io/jtaleric/scaffolding:latest /bin/bash`
+Flags:
+  -h, --help                help for toolkit
+  -k, --kubeconfig string   path to kubeconfig for k8s-related commands
+                            if not given will try the following (in order):
+                            KUBECONFIG, ./kubeconfig, ~/.kube/config
+  -v, --verbose             show debug logs
 
-You will need to retrieve a `Service Account`. To get this:
-- Login to the GCloud Console
-- Click the Project which you want to build clusters in.
-- In the Menu choose "IAM & Admin" -> Service Account
-- Click Create Service Account
-- Once created, click the newly created Service Account
-- On the top bar, click Keys
-- Click Add Key and download the JSON
+Use "toolkit [command] --help" for more information about a command.
+```
 
-Store this file within this directory. Whatever you name it, update `group_vars/all` with the value.
+Currently have the following subcommands:
+
+* `lazyget`, used for:
+  * creating kind configurations (`kind-config`)
+  * getting kind images based on kubernetes version (`kind-image`)
+* `verify`, used for:
+  * verifying all pods and nodes have no failing conditions (`k8s-ready`)
+
+For adding new subcommands, be sure to check out `util.go`, which has some commonly used utility functions ready to go.
+
+## scripts
+
+Most, if not all, of these scripts support passing `-d` as the first parameter, which asks the script to run a `set -x` for verbose output:
+
+```bash
+if [ "${1}" == '-d' ]
+then
+    set -x
+    shift 1
+fi
+```
+
+* **`exec_with_registry.sh`**: Find a service with the labels `app.kubernetes.io/part-of=scaffolding` and `app.kubernetes.io/name=registry`, port-forward it to localhost on port 5000, execute a given command, then kill the port-forward. Useful for a `(crane|docker|podman) push`.
+* **`get_apiserver_url.sh`**: Look for a pod with a prefix of `kube-apiserver` in its name and return it's IP and port in the format of `ip:port`. Not very v6 friendly.
+* **`get_ciliumcli.sh`**: Download cilium-cli to current directory using instructions from the documentation.
+* **`get_crane.sh`**: Download [crane](https://github.com/google/go-containerregistry/blob/main/cmd/crane/doc/crane.md) to the current directory using instructions from their documentation.
+* **`get_node_internal_ip.sh`**: Return the address for a node with the type `InternalIP`.
+* **`k8s_api_readyz.sh`**: Grab the current context's API server IP and CA data and make a curl request to `/readyz?verbose=true` to check if the API server is up. If the CA data cannot be determined, then use `--insecure` with curl to still allow for a request to go out.
+* **`retry.sh`**: Retry a given command, using a given delay in-between attempts. For example, `retry.sh 5 echo hi` will attempt to run `echo hi` every `5` seconds until success.
+
+## kustomize
+
+This collection of kustomize templates is meant to be easy to reference in a `kustomization.yaml` for your needs. As an example, within a scenario's directory add:
 
 ```yaml
-gke:
-  region: "us-west2-a"
-  project: "cilium-perf"
-  auth_kind: "serviceaccount"
-  sa_file: "my_sa.json"
-  machine_type: "n1-standard-4"
-  image_type: ubuntu_containerd
-```
-You will also need to update the `project` key here too to match you specific project.
-
-If you want to swap kernels, you need to use the `ubuntu_containerd` image type.
-
-We will assume the user is storing results in Elasticsearch, so update `es_url` with your ES Server information.
-
-Once all the necessary changes are made, and the Service Account JSON is dropped in, kick a full pipeline run
-
-`$ ansible-playbook platform-install-kernel-benchmark.yml --tags gke,prometheus,benchmark-operator -e "create=true" -e "num_nodes=2" -e "kernel=v5.17"`
-
-Breaking down the `ansible-playbook` command :\
-`--tags` -- `gke` Will tell Ansible what the Platform we are creating and testing is.\
-`--tags` -- `prometheus, benchmark-operator` This will install the specific tools we want to have for our SUT \
-`-e` -- Extra-var, which we will override the `create` variable to `true` so the automation will prepare us a cluster.\
-`-e` -- Extra-var, which will set our `num_nodes` param. *required*\
-`-e` -- Extra-var, which will set our `kernel` version to `5.17` this is only available under GKE today.
-
-### Custom install params to pass to Cilium CLI
-To modify the cilium install params
-
-`$ ansible-playbook pipeline.yml --tags gke,prometheus,benchmark-operator,datapath -e "create=true" -e "num_nodes=2" -e "kernel=v5.18-rc6" -e "cilium_install_params='--helm-set bandwidthManager.enabled=true --helm-set bandwidthManager.bbr=false --helm-set kubeProxyReplacement=strict'" -vvv`
-
-### Cleanup
-`ansible-playbook platform.yml --tags gke -e "destroy=true" -e "archive_dir=/location/where/cluster/artifacts/are"`
-
-## Providers
-- GKE
-- OCP
-
-## Tools
-- Prometheus (via Helm)
-- Benchmark Operator
-- Performance Dashboards (Grafana w/ customized dashboards)
-
-## Known Nuances
-- Stopping OpenShift mid-install can result in the `metadata.json` to be missing for a cleanup. To circumvent this, we can build a net-new `metadata.json` to clean up objects in the specified platform.
-
-## Artifacts after run
-```
- cilium*               # Binary which we used to install Cilium
- starttime             # When the Automation started
- cluster_name          # Name of the cluster in the event we have to manually clean up
- region                # Region we deployed in
- platform              # What Platform, GKE, OpenShift
- project               # Project we built the cluster in
- kubeconfig
-  bmo/                 # Benchmark-Operator
- kernel                # Kernel which was installed
- *-uperf.yml           # Workload(s)
- *-uperf.log           # Console from workload
- datapath-uuid         # Benchmark UUID (to retrieve from ES)
- uperf.json            # For result collection (touchstone)
- *-result.out          # Result from performance run
- destroyed             # If the cluster has been destroyed
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../kustomize/prometheus
+- ./../kustomize/grafana
 ```
 
-# CI
+into a `kustomization.yaml` and execute `kustomize build . | kubectl apply -f` and *boom*, you have prometheus and grafana. If you want to modify the deployment, just add patches. For instance, to upload `node_cpu_seconds_total` metrics to grafana cloud:
 
-The goal of scaffolding's CI is to automate the performance testing of K8s CNIs within a variety of different conditions.
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../kustomize/prometheus
+- ./../kustomize/grafana
+patchesStrategicMerge:
+- -|
+    apiVersion: monitoring.coreos.com/v1
+    kind: Prometheus
+    metadata:
+      name: prometheus
+      labels:
+        app: prometheus
+    spec:
+      remoteWrite:
+      - url: <MY_PROM_PUSH_URL/>
+        basicAuth:
+          username:
+            name: <MY_PROM_SECRET/>
+            key: username
+          password:
+            name: <MY_PROM_SECRET/>
+            key: password
+        writeRelabelConfigs:
+          - source_labels: 
+              - "__name__"
+            regex: "node_cpu_seconds_total"
+            action: "keep"
+```
 
-Each set of conditions is referred to a 'scenario', with each scenario represented as a set of variables contained within a [vars file](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#vars-from-a-json-or-yaml-file) that modifies the behavior of one of the scaffolding Ansible playbooks.
+Or to add a dashboard stored in the `./my-cool-dashboard.yaml` ConfigMap:
 
-The file [ci/matrix.jsonnet](ci/matrix.jsonnet) contains the current testing matrix as a list of JSON objects, with each JSON object representing a scenario.
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../kustomize/prometheus
+- ./../kustomize/grafana
+- ./my-cool-dashboard-cm.yaml
+patchesStrategicMerge:
+- -|
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: grafana
+      name: grafana
+    spec:
+      template:
+        spec:
+          containers:
+            - name: grafana
+              volumeMounts:
+              - mountPath: /var/lib/grafana/dashboards/my-cool-dashboard.json
+                name: my-cool-dashboard
+                readOnly: true
+          volumes:
+            - name: my-cool-dashboard
+              configMap:
+                defaultMode: 420
+                name: my-cool-dashboard-cm
+                items:
+                  - key: my-cool-dashboard.json
+                    path: my-cool-dashboard.json
+```
 
-CI is implemented through CircleCI, with [dynamically generated configurations](https://circleci.com/docs/2.0/dynamic-config/) created by [ci/circleci.py](ci/circleci.py).
+It's convention that each resource can be pinned to a node using NodeSelectors and `role.scaffolding/<role/>=true` labels, which is useful when we want to dedicate a node for a certain resource, such as netperf server. See below for specifics.
 
-There are two different configurations which can be triggered:
+### prometheus
 
-1. `pipeline.yml`: CircleCI configuration that will test each scenario within [ci/matrix.jsonnet](ci/matrix.jsonnet) by rendering [ci/templates/pipeline.yml.j2](ci/templates/pipeline.yml/j2). Performs some setup tasks and then runs each scenario in parallel. This must be triggered manually.
-2. `build.yml`: Builds and updates the scaffolding container image on Quay. This is triggered on a push to main or when a tag is created.
+Structured as a collection of bases that can be combined as needed. Just using the TLD `kustomize/prometheus` will select all bases and deploy the following into the cluster under the `monitoring` namespace:
 
-## Triggering
+* [prometheus-operator](https://github.com/prometheus-operator/prometheus-operator)
+* prometheus (using prometheus operator) on any node labeled `role.scaffolding/monitoring=true`, attached to a service named `prometheus`.
+* [node-exporter](https://github.com/prometheus/node_exporter) on any node labeled `role.scaffolding/monitored=true`
+* [cadvisor](https://github.com/google/cadvisor) on any node labeled `role.scaffolding/monitored=true`
 
-Triggering a run on the CI can be done through the web UI, however a utility script also exists for triggering a run from the command line.
+### grafana
 
-The script, [ci/util/trigger.sh](ci/util/trigger.sh), requires a [personal API token](https://circleci.com/docs/2.0/managing-api-tokens/#creating-a-personal-api-token), as all the script does is make an API call to the CircleCI API server.
+Deploys grafana onto a node with the `role.scaffolding/monitoring=true` label into the `monitoring` namespace, accessible using the service named `grafana`.
 
-Once you have a token, view the head of the script for usage details.
+By default, will use the prometheus deployment above as a datasource and add the following dashboards by mounting them as ConfigMaps inside the grafana container at `/var/lib/grafana/dashboards`:
 
-## Testing
+* node-exporter: [grafana.com](https://grafana.com/grafana/dashboards/1860)
+* docker monitoring: [grafana.com](https://grafana.com/grafana/dashboards/193)
 
-CircleCI has a CLI which allows us to run jobs locally. This may not work for everything, as the CLI cannot replicate the execution environment perfectly, but it's a great starting point to find bugs and test out changes.
+A dashboard provider is used to accomplish this. See the [grafana docs](https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards) for more information.
 
-The process for doing this is essentially:
+### registry
 
-1. Render configuration templates for local use:
+Deploys an in-cluster registry in the namespace `registry`, available through the service named `registry`. This means the DNS name `registry.registry.svc` can be used as the URL for pushed images. [Crane](https://github.com/google/go-containerregistry/blob/main/cmd/crane/doc/crane.md) is a great way to interact with this registry and can be downloaded using `scripts/get_crane.sh`. If you need to build a custom image and don't want to mess with pushing and downloading from a remote registry just to get it into your cluster, then this is the manifest for you!
 
-`python3 ci/circleci.py --local <output_dir>`
+### topologies
 
-2. Process configuration into something that the CircleCI CLI can use (and validate):
+Sets up pod topologies for performance testing. Right now we just have the one, **pod2pod**, and the intention here is to overwrite details of the deployment as needed within a `kustomization.yaml`. This is definitely subject to change, as there is probably a better way to do this which doesn't involve a lot of boilerplate.
 
-`circleci config process <output_dir>/<config>.yml > processed.yml`
-`circleci config validate processed.yml`
+#### topologies/pod2pod/base
 
-3. Run a job within the processed config
+Creates two pods for network performance testing by using a Deployment with one replica and a NodeSelector:
 
-`circleci local execute -c processed.yml --job <job_name>`
+* **`pod2pod-client`**: Selects nodes with the label `role.scaffolding/pod2pod-client=true`.
+* **`pod2pod-server`**: Selects nodes with the label `role.scaffolding/pod2pod-server=true`.
 
-Be sure to view the processed configuration that you are passing into `circleci local execute`, as job names may change depending on how the configuration is parameterized.
+Each of these deployments has a pod with a single container named `main`, using `k8s.gcr.io/pause:3.1` as its image. To override the image for both deployments, you can use kustomize's `images` transformer:
 
-To test running pipelines in their entirety, you need to use a fork to set up the project within CircleCI's web UI. (See [create-project](https://circleci.com/docs/2.0/create-project) for an overview.)
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../kustomize/topologies/pod2pod/base
+images:
+- name: k8s.gcr.io/pause:3.1
+  newName: <mycoolimage/>
+```
 
-The following configuration is expected:
+If you just want the server or the client, you can use the `patchesStrategicMerge` transformer as follows:
 
-- [Environment variables](https://circleci.com/docs/2.0/env-vars#setting-an-environment-variable-in-a-project)
-  - `ES_URL`: Fully qualified URL to ElasticSearch where results will be sent to. Note that the benchmark playbook will hang if this is not set.
-  - `QUAY_LOGIN_USER`: Username for authenticating to quay.io.
-  - `QUAY_PASS`: Password for authenticating to quay.io.
-  - `QUAY_USER`: User hosting the repository for the scaffolding image (ie `quay.io/$QUAY_USER/scaffolding`)
-  - `GKE_SAFILE_B64`: Base64 encoded service account credential file for GKE. You can create this using: `cat sa.json | base64`
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../kustomize/topologies/pod2pod/base
+patchesStrategicMerge:
+- |-
+  $patch: delete
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: pod2pod-client
 
-## Other CI Notes
+```
 
-Available cilium versions can be listed by using:
+### topologies/pod2pod/overlays/pod
 
-`cilium install --list-versions`
+Uses `pod2pod/base`, but has a patch to ensure that each of the Deployments has one replica. Basically just an alias at this point.
 
-To help improve build times, buildkit's inline caching is utilized. To manually build and push the container image, be sure to enable it:
+### topologies/pod2pod/overlays/service
 
-`docker build . -t scaffolding:latest --build-arg BUILDKIT_INLINE_CACHE=1`
+Creates an incomplete Service that selects the `pod2pod-server`. You still need to fill in the service's spec with details about how you want it to function. For instance, if I want to:
 
-Other utility scripts:
+* Have `pod2pod-server` run `httpd` on port 80,
+* Expose it as a LoadBalancer service on port 80
+* Have `pod2pod-client` run an `alpine` container forever, for `kubectl exec`
 
-* [ci/util/artifact.sh](ci/util/artifact.sh): View and download artifacts for a job.
-* [ci/util/ppmatrix.sh](ci/util/ppmatrix.sh): Pretty-print rendered [matrix.jsonnet](ci/matrix.jsonnet).
-* [ci/util/cleanup.sh](ci/util/cleanup.sh): Cleanup GKE clusters created by the CI.
+I would write the following:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../kustomize/topologies/pod2pod/overlays/service
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: pod2pod-client
+  spec:
+    template:
+      spec:
+        containers:
+          - name: main
+            image: alpine
+            command: ["sleep", "infinity"]
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: pod2pod-server
+  spec:
+    template:
+      spec:
+        containers:
+          - name: main
+            image: httpd
+            ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+- |-
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: pod2pod-server
+  spec:
+    type: LoadBalancer
+    ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 80
+        name: http
+```
+
+## scenarios
+
+Each sub-directory within the `scenarios` directory is meant to house resources for running any kind of performance test, using the resources within scaffolding.  The idea here is that each directory has a main script for running the test(s), a `kustomization.yaml` file, an artifacts directory where items produced from the test are kept, a `README.md` describing what is going on, and any other resources required.
+
+`scenarios/common.sh` can be sourced within as a helper, containing common environment variables and functions:
+
+Environment variables:
+
+* **`SCENARIO_DIR`:** Absolute path to the directory of the current scenario (ie cwd when `common.sh` is sourced)
+* **`ARTIFACTS`:** Absolute path to the scenario's artifacts directory
+* **`ROOT_DIR`:** Absolute path to the root of scaffolding
+* **`TOOLKIT`:** ... toolkit sub-directory ...
+* **`SCRIPT`:** ... script sub-directory ...
+* **`KUSTOMIZE`:** ... kustomize sub-directory ...
+
+Functions:
+
+* **`build_toolkit()`:** Build a binary for toolkit and save it into the artifacts directory.
+* **`wait_ready()`:** Use `scripts/retry.sh` along with `scripts/k8s_api_readyz.sh` and the toolkit's `verify k8s-ready` command to wait until the k8s cluster is ready to go before proceeding. This is great to use after applying a built kustomize file or after provisioning a cluster.
+* **`breakpoint()`:** Wait to continue until some data comes in from STDIN (ie from a user).
+
+### xdp
+
+Demonstrate the positive CPU impact of XDP native acceleration and DSR on a load-balancer. Requires three nodes, one for a load balancer, one for a netperf server, one for grafana and prometheus.
+
+Implemented within `minikube` for local development, but can easily be modified for other environments as needed.
+
+Run `kubectl port-forward -n monitoring svc/grafana 3000:3000` to view the `node-exporter` dashboard, which can be used to monitor the CPU usage of the load balancer node.

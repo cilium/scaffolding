@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod2pod-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pod2pod-client
+  template:
+    metadata:
+      labels:
+        app: pod2pod-client
+    spec:
+      nodeSelector:
+        role.scaffolding/pod2pod-client: "true"
+      containers:
+      - name: main
+        image: k8s.gcr.io/pause:3.1

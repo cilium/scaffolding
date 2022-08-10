@@ -1,0 +1,17 @@
+# based on https://github.com/bibinwilson/kubernetes-node-exporter/blob/main/service.yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: node-exporter
+  labels:
+    app.kubernetes.io/component: exporter
+    app.kubernetes.io/name: node-exporter
+spec:
+  selector:
+    app.kubernetes.io/component: exporter
+    app.kubernetes.io/name: node-exporter
+  ports:
+  - name: node-exporter
+    protocol: TCP
+    port: 9100
+    targetPort: 9100

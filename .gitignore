@@ -1,5 +1,3 @@
-__pycache__/
-*.py[cod]
 .vscode/
 .swp
-
+scenarios/**/artifacts

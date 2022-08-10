@@ -1,6 +1,0 @@
----
-- block:
-  - name: Update kernel of GKE nodes
-    include_tasks: gke.yml
-  tags:
-    - gke
