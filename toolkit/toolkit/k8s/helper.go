@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +23,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/cmd/exec"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
 )
 
 // Helper has useful methods for doing things in kubernetes.

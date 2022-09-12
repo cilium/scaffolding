@@ -6,9 +6,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
 )
 
 // GetNestedSliceStringInterfaceMap returns a slice of string to interface maps within the given unstructured

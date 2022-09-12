@@ -3,9 +3,10 @@ package cmd
 import (
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/scaffolding/toolkit/toolkit"
 	"github.com/cilium/scaffolding/toolkit/toolkit/k8s"
-	"github.com/spf13/cobra"
 )
 
 func init() {

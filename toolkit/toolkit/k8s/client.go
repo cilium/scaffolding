@@ -5,13 +5,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
 	log "github.com/sirupsen/logrus"
 	k8sDynamic "k8s.io/client-go/dynamic"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
 )
 
 // FindKubeconfig attempts to resolve the location of the kubeconfig, returning its path.

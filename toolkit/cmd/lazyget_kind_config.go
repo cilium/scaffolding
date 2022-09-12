@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
 )
 
 var (

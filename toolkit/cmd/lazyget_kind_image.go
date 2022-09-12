@@ -5,8 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
 )
 
 func GetAvailableVersionsStr() string {

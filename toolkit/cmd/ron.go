@@ -9,13 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
-	"github.com/cilium/scaffolding/toolkit/toolkit/k8s"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/watch"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
+	"github.com/cilium/scaffolding/toolkit/toolkit/k8s"
 )
 
 type RonOptions struct {
