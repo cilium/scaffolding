@@ -5,31 +5,34 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"reflect"
+	"runtime"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
+// ExitWithError will call os.Exit(1) if the given err is not nil, logging that something bad happened.
 func ExitWithError(logger *log.Logger, err error) {
-	logger.WithFields(
-		log.Fields{
-			"err": err,
-		},
-	).Error("❗something really bad happened, unable to continue")
+	logger.WithField("err", err).Error("❗something really bad happened, unable to continue")
 	os.Exit(1)
 }
 
+// PathExists return true if the given path exists on disk.
+// Simple wrapper around os.Stat.
 func PathExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
+// PathIsDir returns if the given path is a directory.
 func PathIsDir(path string) bool {
 	stat, err := os.Stat(path)
 	return err == nil && stat.IsDir()
 }
 
+// PPrint takes the given value, marshalls it using json and prints it using fmt.
 func PPrint(n interface{}) error {
 	marshalled, err := json.MarshalIndent(n, "", "    ")
 	if err != nil {
@@ -39,6 +42,7 @@ func PPrint(n interface{}) error {
 	return nil
 }
 
+// RandomString returns a string of random characters of length n.
 func RandomString(n int) string {
 	sb := strings.Builder{}
 	for n > 0 {
@@ -49,18 +53,73 @@ func RandomString(n int) string {
 	return sb.String()
 }
 
-func SimpleRetry(target func() error, maxAttempts int, delay time.Duration) error {
+// GetFunctionName takes in a function and uses reflect to get its name as a string.
+func GetFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+// PullStrKey returns the string value of the given key within the given string to interface map.
+// Useful when working with unstructured kubernetes objects.
+func PullStrKey(k string, m map[string]interface{}) (string, error) {
+	_v, ok := m[k]
+	if !ok {
+		return "", fmt.Errorf("could not find key %s in map: %s", k, m)
+	}
+	v, ok := _v.(string)
+	if !ok {
+		return "", fmt.Errorf("could not turn key %s in map into string; %s", k, m)
+	}
+	return v, nil
+}
+
+// SimpleRetry will run the target function maxAttempts times, waiting delay in-between attempts.
+// If a logger is given, then attempts will be logged.
+func SimpleRetry(target func() error, maxAttempts int, delay time.Duration, logger ...*log.Logger) error {
 	attempts := 0
 	var err error = nil
+	funcName := GetFunctionName(target)
+
+	doLog := func(msg string, err ...error) {
+		if len(logger) > 0 {
+			for _, l := range logger {
+				lf := l.WithFields(log.Fields{
+					"name":         funcName,
+					"max-attempts": maxAttempts,
+					"delay":        delay.String(),
+				})
+				if len(err) > 0 {
+					for _, e := range err {
+						lf = lf.WithError(e)
+					}
+				}
+				lf.Debug(msg)
+			}
+		}
+	}
+
+	doLog("running function until success")
 
 	for attempts < maxAttempts {
+		doLog(fmt.Sprintf("attempt %d", attempts))
 		err = target()
 		if err == nil {
+			doLog(fmt.Sprintf("success on attempt %d", attempts))
 			return nil
 		}
+		doLog("failed, sleeping", err)
 		time.Sleep(delay)
 		attempts++
 	}
 
 	return err
+}
+
+// SliceContains is a generic that checks if the given slices contains the given target.
+func SliceContains[T comparable](slice []T, target T) bool {
+	for _, v := range slice {
+		if v == target {
+			return true
+		}
+	}
+	return false
 }
