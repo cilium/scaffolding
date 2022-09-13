@@ -170,7 +170,7 @@ var ronCmd = &cobra.Command{
 			))
 		}
 
-		stopLogs := func() {} // will be set in the below branch if entered, called after cleanup
+		stopLogs := func() {} // will be set in the below branch in function "startPodLogs", called after cleanup
 		var logwg sync.WaitGroup
 		if !RonOpts.CleanupAndExit {
 			var err error
@@ -205,88 +205,105 @@ var ronCmd = &cobra.Command{
 			podLogger.Info("setting up exec pod")
 			exitIfError(khelp.ApplyResource(*k8s.GVRPod, pod, false, retryOpts))
 
-			// this becomes our main loop, waiting for pod to start and complete
-			logsStarted := false
-			success, err := khelp.WaitOnWatchedResource(
-				khelp.Ctx, *k8s.GVRPod, RonOpts.PodName, RonOpts.NSName,
-				func(event watch.Event) (bool, error) {
-					podLogger.WithField("type", event.Type).Info("observed event on exec pod")
-					// exit if pod deleted by user
-					if event.Type == watch.Deleted {
-						return true, fmt.Errorf("ron pod was deleted, cannot continue") // done, pod isn't available
-					}
-					// something happened, check on the pod
-					// 1. check if pod is ready
-					// 1a. if pod is not ready, return and wait for next event
-					// 1b. if pod is ready and we haven't started streaming logs, stream logs
-					// 2. check if pod's main container has terminated with reason 'Completed'
-					// 2a. if that's the case, we're all done, return
-					// 2b. if that's not the case, return and wait for next event
-					if event.Type == watch.Modified || event.Type == watch.Added {
-						res := event.Object.(*unstructured.Unstructured)
-						// is the pod actually ready?
-						ready, err := k8s.CheckUnstructuredForReadyState(Logger, res)
+			// Need to watch the Ron Pod for changes as it starts up, so create a callback
+			// to handle this
+
+			// kick of streaming logs from the ron pod
+			startWatchingPodLogs := func() error {
+				Logger.Info("watching pod logs")
+				stopLogs, err = khelp.LogPodLogs( // this stopLogs func is called during cleanup, see start of branch
+					CmdCtx, RonOpts.NSName, RonOpts.PodName, &logwg, retryOpts, "sleep",
+				)
+				if err != nil {
+					return err // unable to create infra for log streams
+				}
+				return nil
+			}
+			// check if the given pod has a main container with completed status
+			checkMainContainerIsDone := func(res *unstructured.Unstructured) (bool, error) {
+				containerStatuses, containerStatusesFound, err := k8s.GetNestedSliceStringInterfaceMap(
+					res, "status", "containerStatuses",
+				)
+				if err != nil {
+					return false, err // unable to get containerStatuses, quit and debug
+				}
+				if !containerStatusesFound {
+					// not sure what could lead us here,
+					// maybe there is a time in-between when a pod is ready and when statuses are published
+					return false, fmt.Errorf("unable to find containerStatuses in pod %s", RonOpts.PodName)
+				}
+				for _, c := range containerStatuses {
+					// find the main container
+					podLogger.WithField("container", c).Debug("got container")
+					if c["name"].(string) == "main" {
+						podLogger.Debug("found main container")
+						completed, err := k8s.DoesContainerStatusShowCompleted(c)
+						podLogger.WithFields(log.Fields{
+							"completed": completed,
+							"err":       err,
+						}).Debug("checked for terminated")
 						if err != nil {
-							return false, err // unable to get pod, need a retry
+							return false, err // something bad happened trying to find status.reason
 						}
-						if !ready {
-							podLogger.Info(
-								"pod itself is not ready, either there's an error or it just hasn't started yet",
-							)
-							return false, nil // pod isn't ready, wait for next event
+						if completed {
+							podLogger.Info("found main container and it is completed, exiting")
+							return true, nil // only "good" return, everything is done
 						}
-						if ready {
-							podLogger.Info("pod showing ready state")
-							if !logsStarted {
-								Logger.Info("watching pod logs")
-								stopLogs, err = khelp.LogPodLogs(
-									CmdCtx, RonOpts.NSName, RonOpts.PodName, &logwg, retryOpts, "sleep",
-								)
-								if err != nil {
-									return false, err // unable to create infra for log streams
-								}
-								logsStarted = true
-							}
-							podLogger.Info("checking if exec pod is finished")
-							// look for completed main container
-							containerStatuses, containerStatusesFound, err := k8s.GetNestedSliceStringInterfaceMap(
-								res, "status", "containerStatuses",
-							)
-							if err != nil {
-								return false, err // unable to get containerStatuses, quit and debug
-							}
-							if !containerStatusesFound {
-								// not sure what could lead us here,
-								// maybe there is a time in-between when a pod is ready and when statuses are published
-								return false, fmt.Errorf("unable to find containerStatuses in pod %s", RonOpts.PodName)
-							}
-							for _, c := range containerStatuses {
-								// find the main container
-								podLogger.WithField("container", c).Debug("got container")
-								if c["name"].(string) == "main" {
-									podLogger.Debug("found main container")
-									completed, err := k8s.DoesContainerStatusShowCompleted(c)
-									podLogger.WithFields(log.Fields{
-										"completed": completed,
-										"err":       err,
-									}).Debug("checked for terminated")
-									if err != nil {
-										return false, err // something bad happened trying to find status.reason
-									}
-									if completed {
-										podLogger.Info("found main container and it is completed, exiting")
-										return true, nil // only "good" return, everything is done
-									}
-									podLogger.WithField("container", "main").Debug("main container is not done")
-									return false, nil // continue waiting for main container to finish
-								}
-							}
-							// we should return inside the for loop, otherwise something is wrong
-							return false, fmt.Errorf("could not find container 'main' in exec pod")
-						}
+						podLogger.WithField("container", "main").Debug("main container is not done")
+						return false, nil // continue waiting for main container to finish
 					}
-					return false, nil // got a watch event that isn't modified or deleted, continue
-				},
+				}
+				// we should return inside the for loop, otherwise something is wrong
+				return false, fmt.Errorf("could not find container 'main' in exec pod")
+			}
+			// put it all together in our callback
+			logsStarted := false
+			handleEventOnRonPod := func(event watch.Event) (bool, error) {
+				podLogger.WithField("type", event.Type).Info("observed event on exec pod")
+				// exit if pod deleted by user
+				if event.Type == watch.Deleted {
+					return true, fmt.Errorf("ron pod was deleted, cannot continue") // done, pod isn't available
+				}
+				// something happened, check on the pod
+				// 1. check if pod is ready
+				// 1a. if pod is not ready, return and wait for next event
+				// 1b. if pod is ready and we haven't started streaming logs, stream logs
+				// 2. check if pod's main container has terminated with reason 'Completed'
+				// 2a. if that's the case, we're all done, return
+				// 2b. if that's not the case, return and wait for next event
+				if event.Type == watch.Modified || event.Type == watch.Added {
+					res := event.Object.(*unstructured.Unstructured)
+					// is the pod actually ready?
+					ready, err := k8s.CheckUnstructuredForReadyState(Logger, res)
+					if err != nil {
+						return false, err // unable to get pod, need a retry
+					}
+					if !ready {
+						podLogger.Info(
+							"pod itself is not ready, either there's an error or it just hasn't started yet",
+						)
+						return false, nil // pod isn't ready, wait for next event
+					}
+					if ready {
+						podLogger.Info("pod showing ready state")
+						if !logsStarted {
+							err := startWatchingPodLogs()
+							if err != nil {
+								return false, err // unable to start watching logs
+							}
+							logsStarted = true
+						}
+						podLogger.Info("checking if exec pod is finished")
+						// look for completed main container
+						return checkMainContainerIsDone(res)
+					}
+				}
+				return false, nil // got a watch event that isn't modified or deleted, continue
+			}
+
+			// this becomes our main loop, waiting for pod to start and complete
+			success, err := khelp.WaitOnWatchedResource(
+				khelp.Ctx, *k8s.GVRPod, RonOpts.PodName, RonOpts.NSName, handleEventOnRonPod,
 			)
 			if !success {
 				Logger.Warning("unable to complete execution successfully, something bad happened")
