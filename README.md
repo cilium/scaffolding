@@ -21,6 +21,7 @@ Available Commands:
   completion  Generate the autocompletion script for the specified shell
   help        Help about any command
   lazyget     get a thing so you don't have to
+  ron         Run On Node
   verify      verify the state of things
 
 Flags:
@@ -38,6 +39,8 @@ Currently have the following subcommands:
 * `lazyget`, used for:
   * creating kind configurations (`kind-config`)
   * getting kind images based on kubernetes version (`kind-image`)
+* `ron` used for:
+  * running commands on nodes in a kubernetes cluster through the use of pods, with support for: mounting local files, creating PVC for storing artifacts, auto-copying data out of PVC, prefixing commands with nsenter, and automatic cleanup.
 * `verify`, used for:
   * verifying all pods and nodes have no failing conditions (`k8s-ready`)
 
