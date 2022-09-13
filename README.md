@@ -58,6 +58,8 @@ then
 fi
 ```
 
+As a convention, the filenames of these scripts should be in snake case.
+
 * **`exec_with_registry.sh`**: Find a service with the labels `app.kubernetes.io/part-of=scaffolding` and `app.kubernetes.io/name=registry`, port-forward it to localhost on port 5000, execute a given command, then kill the port-forward. Useful for a `(crane|docker|podman) push`.
 * **`get_apiserver_url.sh`**: Look for a pod with a prefix of `kube-apiserver` in its name and return it's IP and port in the format of `ip:port`. Not very v6 friendly.
 * **`get_ciliumcli.sh`**: Download cilium-cli to current directory using instructions from the documentation.
