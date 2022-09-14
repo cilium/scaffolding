@@ -52,12 +52,7 @@ type KindConfigTemplateParams struct {
 // withCNI toggles kind setting up its default CNI upon cluster creation.
 // image determines which container image will be used for nodes.
 func NewKindConfig(
-	logger *log.Logger,
-	name string,
-	nWorkers int,
-	nControlPlanes int,
-	withCNI bool,
-	image string,
+	logger *log.Logger, name string, nWorkers int, nControlPlanes int, withCNI bool, image string,
 ) (string, error) {
 	kindConfigTemplateParams := KindConfigTemplateParams{
 		Name:  name,
@@ -100,9 +95,7 @@ func NewKindConfig(
 
 	marshalledParams, err := json.Marshal(kindConfigTemplateParams)
 	if err != nil {
-		logger.WithError(err).
-			WithField("params", kindConfigTemplateParams).
-			Error("unable to unmarshal template params")
+		logger.WithError(err).WithField("params", kindConfigTemplateParams).Error("unable to unmarshal template params")
 	}
 	logger.WithField("params", string(marshalledParams)).Debug("rendering template with params")
 	err = template.Execute(templateStringBuilder, kindConfigTemplateParams)

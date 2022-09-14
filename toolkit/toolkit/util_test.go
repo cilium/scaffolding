@@ -67,9 +67,7 @@ func TestSimpleRetryRespectsMaxAttempts(t *testing.T) {
 		func() error {
 			*counter += 1
 			return errors.New("my-fake-error")
-		},
-		5,
-		100*time.Millisecond,
+		}, 5, 100*time.Millisecond,
 	)
 	end := time.Now()
 
