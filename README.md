@@ -152,8 +152,9 @@ Structured as a collection of bases that can be combined as needed. Just using t
 
 * [prometheus-operator](https://github.com/prometheus-operator/prometheus-operator)
 * prometheus (using prometheus operator) on any node labeled `role.scaffolding/monitoring=true`, attached to a service named `prometheus`.
-* [node-exporter](https://github.com/prometheus/node_exporter) on any node labeled `role.scaffolding/monitored=true`
-* [cadvisor](https://github.com/google/cadvisor) on any node labeled `role.scaffolding/monitored=true`
+* [node-exporter](https://github.com/prometheus/node_exporter) on any node labeled `role.scaffolding/monitored=true`.
+* [cadvisor](https://github.com/google/cadvisor) on any node labeled `role.scaffolding/monitored=true`.
+* [pushgateway](https://github.com/prometheus/pushgateway) on any node labeled `role.scaffolding/monitored=true`, attached to a service named `pushgateway`. A ServiceMonitor is included.
 
 ### grafana
 

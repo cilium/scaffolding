@@ -1,0 +1,11 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pushgateway
+spec:
+  selector:
+    matchLabels:
+      app: pushgateway
+  endpoints:
+  - port: http-pg
+    honorLabels: true
