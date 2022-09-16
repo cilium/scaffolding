@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: pushgateway
+  name: pushgateway
+spec:
+  selector:
+    matchLabels:
+      app: pushgateway
+  template:
+    metadata:
+      labels:
+        app: pushgateway
+    spec:
+      nodeSelector:
+        role.scaffolding/monitoring: "true"
+      containers:
+        - name: pushgateway
+          image: prom/pushgateway
+          ports:
+            - containerPort: 9091
+              name: http-pg
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http-pg
+              scheme: HTTP
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http-pg
+              scheme: HTTP
