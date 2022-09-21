@@ -69,13 +69,10 @@ spec:
               name: grafana-datasources
               readOnly: true
             - mountPath: /etc/grafana/provisioning/dashboards
+              name: grafana-dashboard-provider
+              readOnly: true
+            - mountPath: /var/lib/grafana/dashboards
               name: grafana-dashboards
-              readOnly: true
-            - mountPath: /var/lib/grafana/dashboards/node-exporter.json
-              name: node-exporter-dashboard
-              readOnly: true
-            - mountPath: /var/lib/grafana/dashboards/docker-monitoring.json
-              name: docker-monitoring-dashboard
               readOnly: true
       volumes:
         - name: grafana-pv
@@ -85,21 +82,12 @@ spec:
           configMap:
             defaultMode: 420
             name: grafana-datasources
+        - name: grafana-dashboard-provider
+          configMap:
+            defaultMode: 420
+            name: grafana-dashboard-provider
         - name: grafana-dashboards
           configMap:
             defaultMode: 420
             name: grafana-dashboards
-        - name: node-exporter-dashboard
-          configMap:
-            defaultMode: 420
-            name: node-exporter-dashboard
-            items:
-              - key: node-exporter.json
-                path: node-exporter.json
-        - name: docker-monitoring-dashboard
-          configMap:
-            defaultMode: 420
-            name: docker-monitoring-dashboard
-            items:
-              - key: docker-monitoring.json
-                path: docker-monitoring.json
+
