@@ -73,7 +73,7 @@ spec:
               readOnly: true
             - mountPath: /var/lib/grafana/dashboards
               name: grafana-dashboards
-              readOnly: true
+              readOnly: false
       volumes:
         - name: grafana-pv
           persistentVolumeClaim:
