@@ -9,7 +9,7 @@ data:
     datasources:
       - access: proxy
         editable: false
-        name: prometheus
+        name: Prometheus
         orgId: 1
         type: prometheus
         version: 1
