@@ -6,5 +6,8 @@ resources:
 - service.yaml
 - datasources.yaml
 - dashboards.yaml
-- ./dashboards/node-exporter-dashboard.yaml
-- ./dashboards/docker-monitoring-dashboard.yaml
+- dashboard-provider.yaml
+patches:
+- dashboards/cilium-agent-112.yaml
+- dashboards/cilium-operator-112.yaml
+- dashboards/node-exporter-dashboard.yaml
