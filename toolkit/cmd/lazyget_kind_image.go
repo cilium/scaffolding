@@ -5,8 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
 )
 
 func GetAvailableVersionsStr() string {
@@ -16,9 +17,7 @@ func GetAvailableVersionsStr() string {
 	versionsStrBuilder.WriteString("available versions are: (pick one of the left size <---)\n")
 
 	for _, k8s := range AvailableVersionsSlice {
-		versionStr = fmt.Sprintf(
-			"%s: %s\n", k8s, K8sVToKindImage[k8s],
-		)
+		versionStr = fmt.Sprintf("%s: %s\n", k8s, K8sVToKindImage[k8s])
 		_, err = versionsStrBuilder.WriteString(versionStr)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)

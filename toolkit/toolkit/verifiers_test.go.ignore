@@ -25,14 +25,14 @@ func TestDoesConditionShowReadyReturnsCorrectBoolForCondition(t *testing.T) {
 
 	var result bool
 	var err error
-	condition := GenericCondition{}
+	condition := map[string]string{}
 
 	check := func(conditionType string, expectation bool) {
-		condition.Type = conditionType
+		condition["type"] = conditionType
 		if expectation {
-			condition.Status = string(v1.ConditionTrue)
+			condition["status"] = string(v1.ConditionTrue)
 		} else {
-			condition.Status = string(v1.ConditionFalse)
+			condition["status"] = string(v1.ConditionFalse)
 		}
 		result, err = DoesConditionShowReady(condition)
 		if err != nil {
@@ -45,9 +45,9 @@ func TestDoesConditionShowReadyReturnsCorrectBoolForCondition(t *testing.T) {
 		}
 
 		if !expectation {
-			condition.Status = string(v1.ConditionTrue)
+			condition["status"] = string(v1.ConditionTrue)
 		} else {
-			condition.Status = string(v1.ConditionFalse)
+			condition["status"] = string(v1.ConditionFalse)
 		}
 		result, err = DoesConditionShowReady(condition)
 		if err != nil {
@@ -69,11 +69,11 @@ func TestDoesConditionShowReadyReturnsCorrectBoolForCondition(t *testing.T) {
 
 }
 
-func TestEnumerateConditionsForReadyStateReturnsCorrectBoolForConditions(t *testing.T) {
+func TestCheckResourceForReadyStateReturnsCorrectBoolForConditions(t *testing.T) {
 	// Assuming TestDoesConditionShowReadyReturnsCorrectBoolForCondition passes,
 	// it should not matter what conditions we are using here
 
-	resource := GenericResourceWithConditions{
+	resource := GenericResource{
 		Name: "myresource",
 		Conditions: []GenericCondition{
 			{
@@ -87,7 +87,7 @@ func TestEnumerateConditionsForReadyStateReturnsCorrectBoolForConditions(t *test
 		},
 	}
 
-	result, err := EnumerateConditionsForReadyState(
+	result, err := CheckUnstructuredForReadyState(
 		log.StandardLogger(),
 		resource,
 		"mycustomresource",
@@ -102,7 +102,7 @@ func TestEnumerateConditionsForReadyStateReturnsCorrectBoolForConditions(t *test
 	}
 
 	resource.Conditions[0].Status = string(v1.ConditionTrue)
-	result, err = EnumerateConditionsForReadyState(
+	result, err = CheckUnstructuredForReadyState(
 		log.StandardLogger(),
 		resource,
 		"mycustomresource",
@@ -117,7 +117,7 @@ func TestEnumerateConditionsForReadyStateReturnsCorrectBoolForConditions(t *test
 	}
 
 	resource.Conditions[0].Type = "idontexist"
-	result, err = EnumerateConditionsForReadyState(
+	result, err = CheckUnstructuredForReadyState(
 		log.StandardLogger(),
 		resource,
 		"mycustomresource",
@@ -132,7 +132,7 @@ func TestEnumerateConditionsForReadyStateReturnsCorrectBoolForConditions(t *test
 }
 
 func TestEnumerateResourcesForReadyStateReturnsCorrectBoolForResources(t *testing.T) {
-	resources := []GenericResourceWithConditions{
+	resources := []GenericResource{
 		{
 			Name: "gr1",
 			Conditions: []GenericCondition{

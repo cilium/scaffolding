@@ -3,8 +3,10 @@ package cmd
 import (
 	"os"
 
-	"github.com/cilium/scaffolding/toolkit/toolkit"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/scaffolding/toolkit/toolkit"
+	"github.com/cilium/scaffolding/toolkit/toolkit/k8s"
 )
 
 func init() {
@@ -17,9 +19,9 @@ var verifyK8sReadyCmd = &cobra.Command{
 	Use:   "k8s-ready",
 	Short: "verify k8s cluster is ready to go",
 	Run: func(_ *cobra.Command, _ []string) {
-		clientset := toolkit.NewK8sClientSetOrDie(Logger, Kubeconfig)
+		khelp := k8s.NewHelperOrDie(CmdCtx, Logger, Kubeconfig)
 
-		nodesReady, err := toolkit.VerifyNodesReady(CmdCtx, Logger, clientset)
+		nodesReady, err := khelp.VerifyResourcesAreReady(*k8s.GVRNode)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
 		}
@@ -27,7 +29,7 @@ var verifyK8sReadyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		podsReady, err := toolkit.VerifyPodsReady(CmdCtx, Logger, clientset)
+		podsReady, err := khelp.VerifyResourcesAreReady(*k8s.GVRPod)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
 		}
@@ -35,7 +37,9 @@ var verifyK8sReadyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		deploymentsReady, err := toolkit.VerifyDeploymentsReady(CmdCtx, Logger, clientset)
+		deploymentsReady, err := khelp.VerifyResourcesAreReady(
+			*k8s.GVRDeployment,
+		)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
 		}
