@@ -164,6 +164,12 @@ Three dashboards are provided out-of-the-box in `kustomize/grafana/dashboards`, 
 
 A dashboard provider is used to accomplish this. See the [grafana docs](https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards) for more information.
 
+### monitoring-ns
+
+Creates a namespace named 'monitoring'.
+Kustomize doesn't auto-create namespaces, so something needs to create the 'monitoring' ns for resources like prometheus and grafana (see above).
+By including this manifest, you won't have to manually create the namespace before a `kustomize build | kubectl apply -f -`.
+
 ### registry
 
 Deploys an in-cluster registry in the namespace `registry`, available through the service named `registry`.
