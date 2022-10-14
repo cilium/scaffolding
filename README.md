@@ -164,6 +164,14 @@ Three dashboards are provided out-of-the-box in `kustomize/grafana/dashboards`, 
 
 A dashboard provider is used to accomplish this. See the [grafana docs](https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards) for more information.
 
+### node-exporter
+
+Deploys [node-exporter](https://github.com/prometheus/node_exporter) in the `monitoring` namespace onto any node labeled with `role.scaffolding/monitored=true`.
+A ServiceMonitor is created to allow for collection from Prometheus.
+A dashboard for the exported metrics is included within the grafana kustomization (see above).
+
+`HostNetwork` is enabled to allow for network metrics on the node to be collected.
+
 ### monitoring-ns
 
 Creates a namespace named 'monitoring'.
