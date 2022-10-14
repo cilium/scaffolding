@@ -38,6 +38,7 @@ ARTIFACTS=$ARTIFACTS
 build_toolkit
 wait_ready
 breakpoint
+add_env_var_or_die
 EOF
 }
 
@@ -60,4 +61,15 @@ wait_ready() {
 breakpoint() {
     read  -n 1 -p "press key to continue..."
     echo
+}
+
+# check env variable is set
+env_var_or_die() {
+    if [[ -z "${!1}" ]]
+    then
+        echo "$1 must be set to continue"
+        exit 1
+    else
+        echo "$1: ${!1}"
+    fi
 }
