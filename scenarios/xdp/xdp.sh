@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-set -eo pipefail
+set -xeo pipefail
 
 # Env and common functions
 . ../common.sh
+init
+init_print
 
 # don't do a connectivity test for cilium 
 SKIP_CT=""
@@ -11,10 +13,6 @@ then
     SKIP_CT="skip-ct"
     shift 1
 fi
-
-# build the golang toolkit bin, which will be used to verify
-# k8s pods and nodes are ready
-build_toolkit
 
 # get cilium cli for install/status
 if ! [ -f "$ARTIFACTS/cilium" ]
