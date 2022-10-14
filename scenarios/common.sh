@@ -39,6 +39,7 @@ build_toolkit
 wait_ready
 breakpoint
 add_env_var_or_die
+wait_cilium_ready
 EOF
 }
 
@@ -54,6 +55,20 @@ build_toolkit() {
 wait_ready() {
     $SCRIPT/retry.sh 5 $SCRIPT/k8s_api_readyz.sh
     $SCRIPT/retry.sh 5 $ARTIFACTS/toolkit verify k8s-ready
+}
+
+# wait for cilium to be ready and then run a connectivity test
+# namespace cilium-test is deleted afterwards on success
+# SKIP_CT: set to "skip-ct" to skip the connectivity test
+wait_cilium_ready() {
+    wait_ready
+    $ARTIFACTS/cilium status --wait --wait-duration=1m
+
+    if [ "$SKIP_CT" != "skip-ct" ]
+    then
+        $ARTIFACTS/cilium connectivity test
+        kubectl delete ns cilium-test
+    fi
 }
 
 

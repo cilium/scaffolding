@@ -139,19 +139,6 @@ install_cilium_kpr_xdp() {
     ensure_strict_kpr
 }
 
-# wait for cilium to be ready and then run a connectivity test
-wait_cilium_ready() {
-    wait_ready
-    $ARTIFACTS/cilium status --wait --wait-duration=1m
-
-
-    if [ "$SKIP_CT" != "skip-ct" ]
-    then   
-        $ARTIFACTS/cilium connectivity test
-        kubectl delete ns cilium-test
-    fi
-}
-
 # install metallb l2 load balancer
 # this probably won't apply to all environments, so adjust if needed
 install_metallb() {
