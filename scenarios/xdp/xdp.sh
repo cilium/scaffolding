@@ -142,7 +142,7 @@ install_cilium_kpr_xdp() {
 # install metallb l2 load balancer
 # this probably won't apply to all environments, so adjust if needed
 install_metallb() {
-    kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/config/manifests/metallb-native.yaml
+    kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.6/config/manifests/metallb-native.yaml
     wait_ready
     kubectl apply -f $SCENARIO_DIR/metallb_l2.yaml
 }
