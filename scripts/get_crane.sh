@@ -5,9 +5,11 @@
 # Download crane binary from github.com/google/go-containerregistry
 set -eo pipefail
 
+VERBOSE=""
 if [ "${1}" == '-d' ]
 then
     set -x
+    VERBOSE="--verbose"
     shift 1
 fi
 
@@ -28,7 +30,7 @@ fi
 
 TARBALL="go-containerregistry_${GOOS}_${GOARCH}.tar.gz"
 
-curl -L --remote-name-all https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/{${TARBALL},checksums.txt}
+curl $VERBOSE -L --remote-name-all https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/{${TARBALL},checksums.txt}
 sha256sum --ignore-missing -c checksums.txt
 tar -xzvf $TARBALL crane
 
