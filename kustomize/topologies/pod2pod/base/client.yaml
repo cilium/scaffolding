@@ -17,3 +17,4 @@ spec:
       containers:
       - name: main
         image: k8s.gcr.io/pause:3.1
+        command: ["sleep", "infinity"]
