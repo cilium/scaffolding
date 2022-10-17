@@ -7,9 +7,11 @@
 # cwd rather than /usr/local/bin
 set -eo pipefail
 
+VERBOSE=""
 if [ "${1}" == '-d' ]
 then
     set -x
+    VERBOSE="--verbose"
     shift 1
 fi
 
@@ -17,7 +19,7 @@ CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
 
-curl -L --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
+curl $VERBOSE -L --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
 sha256sum --check cilium-${GOOS}-${GOARCH}.tar.gz.sha256sum
 tar -xzvf cilium-${GOOS}-${GOARCH}.tar.gz
 
