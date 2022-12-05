@@ -313,10 +313,13 @@ Environment variables:
 * **`SCRIPT`:** ... script sub-directory ...
 * **`KUSTOMIZE`:** ... kustomize sub-directory ...
 
+These environment variables can be overridden if needed by setting them prior to calling the `init` function below.
+
 Functions:
 
 * **`init()`:** Set the above environment variables, create `ARTIFACTS` directory, build `toolkit` if `ARTIFACTS/toolkit` does not exist.
-* **`init_print()`:**Print the imported environment variables and functions.
+* **`init_print()`:** Print the above imported environment variables and functions.
+* **`reset_vars()`:** Reset the above imported environment variables.
 * **`build_toolkit()`:** Build a binary for toolkit and save it into the artifacts directory.
 * **`wait_ready()`:** Use `scripts/retry.sh` along with `scripts/k8s_api_readyz.sh` and the toolkit's `verify k8s-ready` command to wait until the k8s cluster is ready to go before proceeding. This is great to use after applying a built kustomize file or after provisioning a cluster.
 * **`wait_cilium_ready()`:** Call `wait_ready`,  wait one minute for Cilium to show ready through `cilium status`, and then run a connectivity test. The connectivity test can be skipped by setting `SKIP_CT` to `skip-ct`.
