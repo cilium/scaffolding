@@ -11,6 +11,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/constraints"
 )
 
 // ExitWithError will call os.Exit(1) if the given err is not nil, logging that something bad happened.
@@ -122,4 +123,18 @@ func SliceContains[T comparable](slice []T, target T) bool {
 		}
 	}
 	return false
+}
+
+// MakeRange is a generic that creates a slice of numbers in the range
+// [min, max), separated by the given step value.
+func MakeRange[T interface {
+	constraints.Integer | constraints.Float
+}](min, max, step T) []T {
+	a := []T{}
+	i := min
+	for i < max {
+		a = append(a, i)
+		i += step
+	}
+	return a
 }
