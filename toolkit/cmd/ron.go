@@ -303,7 +303,8 @@ var ronCmd = &cobra.Command{
 
 			// this becomes our main loop, waiting for pod to start and complete
 			success, err := khelp.WaitOnWatchedResource(
-				khelp.Ctx, *k8s.GVRPod, RonOpts.PodName, RonOpts.NSName, handleEventOnRonPod,
+				khelp.Ctx, *k8s.GVRPod, RonOpts.NSName,
+				k8s.NewListOptionsFromName(RonOpts.PodName), handleEventOnRonPod,
 			)
 			if !success {
 				Logger.Warning("unable to complete execution successfully, something bad happened")
