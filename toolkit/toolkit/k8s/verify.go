@@ -112,6 +112,9 @@ func CheckUnstructuredForReadyState(logger *log.Logger, resource *unstructured.U
 	containerStatuses, containerStatusesFound, err := GetNestedSliceStringInterfaceMap(
 		resource, "status", "containerStatuses",
 	)
+	if err != nil {
+		return false, err
+	}
 
 	// Build info string
 	statusStringBuilder := strings.Builder{}
