@@ -65,11 +65,13 @@ func NewHelperOrDie(ctx context.Context, logger *log.Logger, kubeconfig string) 
 }
 
 // getResourceLoggerFromGivens constructs a logger with the given parameters added as fields.
-func (k *Helper) getResourceLoggerFromGivens(name string, namespace string, resourceType string) *log.Entry {
+func (k *Helper) getResourceLoggerFromGivens(resourceType string, namespace string, name string) *log.Entry {
 	resLogger := k.Logger.WithFields(log.Fields{
-		"name":     name,
 		"resource": resourceType,
 	})
+	if name != "" {
+		resLogger = resLogger.WithField("name", name)
+	}
 	if namespace != "" {
 		resLogger = resLogger.WithField("namespace", namespace)
 	}
@@ -82,7 +84,7 @@ func (k *Helper) getResourceLoggerFromRes(gvr schema.GroupVersionResource, res *
 	name := res.GetName()
 	ns := res.GetNamespace()
 	resourceType := gvr.String()
-	return k.getResourceLoggerFromGivens(name, ns, resourceType)
+	return k.getResourceLoggerFromGivens(resourceType, ns, name)
 }
 
 // ApplyResource is a wrapper around a dynamic apply, logging tasks and errors along the way.
@@ -202,7 +204,7 @@ func (k *Helper) LogPodLogs(
 	ctx context.Context, ns string, podName string, wg *sync.WaitGroup, ro *RetryOpts,
 	ignoredContainers ...string,
 ) (context.CancelFunc, error) {
-	podLogger := k.getResourceLoggerFromGivens(podName, ns, "pods")
+	podLogger := k.getResourceLoggerFromGivens("pods", ns, podName)
 	podLogger.Debug("setting up log streams for containers")
 
 	logCtx, cancelFunc := context.WithCancel(ctx)
@@ -266,7 +268,7 @@ func (k *Helper) WaitOnWatchedResource(
 	ctx context.Context, gvr schema.GroupVersionResource, name string, ns string,
 	callback func(watch.Event) (bool, error),
 ) (bool, error) {
-	resLogger := k.getResourceLoggerFromGivens(name, ns, gvr.Resource)
+	resLogger := k.getResourceLoggerFromGivens(gvr.Resource, ns, "")
 	resInterface := k.DynamicClientset.Resource(gvr).Namespace(ns)
 	resLogger.Debug("watching resource")
 
