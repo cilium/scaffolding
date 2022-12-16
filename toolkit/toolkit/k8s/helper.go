@@ -240,11 +240,15 @@ func (k *Helper) LogPodLogs(
 			containerLogger.Debug("starting to read logs from stream")
 			defer stream.Close()
 			reader := bufio.NewScanner(stream)
+			exit := false
 			for reader.Scan() {
+				if exit {
+					break
+				}
 				select {
 				case <-logCtx.Done():
 					containerLogger.WithError(logCtx.Err()).Debug("container log stream context cancelled")
-					break
+					exit = true
 				default:
 					line := reader.Text()
 					containerLogger.Info(fmt.Sprintf("[%s]: %s", containerName, line))
