@@ -55,8 +55,17 @@ func RandomString(n int) string {
 }
 
 // GetFunctionName takes in a function and uses reflect to get its name as a string.
-func GetFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+func GetFunctionName(i any) (string, error) {
+	val := reflect.ValueOf(i)
+	kind := val.Kind()
+	if kind != reflect.Func {
+		return "", fmt.Errorf("expected a function, instead got: %s", kind.String())
+	}
+	funcPointer := runtime.FuncForPC(val.Pointer())
+	if funcPointer == nil {
+		return "", fmt.Errorf("unable to get func pointer for given function")
+	}
+	return funcPointer.Name(), nil
 }
 
 // PullStrKey returns the string value of the given key within the given string to interface map.
@@ -77,8 +86,10 @@ func PullStrKey(k string, m map[string]interface{}) (string, error) {
 // If a logger is given, then attempts will be logged.
 func SimpleRetry(target func() error, maxAttempts int, delay time.Duration, logger ...*log.Logger) error {
 	attempts := 0
-	var err error = nil
-	funcName := GetFunctionName(target)
+	funcName, err := GetFunctionName(target)
+	if err != nil {
+		return err
+	}
 
 	doLog := func(msg string, err ...error) {
 		if len(logger) > 0 {
