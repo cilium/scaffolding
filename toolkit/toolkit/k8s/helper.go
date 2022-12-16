@@ -280,6 +280,7 @@ func (k *Helper) WaitOnWatchedResource(
 	watcher, err := resInterface.Watch(k.Ctx, listOptions)
 	if err != nil {
 		resLogger.WithError(err).Error("unable to create watcher")
+		return false, err
 	}
 	defer watcher.Stop()
 
