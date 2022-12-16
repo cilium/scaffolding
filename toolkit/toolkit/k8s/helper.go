@@ -118,7 +118,7 @@ func (k *Helper) ApplyResource(
 	doWaitReady := func() error {
 		resLogger.Info("waiting for resource to be ready")
 		_, err := k.WaitOnWatchedResource(
-			k.Ctx, gvr, name, ns,
+			k.Ctx, gvr, ns, NewListOptionsFromName(name),
 			func(event watch.Event) (bool, error) {
 				resLogger.WithField("event", event).WithField("obj", event.Object).Debug(
 					"got event while waiting for res to be ready",
@@ -170,7 +170,7 @@ func (k *Helper) DeleteResourceAndWaitGone(
 	doCheck := func() error {
 		delLogger.Info("waiting for resource to be gone")
 		_, err := k.WaitOnWatchedResource(
-			checkCtx, gvr, name, ns, func(event watch.Event) (bool, error) {
+			checkCtx, gvr, ns, NewListOptionsFromName(name), func(event watch.Event) (bool, error) {
 				if event.Type != watch.Deleted {
 					return false, nil
 				}
@@ -265,7 +265,7 @@ func (k *Helper) LogPodLogs(
 // The given callback function should have two returns: a boolean describing if the loop should terminate, and
 // an error describing if an error occurred during the loop. If an error does occur, the loop will terminate.
 func (k *Helper) WaitOnWatchedResource(
-	ctx context.Context, gvr schema.GroupVersionResource, name string, ns string,
+	ctx context.Context, gvr schema.GroupVersionResource, ns string, listOptions metav1.ListOptions,
 	callback func(watch.Event) (bool, error),
 ) (bool, error) {
 	resLogger := k.getResourceLoggerFromGivens(gvr.Resource, ns, "")
@@ -273,11 +273,7 @@ func (k *Helper) WaitOnWatchedResource(
 	resLogger.Debug("watching resource")
 
 	resLogger.Debug("creating watcher")
-	watcher, err := resInterface.Watch(
-		k.Ctx, metav1.ListOptions{
-			FieldSelector: fmt.Sprintf("metadata.name=%s", name),
-		},
-	)
+	watcher, err := resInterface.Watch(k.Ctx, listOptions)
 	if err != nil {
 		resLogger.WithError(err).Error("unable to create watcher")
 	}
