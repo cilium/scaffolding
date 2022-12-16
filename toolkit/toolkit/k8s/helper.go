@@ -125,7 +125,7 @@ func (k *Helper) ApplyResource(
 				)
 				if event.Type == watch.Modified || event.Type == watch.Added {
 					res := event.Object.(*unstructured.Unstructured)
-					resLogger.WithField("resr", res).Debug("pulled resource from event")
+					resLogger.WithField("res", res).Debug("pulled resource from event")
 					return CheckUnstructuredForReadyState(k.Logger, res)
 				}
 				return false, nil
