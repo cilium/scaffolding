@@ -396,8 +396,8 @@ func (k *Helper) PodExec(
 	err := options.Run()
 	if err != nil {
 		logger.WithError(err).
-			WithField("out", string(writer.Bytes())).
-			WithField("err-out", string(errOut.Bytes())).
+			WithField("out", writer.String()).
+			WithField("err-out", errOut.String()).
 			Error(
 				"error occurred while running something in a container",
 			)
