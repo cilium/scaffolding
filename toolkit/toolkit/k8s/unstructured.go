@@ -39,6 +39,11 @@ var (
 		Resource: "events",
 		Version:  "v1",
 	}
+	GVRCiliumNetworkPolicy = &schema.GroupVersionResource{
+		Group:    "cilium.io",
+		Resource: "ciliumnetworkpolicies",
+		Version:  "v2",
+	}
 	ScaffoldingLabel         = "cilium.scaffolding"
 	ScaffoldingLabelSelector = fmt.Sprintf("app.kubernetes.io=%s", ScaffoldingLabel)
 )
