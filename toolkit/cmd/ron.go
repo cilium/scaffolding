@@ -334,7 +334,7 @@ var ronCmd = &cobra.Command{
 				RonOpts.CleanupPod = true
 				RonOpts.CleanupConfigMaps = true
 			} else {
-				err := khelp.DeleteResourceAndWaitGone(*k8s.GVRNamespace, ns, retryOpts)
+				err := khelp.DeleteResourceAndWaitGone(*k8s.GVRNamespace, ns.GetName(), ns.GetNamespace(), retryOpts)
 				if err != nil {
 					Logger.WithError(err).WithField("namespace", RonOpts.NSName).Warning("unable to delete namespace")
 				}
@@ -344,7 +344,7 @@ var ronCmd = &cobra.Command{
 		if RonOpts.CleanupPod {
 			Logger.Info("waiting for log goroutines to hit EOF on their streams")
 			logwg.Wait() // wait for logs to be done first
-			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRPod, pod, retryOpts)
+			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRPod, pod.GetName(), pod.GetNamespace(), retryOpts)
 			if err != nil {
 				Logger.WithError(err).WithField("pod", RonOpts.PodName).Warning("unable to delete pod")
 			}
@@ -355,13 +355,13 @@ var ronCmd = &cobra.Command{
 			stopLogs()
 		}
 		if RonOpts.PVC && RonOpts.CleanupPVC && RonOpts.ManagePVC {
-			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRPersistentVolumeClaim, pvc, retryOpts)
+			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRPersistentVolumeClaim, pvc.GetName(), pvc.GetNamespace(), retryOpts)
 			if err != nil {
 				Logger.WithError(err).WithField("pvc", RonOpts.PVCName).Warning("unable to delete PVC")
 			}
 		}
 		if len(RonOpts.ConfigMapMounts) > 0 && RonOpts.CleanupConfigMaps {
-			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRConfigMap, cm, retryOpts)
+			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRConfigMap, cm.GetName(), cm.GetNamespace(), retryOpts)
 			if err != nil {
 				Logger.WithError(err).WithField("configmap", RonOpts.ConfigMapName).Warning(
 					"unable to delete configmap",
