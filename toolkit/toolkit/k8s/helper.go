@@ -146,17 +146,14 @@ func (k *Helper) ApplyResource(
 
 // DeleteResourceAndWaitGone is a wrapper around a dynamic Delete, only returning when a Deleted event is observed.
 func (k *Helper) DeleteResourceAndWaitGone(
-	gvr schema.GroupVersionResource, res *unstructured.Unstructured, ro *RetryOpts,
+	gvr schema.GroupVersionResource, name string, ns string, ro *RetryOpts,
 ) error {
-	name := res.GetName()
-	ns := res.GetNamespace()
-
-	delLogger := k.getResourceLoggerFromRes(gvr, res)
-	resInterface := k.DynamicClientset.Resource(gvr).Namespace(res.GetNamespace())
+	delLogger := k.getResourceLoggerFromGivens(gvr.Resource, ns, name)
+	resInterface := k.DynamicClientset.Resource(gvr).Namespace(ns)
 
 	doDelete := func() error {
 		delLogger.Warn("marking for deletion")
-		err := resInterface.Delete(k.Ctx, res.GetName(), metav1.DeleteOptions{})
+		err := resInterface.Delete(k.Ctx, name, metav1.DeleteOptions{})
 		if err != nil {
 			delLogger.WithError(err).Error("unable to delete resource")
 			return err
