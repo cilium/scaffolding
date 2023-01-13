@@ -113,9 +113,17 @@ var ronCmd = &cobra.Command{
 	Use:   "ron",
 	Short: "Run On Node",
 	Run: func(_ *cobra.Command, args []string) {
-		exitIfError := func(err error) {
-			if err != nil {
-				toolkit.ExitWithError(Logger, err)
+		exitIfError := func(args ...any) {
+			if len(args) == 0 {
+				return
+			}
+			lastArg := args[len(args)-1]
+			if lastArg != nil {
+				err, ok := lastArg.(error)
+				if !ok {
+					return
+				}
+				toolkit.ExitWithError(Logger, err.(error))
 			}
 		}
 
