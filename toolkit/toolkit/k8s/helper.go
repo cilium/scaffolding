@@ -92,17 +92,17 @@ func (k *Helper) getResourceLoggerFromRes(gvr schema.GroupVersionResource, res *
 // CheckUnstructuredForReadyState.
 func (k *Helper) ApplyResource(
 	gvr schema.GroupVersionResource, res *unstructured.Unstructured, waitReady bool, ro *RetryOpts,
-) error {
+) (*unstructured.Unstructured, error) {
 	name := res.GetName()
 	ns := res.GetNamespace()
 
 	resLogger := k.getResourceLoggerFromRes(gvr, res)
 	resInterface := k.DynamicClientset.Resource(gvr).Namespace(res.GetNamespace())
 
-	applyRes := func() error {
+	applyRes := func() (*unstructured.Unstructured, error) {
 		resLogger.Info("applying resource")
 		resLogger.WithField("res-raw", res).Debug("applying unstructured struct")
-		_, err := resInterface.Apply(
+		returnedRes, err := resInterface.Apply(
 			k.Ctx, name, res,
 			metav1.ApplyOptions{
 				FieldManager: "cilium/scaffolding/toolkit",
@@ -110,13 +110,16 @@ func (k *Helper) ApplyResource(
 		)
 		if err != nil {
 			resLogger.WithError(err).Error("unable to apply")
-			return err
+			return nil, err
 		}
-		return nil
+		return returnedRes, nil
 	}
 
-	doWaitReady := func() error {
+	doWaitReady := func() (*unstructured.Unstructured, error) {
 		resLogger.Info("waiting for resource to be ready")
+
+		var returnedRes unstructured.Unstructured
+
 		_, err := k.WaitOnWatchedResource(
 			k.Ctx, gvr, ns, NewListOptionsFromName(name),
 			func(event watch.Event) (bool, error) {
@@ -126,22 +129,30 @@ func (k *Helper) ApplyResource(
 				if event.Type == watch.Modified || event.Type == watch.Added {
 					res := event.Object.(*unstructured.Unstructured)
 					resLogger.WithField("res", res).Debug("pulled resource from event")
-					return CheckUnstructuredForReadyState(k.Logger, res)
+					ready, err := CheckUnstructuredForReadyState(k.Logger, res)
+					if err != nil {
+						return false, err
+					}
+					if ready {
+						returnedRes = *res
+						return true, nil
+					}
 				}
 				return false, nil
 			},
 		)
-		return err
+		return &returnedRes, err
 	}
 
-	err := applyRes()
+	returnedRes, err := applyRes()
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	if waitReady {
 		return doWaitReady()
 	}
-	return nil
+	return returnedRes, nil
 }
 
 // DeleteResourceAndWaitGone is a wrapper around a dynamic Delete, only returning when a Deleted event is observed.
