@@ -308,6 +308,7 @@ func (k *Helper) WaitOnWatchedResource(
 			}
 		case <-ctx.Done():
 			resLogger.WithError(ctx.Err()).Debug("watch context cancelled")
+			return false, ctx.Err()
 		}
 	}
 }
