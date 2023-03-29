@@ -14,6 +14,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/watch"
@@ -22,6 +23,8 @@ import (
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	watchTools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubectl/pkg/cmd/exec"
 
 	"github.com/cilium/scaffolding/toolkit/toolkit"
@@ -121,7 +124,7 @@ func (k *Helper) ApplyResource(
 		var returnedRes unstructured.Unstructured
 
 		_, err := k.WaitOnWatchedResource(
-			k.Ctx, gvr, ns, NewListOptionsFromName(name),
+			k.Ctx, gvr, ns, NewFieldSelectorFromName(name), "",
 			func(event watch.Event) (bool, error) {
 				resLogger.WithField("event", event).WithField("obj", event.Object).Debug(
 					"got event while waiting for res to be ready",
@@ -178,7 +181,8 @@ func (k *Helper) DeleteResourceAndWaitGone(
 	doCheck := func() error {
 		delLogger.Info("waiting for resource to be gone")
 		_, err := k.WaitOnWatchedResource(
-			checkCtx, gvr, ns, NewListOptionsFromName(name), func(event watch.Event) (bool, error) {
+			checkCtx, gvr, ns, NewFieldSelectorFromName(name), "",
+			func(event watch.Event) (bool, error) {
 				if event.Type != watch.Deleted {
 					return false, nil
 				}
@@ -273,44 +277,53 @@ func (k *Helper) LogPodLogs(
 	return cancelFunc, nil
 }
 
-// WaitOnWatchedResource is a wrapper around a dynamic watch, passing events to a callback.
-// The given callback function should have two returns: a boolean describing if the loop should terminate, and
-// an error describing if an error occurred during the loop. If an error does occur, the loop will terminate.
+// WaitOnWatchedResource is a wrapper around client-go/tools/watch.UntilWithSync function, providing the plumbing needed
+// to watch resources, without having to handle creating a lister watcher.
 func (k *Helper) WaitOnWatchedResource(
-	ctx context.Context, gvr schema.GroupVersionResource, ns string, listOptions metav1.ListOptions,
-	callback func(watch.Event) (bool, error),
-) (bool, error) {
-	resLogger := k.getResourceLoggerFromGivens(gvr.Resource, ns, "")
+	ctx context.Context, gvr schema.GroupVersionResource, ns string,
+	fieldSelector string, labelSelector string, conditions ...watchTools.ConditionFunc,
+) (*watch.Event, error) {
+	kind, ok := ResourceToKind[gvr.Resource]
+	if !ok {
+		return nil, fmt.Errorf("unknown kind for resource %s", gvr.Resource)
+	}
+
+	objType := &unstructured.Unstructured{}
+	objType.SetGroupVersionKind(
+		schema.GroupVersionKind{
+			Group:   gvr.Group,
+			Version: gvr.Version,
+			Kind:    kind,
+		},
+	)
+
 	resInterface := k.DynamicClientset.Resource(gvr).Namespace(ns)
-	resLogger.Debug("watching resource")
 
-	resLogger.Debug("creating watcher")
-	watcher, err := resInterface.Watch(k.Ctx, listOptions)
-	if err != nil {
-		resLogger.WithError(err).Error("unable to create watcher")
-		return false, err
+	optionsModifier := func(options *metav1.ListOptions) {
+		options.FieldSelector = fieldSelector
+		options.LabelSelector = labelSelector
 	}
-	defer watcher.Stop()
 
-	for {
-		select {
-		case event := <-watcher.ResultChan():
-			resLogger.WithField("event", event).WithField("obj", event.Object).Debug("got event while watching res")
-			done, err := callback(event)
-			if err != nil {
-				return false, err
-			}
-			if !done {
-				resLogger.Debug("not done watching, still waiting")
-			} else {
-				resLogger.Debug("done watching")
-				return true, nil
-			}
-		case <-ctx.Done():
-			resLogger.WithError(ctx.Err()).Debug("watch context cancelled")
-			return false, ctx.Err()
-		}
+	lw := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			optionsModifier(&options)
+			return resInterface.List(ctx, options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			optionsModifier(&options)
+			return resInterface.Watch(ctx, options)
+		},
 	}
+
+	logger := k.getResourceLoggerFromGivens(gvr.Resource, ns, "").WithFields(log.Fields{
+		"kind":           kind,
+		"field-selector": fieldSelector,
+		"label-selector": labelSelector,
+	})
+
+	logger.Debug("watching resource")
+
+	return watchTools.UntilWithSync(ctx, lw, objType, nil, conditions...)
 }
 
 // VerifyResourceIsReady runs a dynamic get on the given resource with name and ns, then passes it to

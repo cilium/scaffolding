@@ -268,6 +268,8 @@ var ronCmd = &cobra.Command{
 			logsStarted := false
 			handleEventOnRonPod := func(event watch.Event) (bool, error) {
 				podLogger.WithField("type", event.Type).Info("observed event on exec pod")
+				podLogger.WithField("object", event.Object).Debug("event object observed")
+
 				// exit if pod deleted by user
 				if event.Type == watch.Deleted {
 					return true, fmt.Errorf("ron pod was deleted, cannot continue") // done, pod isn't available
@@ -310,13 +312,10 @@ var ronCmd = &cobra.Command{
 			}
 
 			// this becomes our main loop, waiting for pod to start and complete
-			success, err := khelp.WaitOnWatchedResource(
+			_, err = khelp.WaitOnWatchedResource(
 				khelp.Ctx, *k8s.GVRPod, RonOpts.NSName,
-				k8s.NewListOptionsFromName(RonOpts.PodName), handleEventOnRonPod,
+				k8s.NewFieldSelectorFromName(RonOpts.PodName), "", handleEventOnRonPod,
 			)
-			if !success {
-				Logger.Warning("unable to complete execution successfully, something bad happened")
-			}
 			exitIfError(err)
 
 			// copy files out
