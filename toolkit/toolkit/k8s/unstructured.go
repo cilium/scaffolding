@@ -44,6 +44,16 @@ var (
 		Resource: "ciliumnetworkpolicies",
 		Version:  "v2",
 	}
+	ResourceToKind = map[string]string{
+		GVRPod.Resource:                   "Pod",
+		GVRNode.Resource:                  "Node",
+		GVRDeployment.Resource:            "Deployment",
+		GVRNamespace.Resource:             "Namespace",
+		GVRPersistentVolumeClaim.Resource: "PersistentVolumeClaim",
+		GVRConfigMap.Resource:             "ConfigMap",
+		GVREvents.Resource:                "Event",
+		GVRCiliumNetworkPolicy.Resource:   "CiliumNetworkPolicy",
+	}
 	ScaffoldingLabel         = "cilium.scaffolding"
 	ScaffoldingLabelSelector = fmt.Sprintf("app.kubernetes.io=%s", ScaffoldingLabel)
 )
