@@ -33,7 +33,6 @@ import (
 // Helper has useful methods for doing things in kubernetes.
 // The goal with Helper is to reduce boilerplate code of tasks required by commands in toolkit
 type Helper struct {
-	Ctx              context.Context
 	DynamicClientset k8sDynamic.Interface
 	Clientset        k8s.Interface
 	Kubeconfig       string
@@ -50,9 +49,8 @@ type RetryOpts struct {
 
 // NewHelperOrDie creates a new Helper instance from the given kubeconfig and logger.
 // If something goes wrong while creating it, then the entire program will exit.
-func NewHelperOrDie(ctx context.Context, logger *log.Logger, kubeconfig string) *Helper {
+func NewHelperOrDie(logger *log.Logger, kubeconfig string) *Helper {
 	khelp := Helper{
-		Ctx:        ctx,
 		Kubeconfig: kubeconfig,
 		Logger:     logger,
 	}
@@ -94,7 +92,7 @@ func (k *Helper) getResourceLoggerFromRes(gvr schema.GroupVersionResource, res *
 // waitReady can be given to wait for the given structure to be ready. This uses WaitOnWatchedResource and
 // CheckUnstructuredForReadyState.
 func (k *Helper) ApplyResource(
-	gvr schema.GroupVersionResource, res *unstructured.Unstructured, waitReady bool, ro *RetryOpts,
+	ctx context.Context, gvr schema.GroupVersionResource, res *unstructured.Unstructured, waitReady bool, ro *RetryOpts,
 ) (*unstructured.Unstructured, error) {
 	name := res.GetName()
 	ns := res.GetNamespace()
@@ -106,7 +104,7 @@ func (k *Helper) ApplyResource(
 		resLogger.Info("applying resource")
 		resLogger.WithField("res-raw", res).Debug("applying unstructured struct")
 		returnedRes, err := resInterface.Apply(
-			k.Ctx, name, res,
+			ctx, name, res,
 			metav1.ApplyOptions{
 				FieldManager: "cilium/scaffolding/toolkit",
 			},
@@ -124,7 +122,7 @@ func (k *Helper) ApplyResource(
 		var returnedRes unstructured.Unstructured
 
 		_, err := k.WaitOnWatchedResource(
-			k.Ctx, gvr, ns, NewFieldSelectorFromName(name), "",
+			ctx, gvr, ns, NewFieldSelectorFromName(name), "",
 			func(event watch.Event) (bool, error) {
 				resLogger.WithField("event", event).WithField("obj", event.Object).Debug(
 					"got event while waiting for res to be ready",
@@ -160,14 +158,14 @@ func (k *Helper) ApplyResource(
 
 // DeleteResourceAndWaitGone is a wrapper around a dynamic Delete, only returning when a Deleted event is observed.
 func (k *Helper) DeleteResourceAndWaitGone(
-	gvr schema.GroupVersionResource, name string, ns string, ro *RetryOpts,
+	ctx context.Context, gvr schema.GroupVersionResource, name string, ns string, ro *RetryOpts,
 ) error {
 	delLogger := k.getResourceLoggerFromGivens(gvr.Resource, ns, name)
 	resInterface := k.DynamicClientset.Resource(gvr).Namespace(ns)
 
 	doDelete := func() error {
 		delLogger.Warn("marking for deletion")
-		err := resInterface.Delete(k.Ctx, name, metav1.DeleteOptions{})
+		err := resInterface.Delete(ctx, name, metav1.DeleteOptions{})
 		if err != nil {
 			delLogger.WithError(err).Error("unable to delete resource")
 			return err
@@ -176,7 +174,7 @@ func (k *Helper) DeleteResourceAndWaitGone(
 	}
 
 	checkDone := make(chan bool)
-	checkCtx, cancelCheck := context.WithCancel(k.Ctx)
+	checkCtx, cancelCheck := context.WithCancel(ctx)
 	defer cancelCheck()
 	doCheck := func() error {
 		delLogger.Info("waiting for resource to be gone")
@@ -222,7 +220,7 @@ func (k *Helper) LogPodLogs(
 	logCtx, cancelFunc := context.WithCancel(ctx)
 
 	pods := k.Clientset.CoreV1().Pods(ns)
-	pod, err := pods.Get(k.Ctx, podName, metav1.GetOptions{})
+	pod, err := pods.Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		podLogger.WithError(err).Error("unable to get pod for log streams")
 		return cancelFunc, err
@@ -241,7 +239,7 @@ func (k *Helper) LogPodLogs(
 				Follow:     true,
 				Timestamps: true,
 			},
-		).Stream(k.Ctx)
+		).Stream(ctx)
 		if err != nil {
 			podLogger.WithError(err).Error("unable to get logs from container")
 			continue
@@ -328,9 +326,11 @@ func (k *Helper) WaitOnWatchedResource(
 
 // VerifyResourceIsReady runs a dynamic get on the given resource with name and ns, then passes it to
 // CheckUnstructuredForReadyState.
-func (k *Helper) VerifyResourceIsReady(gvr schema.GroupVersionResource, name string, ns string) (bool, error) {
+func (k *Helper) VerifyResourceIsReady(
+	ctx context.Context, gvr schema.GroupVersionResource, name string, ns string,
+) (bool, error) {
 	resInterface := k.DynamicClientset.Resource(gvr).Namespace(ns)
-	resource, err := resInterface.Get(k.Ctx, name, metav1.GetOptions{})
+	resource, err := resInterface.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -346,11 +346,11 @@ func (k *Helper) VerifyResourceIsReady(gvr schema.GroupVersionResource, name str
 
 // VerifyResourcesAreReady will list all resources describe by the given GVR and pass them to
 // CheckUnstructuredForReadyState.
-func (k *Helper) VerifyResourcesAreReady(gvr schema.GroupVersionResource) (bool, error) {
+func (k *Helper) VerifyResourcesAreReady(ctx context.Context, gvr schema.GroupVersionResource) (bool, error) {
 	resourceName := gvr.Resource
 	k.Logger.Info(fmt.Sprintf("verifying %s in ready state", resourceName))
 
-	resources, err := k.DynamicClientset.Resource(gvr).List(k.Ctx, metav1.ListOptions{})
+	resources, err := k.DynamicClientset.Resource(gvr).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -441,16 +441,18 @@ func (k *Helper) PodExec(
 
 // WatchAndLogEvents is a wrapper around a dynamic watch call, logging events as they come.
 // Fields to pull from each event can be specified as variadic arguments.
-func (k *Helper) WatchAndLogEvents(watchOpts metav1.ListOptions, eventFields ...string) (func(), error) {
+func (k *Helper) WatchAndLogEvents(
+	ctx context.Context, watchOpts metav1.ListOptions, eventFields ...string,
+) (func(), error) {
 	eventLogger := k.Logger.WithField("opts", watchOpts)
 	eventLogger.Debug("starting event watcher")
-	watchInterface, err := k.DynamicClientset.Resource(*GVREvents).Watch(k.Ctx, watchOpts)
+	watchInterface, err := k.DynamicClientset.Resource(*GVREvents).Watch(ctx, watchOpts)
 	if err != nil {
 		k.Logger.WithError(err).Error("unable to create event watcher interface")
 		return nil, err
 	}
 
-	watchContext, stopFunc := context.WithCancel(k.Ctx)
+	watchContext, stopFunc := context.WithCancel(ctx)
 	go func() {
 		defer watchInterface.Stop()
 		for {
