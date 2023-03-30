@@ -128,9 +128,7 @@ var ronCmd = &cobra.Command{
 		}
 
 		Logger.WithField("opts", RonOpts).Debug("using the following args")
-		khelp := k8s.NewHelperOrDie(
-			CmdCtx, Logger, Kubeconfig,
-		)
+		khelp := k8s.NewHelperOrDie(Logger, Kubeconfig)
 		retryOpts := &k8s.RetryOpts{
 			MaxAttempts: RonOpts.RetryMaxAttempts,
 			Delay:       time.Duration(RonOpts.RetryAttemptDelaySeconds) * time.Second,
@@ -187,31 +185,31 @@ var ronCmd = &cobra.Command{
 			if RonOpts.ShowEvents {
 				Logger.Info("watching events")
 				stopEventWatcher, err = khelp.WatchAndLogEvents(
-					v1.ListOptions{}, "reason", "firstTimestamp", "type",
+					CmdCtx, v1.ListOptions{}, "reason", "firstTimestamp", "type",
 				)
 				exitIfError(err)
 			}
 
 			// Create NS
 			Logger.WithField("namespace", RonOpts.NSName).Info("ensuring namespace exists and is ready")
-			exitIfError(khelp.ApplyResource(*k8s.GVRNamespace, ns, true, retryOpts))
+			exitIfError(khelp.ApplyResource(CmdCtx, *k8s.GVRNamespace, ns, true, retryOpts))
 
 			// Create pvc
 			if RonOpts.PVC && RonOpts.ManagePVC {
 				Logger.WithField("pvc", RonOpts.PVCName).Info("ensuring pvc is ready to go")
-				exitIfError(khelp.ApplyResource(*k8s.GVRPersistentVolumeClaim, pvc, true, retryOpts))
+				exitIfError(khelp.ApplyResource(CmdCtx, *k8s.GVRPersistentVolumeClaim, pvc, true, retryOpts))
 			}
 
 			// Create configmap
 			if cm != nil {
 				Logger.WithField("configmap", RonOpts.ConfigMapName).Info("ensuring configMap is up to date")
-				exitIfError(khelp.ApplyResource(*k8s.GVRConfigMap, cm, true, retryOpts))
+				exitIfError(khelp.ApplyResource(CmdCtx, *k8s.GVRConfigMap, cm, true, retryOpts))
 			}
 
 			// Create pod
 			podLogger := Logger.WithField("pod", RonOpts.PodName).WithField("namespace", RonOpts.NSName)
 			podLogger.Info("setting up exec pod")
-			exitIfError(khelp.ApplyResource(*k8s.GVRPod, pod, false, retryOpts))
+			exitIfError(khelp.ApplyResource(CmdCtx, *k8s.GVRPod, pod, false, retryOpts))
 
 			// Need to watch the Ron Pod for changes as it starts up, so create a callback
 			// to handle this
@@ -313,7 +311,7 @@ var ronCmd = &cobra.Command{
 
 			// this becomes our main loop, waiting for pod to start and complete
 			_, err = khelp.WaitOnWatchedResource(
-				khelp.Ctx, *k8s.GVRPod, RonOpts.NSName,
+				CmdCtx, *k8s.GVRPod, RonOpts.NSName,
 				k8s.NewFieldSelectorFromName(RonOpts.PodName), "", handleEventOnRonPod,
 			)
 			exitIfError(err)
@@ -341,7 +339,9 @@ var ronCmd = &cobra.Command{
 				RonOpts.CleanupPod = true
 				RonOpts.CleanupConfigMaps = true
 			} else {
-				err := khelp.DeleteResourceAndWaitGone(*k8s.GVRNamespace, ns.GetName(), ns.GetNamespace(), retryOpts)
+				err := khelp.DeleteResourceAndWaitGone(
+					CmdCtx, *k8s.GVRNamespace, ns.GetName(), ns.GetNamespace(), retryOpts,
+				)
 				if err != nil {
 					Logger.WithError(err).WithField("namespace", RonOpts.NSName).Warning("unable to delete namespace")
 				}
@@ -351,7 +351,7 @@ var ronCmd = &cobra.Command{
 		if RonOpts.CleanupPod {
 			Logger.Info("waiting for log goroutines to hit EOF on their streams")
 			logwg.Wait() // wait for logs to be done first
-			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRPod, pod.GetName(), pod.GetNamespace(), retryOpts)
+			err := khelp.DeleteResourceAndWaitGone(CmdCtx, *k8s.GVRPod, pod.GetName(), pod.GetNamespace(), retryOpts)
 			if err != nil {
 				Logger.WithError(err).WithField("pod", RonOpts.PodName).Warning("unable to delete pod")
 			}
@@ -362,13 +362,17 @@ var ronCmd = &cobra.Command{
 			stopLogs()
 		}
 		if RonOpts.PVC && RonOpts.CleanupPVC && RonOpts.ManagePVC {
-			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRPersistentVolumeClaim, pvc.GetName(), pvc.GetNamespace(), retryOpts)
+			err := khelp.DeleteResourceAndWaitGone(
+				CmdCtx, *k8s.GVRPersistentVolumeClaim, pvc.GetName(), pvc.GetNamespace(), retryOpts,
+			)
 			if err != nil {
 				Logger.WithError(err).WithField("pvc", RonOpts.PVCName).Warning("unable to delete PVC")
 			}
 		}
 		if len(RonOpts.ConfigMapMounts) > 0 && RonOpts.CleanupConfigMaps {
-			err := khelp.DeleteResourceAndWaitGone(*k8s.GVRConfigMap, cm.GetName(), cm.GetNamespace(), retryOpts)
+			err := khelp.DeleteResourceAndWaitGone(
+				CmdCtx, *k8s.GVRConfigMap, cm.GetName(), cm.GetNamespace(), retryOpts,
+			)
 			if err != nil {
 				Logger.WithError(err).WithField("configmap", RonOpts.ConfigMapName).Warning(
 					"unable to delete configmap",

@@ -19,9 +19,9 @@ var verifyK8sReadyCmd = &cobra.Command{
 	Use:   "k8s-ready",
 	Short: "verify k8s cluster is ready to go",
 	Run: func(_ *cobra.Command, _ []string) {
-		khelp := k8s.NewHelperOrDie(CmdCtx, Logger, Kubeconfig)
+		khelp := k8s.NewHelperOrDie(Logger, Kubeconfig)
 
-		nodesReady, err := khelp.VerifyResourcesAreReady(*k8s.GVRNode)
+		nodesReady, err := khelp.VerifyResourcesAreReady(CmdCtx, *k8s.GVRNode)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
 		}
@@ -29,7 +29,7 @@ var verifyK8sReadyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		podsReady, err := khelp.VerifyResourcesAreReady(*k8s.GVRPod)
+		podsReady, err := khelp.VerifyResourcesAreReady(CmdCtx, *k8s.GVRPod)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
 		}
@@ -38,7 +38,7 @@ var verifyK8sReadyCmd = &cobra.Command{
 		}
 
 		deploymentsReady, err := khelp.VerifyResourcesAreReady(
-			*k8s.GVRDeployment,
+			CmdCtx, *k8s.GVRDeployment,
 		)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
