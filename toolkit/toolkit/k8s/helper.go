@@ -173,9 +173,10 @@ func (k *Helper) DeleteResourceAndWaitGone(
 		return nil
 	}
 
-	checkDone := make(chan bool)
+	checkDone := make(chan error, 1)
 	checkCtx, cancelCheck := context.WithCancel(ctx)
 	defer cancelCheck()
+
 	doCheck := func() error {
 		delLogger.Info("waiting for resource to be gone")
 		_, err := k.WaitOnWatchedResource(
@@ -187,18 +188,22 @@ func (k *Helper) DeleteResourceAndWaitGone(
 				return true, nil
 			},
 		)
-		checkDone <- true
+
+		if err != nil {
+			delLogger.WithError(err).Warn("error occurred while waiting for resource to be gone")
+		}
+
+		checkDone <- err
 		return err
 	}
 
 	go doCheck()
 	err := doDelete()
 	if err != nil {
-		cancelCheck()
 		return err
 	}
-	<-checkDone
-	return nil
+
+	return <-checkDone
 }
 
 // LogPodLogs attempts to stream logs from the containers in the given pod.
