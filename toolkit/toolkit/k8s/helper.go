@@ -12,6 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -122,7 +123,7 @@ func (k *Helper) ApplyResource(
 		var returnedRes unstructured.Unstructured
 
 		_, err := k.WaitOnWatchedResource(
-			ctx, gvr, ns, NewFieldSelectorFromName(name), "",
+			ctx, gvr, ns, NewFieldSelectorFromName(name), "", nil,
 			func(event watch.Event) (bool, error) {
 				resLogger.WithField("event", event).WithField("obj", event.Object).Debug(
 					"got event while waiting for res to be ready",
@@ -156,35 +157,56 @@ func (k *Helper) ApplyResource(
 	return returnedRes, nil
 }
 
-// DeleteResourceAndWaitGone is a wrapper around a dynamic Delete, only returning when a Deleted event is observed.
+// DeleteResourceAndWaitGone is a wrapper around a dynamic Delete, only returning when it is confirmed that the given
+// resource is gone.
 func (k *Helper) DeleteResourceAndWaitGone(
 	ctx context.Context, gvr schema.GroupVersionResource, name string, ns string, ro *RetryOpts,
 ) error {
 	delLogger := k.getResourceLoggerFromGivens(gvr.Resource, ns, name)
+	delLogger.Debug("deleting resource and ensuring it is gone")
+
 	resInterface := k.DynamicClientset.Resource(gvr).Namespace(ns)
 
-	doDelete := func() error {
-		delLogger.Warn("marking for deletion")
-		err := resInterface.Delete(ctx, name, metav1.DeleteOptions{})
-		if err != nil {
-			delLogger.WithError(err).Error("unable to delete resource")
-			return err
+	// Check if the resource even exists before trying to delete it.
+	delLogger.Debug("checking if resource exists")
+	_, err := resInterface.Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			delLogger.Debug("resource does not exist, considering it 'deleted'")
+
+			return nil
 		}
-		return nil
+
+		delLogger.WithError(err).Warn("error occurred while checking if resource exists")
+
+		return err
 	}
 
-	checkDone := make(chan error, 1)
+	// Setup go-routine to listen for a delete event on the existing resource.
+
+	// Cancel the watch after this function returns.
 	checkCtx, cancelCheck := context.WithCancel(ctx)
 	defer cancelCheck()
 
-	doCheck := func() error {
+	// Only attempt to delete the resource after the watch has completed a cache sync, to prevent a situation
+	// where the resource is delete before the watch is able to observe the deletion event.
+	cacheSyncDone := make(chan bool)
+	// Holds returned error, or nil, from the check go-routine.
+	checkDone := make(chan error, 1)
+
+	go func() {
 		delLogger.Info("waiting for resource to be gone")
 		_, err := k.WaitOnWatchedResource(
 			checkCtx, gvr, ns, NewFieldSelectorFromName(name), "",
+			func() {
+				close(cacheSyncDone)
+			},
 			func(event watch.Event) (bool, error) {
 				if event.Type != watch.Deleted {
 					return false, nil
 				}
+				delLogger.Info("resource is gone")
+
 				return true, nil
 			},
 		)
@@ -194,16 +216,38 @@ func (k *Helper) DeleteResourceAndWaitGone(
 		}
 
 		checkDone <- err
-		return err
+		return
+	}()
+
+	// Wait for the cache sync or context cancel.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-cacheSyncDone:
 	}
 
-	go doCheck()
-	err := doDelete()
+	delLogger.Warn("marking for deletion")
+
+	err = resInterface.Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
+		// If we get this error, then we know the resource is gone and can return.
+		if errors.IsNotFound(err) {
+			delLogger.Info("resource is gone")
+
+			return nil
+		}
+
+		delLogger.WithError(err).Error("unable to delete resource")
 		return err
 	}
 
-	return <-checkDone
+	// Wait for the check to be done or context cancel.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-checkDone:
+		return err
+	}
 }
 
 // LogPodLogs attempts to stream logs from the containers in the given pod.
@@ -283,8 +327,8 @@ func (k *Helper) LogPodLogs(
 // WaitOnWatchedResource is a wrapper around client-go/tools/watch.UntilWithSync function, providing the plumbing needed
 // to watch resources, without having to handle creating a lister watcher.
 func (k *Helper) WaitOnWatchedResource(
-	ctx context.Context, gvr schema.GroupVersionResource, ns string,
-	fieldSelector string, labelSelector string, conditions ...watchTools.ConditionFunc,
+	ctx context.Context, gvr schema.GroupVersionResource, ns string, fieldSelector string, labelSelector string,
+	cacheSyncCallback func(), conditions ...watchTools.ConditionFunc,
 ) (*watch.Event, error) {
 	kind, ok := ResourceToKind[gvr.Resource]
 	if !ok {
@@ -326,7 +370,16 @@ func (k *Helper) WaitOnWatchedResource(
 
 	logger.Debug("watching resource")
 
-	return watchTools.UntilWithSync(ctx, lw, objType, nil, conditions...)
+	return watchTools.UntilWithSync(
+		ctx, lw, objType,
+		func(store cache.Store) (bool, error) {
+			if cacheSyncCallback != nil {
+				cacheSyncCallback()
+			}
+			return false, nil
+		},
+		conditions...,
+	)
 }
 
 // VerifyResourceIsReady runs a dynamic get on the given resource with name and ns, then passes it to
