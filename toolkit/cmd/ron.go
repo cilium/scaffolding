@@ -311,8 +311,7 @@ var ronCmd = &cobra.Command{
 
 			// this becomes our main loop, waiting for pod to start and complete
 			_, err = khelp.WaitOnWatchedResource(
-				CmdCtx, *k8s.GVRPod, RonOpts.NSName,
-				k8s.NewFieldSelectorFromName(RonOpts.PodName), "", handleEventOnRonPod,
+				CmdCtx, *k8s.GVRPod, RonOpts.NSName, k8s.NewFieldSelectorFromName(RonOpts.PodName), "", nil, handleEventOnRonPod,
 			)
 			exitIfError(err)
 
