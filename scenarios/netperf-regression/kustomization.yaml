@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../kustomize/topologies/pod2pod/overlays/pod
+configMapGenerator:
+- name: netperf-script
+  files:
+   - netperf.sh
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: pod2pod-server
+  spec:
+    template:
+      spec:
+        containers:
+          - name: main
+            command: ["netserver", "-D", "-4"]
+            ports:
+            - containerPort: 12865
+              name: netperf
+              protocol: TCP
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: pod2pod-client
+  spec:
+    template:
+      spec:
+        containers:
+        - name: main
+          volumeMounts:
+          - name: netperf-script
+            mountPath: /netperf-script
+        volumes:
+        - name: netperf-script
+          configMap:
+            name: netperf-script
+images:
+- name: k8s.gcr.io/pause:3.1
+  newName: nixery.dev/bash/coreutils/iproute2/iputils/bind/procps/netperf
