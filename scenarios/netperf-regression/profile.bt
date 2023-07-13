@@ -1,0 +1,10 @@
+profile:hz:49
+{
+        @[kstack(perf),ustack(perf)] = count();
+}
+
+interval:s:190
+{
+        exit();
+}
+
