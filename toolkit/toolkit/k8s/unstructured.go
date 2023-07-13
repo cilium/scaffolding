@@ -122,6 +122,8 @@ type UnstructuredPodOpts struct {
 	HostNS bool
 	// WithSleepContainer adds an alpine container to the pod that runs "sleep infinity"
 	WithSleepContainer bool
+	// HostMounts adds extra host volume mounts into the pod.
+	HostMounts []string
 }
 
 // NewUnstructuredPod creates a new *unstructured.Unstructured that represents a pod.
@@ -193,6 +195,14 @@ func NewUnstructuredPod(
 		volumeMounts = append(volumeMounts, map[string]interface{}{
 			"name":      opts.ConfigMapName,
 			"mountPath": "/configs",
+		})
+	}
+	for i, hostPath := range opts.HostMounts {
+		volumes = append(volumes, map[string]interface{}{
+			"name": fmt.Sprintf("host-path-%d", i),
+			"hostPath": map[string]interface{}{
+				"path": hostPath,
+			},
 		})
 	}
 
