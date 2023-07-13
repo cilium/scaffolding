@@ -44,6 +44,7 @@ type RonOptions struct {
 	ConfigMapMounts          []string
 	ConfigMapName            string
 	ShowEvents               bool
+	HostMounts               []string
 }
 
 var (
@@ -105,6 +106,9 @@ func init() {
 	ronCmd.PersistentFlags().BoolVar(
 		&RonOpts.ShowEvents, "show-events", false, "show kubernetes events (WARN lots of output!)",
 	)
+	ronCmd.PersistentFlags().StringSliceVar(
+		&RonOpts.HostMounts, "host-mounts", []string{}, "paths to mount from the host node into the ron pod",
+	)
 }
 
 func Ron() {}
@@ -153,6 +157,7 @@ var ronCmd = &cobra.Command{
 				ConfigMapName:      RonOpts.ConfigMapName,
 				HostNS:             true,
 				WithSleepContainer: RonOpts.PVC,
+				HostMounts:         RonOpts.HostMounts,
 			},
 		))
 		var cm *unstructured.Unstructured

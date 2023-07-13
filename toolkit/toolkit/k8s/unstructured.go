@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -122,6 +123,8 @@ type UnstructuredPodOpts struct {
 	HostNS bool
 	// WithSleepContainer adds an alpine container to the pod that runs "sleep infinity"
 	WithSleepContainer bool
+	// HostMounts adds extra host volume mounts into the pod.
+	HostMounts []string
 }
 
 // NewUnstructuredPod creates a new *unstructured.Unstructured that represents a pod.
@@ -193,6 +196,19 @@ func NewUnstructuredPod(
 		volumeMounts = append(volumeMounts, map[string]interface{}{
 			"name":      opts.ConfigMapName,
 			"mountPath": "/configs",
+		})
+	}
+	for i, hostPath := range opts.HostMounts {
+		n := fmt.Sprintf("host-path-%d", i)
+		volumes = append(volumes, map[string]interface{}{
+			"name": n,
+			"hostPath": map[string]interface{}{
+				"path": hostPath,
+			},
+		})
+		volumeMounts = append(volumeMounts, map[string]interface{}{
+			"name": n,
+			"mountPath": filepath.Join("/host", hostPath),
 		})
 	}
 
