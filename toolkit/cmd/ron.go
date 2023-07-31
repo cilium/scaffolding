@@ -45,6 +45,7 @@ type RonOptions struct {
 	ConfigMapName            string
 	ShowEvents               bool
 	HostMounts               []string
+	TolerateAll              bool
 }
 
 var (
@@ -109,6 +110,10 @@ func init() {
 	ronCmd.PersistentFlags().StringSliceVar(
 		&RonOpts.HostMounts, "host-mounts", []string{}, "paths to mount from the host node into the ron pod",
 	)
+	ronCmd.PersistentFlags().BoolVar(
+		&RonOpts.TolerateAll, "tolerate-all", false,
+		"add a catch-all toleration to the pod so it is always scheduled",
+	)
 }
 
 func Ron() {}
@@ -158,6 +163,7 @@ var ronCmd = &cobra.Command{
 				HostNS:             true,
 				WithSleepContainer: RonOpts.PVC,
 				HostMounts:         RonOpts.HostMounts,
+				TolerateAll:        RonOpts.TolerateAll,
 			},
 		))
 		var cm *unstructured.Unstructured
