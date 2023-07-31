@@ -324,8 +324,12 @@ var ronCmd = &cobra.Command{
 			if RonOpts.PVC && RonOpts.AutoCopy {
 				podLogger.Info("copying /store")
 				tarballBuffer := bytes.Buffer{}
-				err = khelp.PodExec(
-					RonOpts.PodName, "sleep", RonOpts.NSName, []string{"tar", "-zc", "/store"}, &tarballBuffer,
+				err = toolkit.SimpleRetry(
+					func() error {
+						return khelp.PodExec(
+							RonOpts.PodName, "sleep", RonOpts.NSName, []string{"tar", "-zc", "/store"}, &tarballBuffer,
+						)
+					}, 3, 5 * time.Second, podLogger.Logger,
 				)
 				exitIfError(err)
 				tarballAbsolutePath, err := filepath.Abs(RonOpts.AutoCopyTarball)
