@@ -70,6 +70,7 @@ As a convention, the filenames of these scripts should be in snake case.
 * **`get_node_internal_ip.sh`**: Return the address for a node with the type `InternalIP`.
 * **`k8s_api_readyz.sh`**: Grab the current context's API server IP and CA data and make a curl request to `/readyz?verbose=true` to check if the API server is up. If the CA data cannot be determined, then use `--insecure` with curl to still allow for a request to go out.
 * **`retry.sh`**: Retry a given command, using a given delay in-between attempts. For example, `retry.sh 5 echo hi` will attempt to run `echo hi` every `5` seconds until success.
+* **`profile_node.sh`**: Profile a k8s node's userspace and kernelspace stacks, saving the output and generated FlameGraph as an artifact. Requires the k8s node has `perf` installed and the executing node has `perl` installed.
 
 ## kustomize
 
