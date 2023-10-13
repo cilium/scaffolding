@@ -1,0 +1,9 @@
+periodics:
+- name: node-throughput-main # Name of directory in bucket
+  tags:
+  - "perfDashPrefix: node-throughput-main" # Just the name what to display in perfdash
+  - "perfDashJobType: throughput" # Type of metrics to display
+- name: scale-100-main # Name of directory in bucket
+  tags:
+  - "perfDashPrefix: scale-100-main" # Just the name what to display in perfdash
+  - "perfDashJobType: performance" # Type of metrics to display
