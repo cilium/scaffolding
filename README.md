@@ -5,6 +5,7 @@ scaffolding's aim is to provide a framework for writing simple scripts to execut
 The project is organized as follows:
 
 * `./toolkit`: go package which automates simple tasks that would be too tedious or repetitive to implement scripting with other CLI tools.
+* `./scale-tests`: collection of scripts for visualizing scale and performance data.
 * `./scripts`: collection of bash scripts which implement commonly used/required functionality.
 * `./kustomize`: collection of [kustomize](https://kustomize.io/) templates for applying commonly used manifests.
 * `./scenarios`: implementation scripts for running benchmarks within different scenarios for some purpose.
