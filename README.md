@@ -337,3 +337,17 @@ Requires three nodes, one for a load balancer, one for a netperf server, one for
 Implemented within `minikube` for local development, but can easily be modified for other environments as needed.
 
 Run `kubectl port-forward -n monitoring svc/grafana 3000:3000` to view the `node-exporter` dashboard, which can be used to monitor the CPU usage of the load balancer node.
+
+### netperf regression testing
+
+Perform latency and throughput regression testing between multiple versions of Cilium.
+Netperf latency and throughput tests are executed on a specific version of Cilium.
+An upgrade will then be performed to a new version of Cilium, and tests will be repeated.
+
+Profiles will be taken on nodes. Tests are run pod-to-pod.
+
+### IPSec testing
+
+Performs the same tests as above, with options for enabling encryption in Cilium.
+One can specify installing Cilium with IPSec enabled, wireguard enabled, or no encryption enabled.
+
