@@ -7,6 +7,9 @@ set -xe
 . ../common.sh
 init
 
+duration="180"
+cores="2"
+
 initial_version=""
 versions=$(cat "./tagshas.csv")
 for version in $versions
@@ -43,14 +46,18 @@ do
     time="$(date +%s)"
 
     # Start profiling each node.
-    for node in $(kubectl get node -o name)
+    # Hacky way to tag if the node contains the server or client pod, will be:
+    # node/<node name>/(client|server)
+    clientNode="$(kubectl get node -l role.scaffolding/pod2pod-client=true -o name)/client"
+    serverNode="$(kubectl get node -l role.scaffolding/pod2pod-server=true -o name)/server"
+    for noderole in $clientNode $serverNode
     do
-      # kubectl get node -o name gives output as "node/NAME", just need the name.
-      name="$(echo $node | cut -d '/' -f 2)"
-      log="$ARTIFACTS/$name-$typ-$tag-$time.log"
+      node="$(echo $noderole |  cut -d '/' -f 2)"
+      role="$(echo $noderole | cut -d '/' -f 3)"
+      log="$ARTIFACTS/$node-$typ-$tag-$time.log"
 
       touch $log  # fix race condition between tee and tail below
-      ./profile-node.sh $name "$typ-$tag" 2>&1 | tee $log &
+      $ARTIFACTS/profile-node.sh $node "$typ-$tag-$role" $duration 2>&1 | tee $log &
       echo $!  # in case something fails, for cleanup
     done
 
@@ -61,7 +68,7 @@ do
     echo "profiles started"
 
     ip="$(kubectl get pod -l app=pod2pod-server -ojsonpath='{.items[0].status.podIP}')"
-    kubectl exec -it deploy/pod2pod-client -- /bin/bash /netperf-script/netperf.sh $ip $typ
+    kubectl exec -it deploy/pod2pod-client -- /bin/bash /netperf-script/netperf.sh $ip "${duration}s" $cores $typ
 
     wait  # for profiles to be done
 
