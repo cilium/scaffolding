@@ -2,7 +2,9 @@ package k8s
 
 import (
 	"fmt"
+	"path/filepath"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -53,6 +55,9 @@ var (
 		GVRConfigMap.Resource:             "ConfigMap",
 		GVREvents.Resource:                "Event",
 		GVRCiliumNetworkPolicy.Resource:   "CiliumNetworkPolicy",
+	}
+	CatchAllToleration = v1.Toleration{
+		Operator: "Exists",
 	}
 	ScaffoldingLabel         = "cilium.scaffolding"
 	ScaffoldingLabelSelector = fmt.Sprintf("app.kubernetes.io=%s", ScaffoldingLabel)
@@ -122,6 +127,10 @@ type UnstructuredPodOpts struct {
 	HostNS bool
 	// WithSleepContainer adds an alpine container to the pod that runs "sleep infinity"
 	WithSleepContainer bool
+	// HostMounts adds extra host volume mounts into the pod.
+	HostMounts []string
+	// TolerateAll adds a catch-all toleration to the pod so it is always scheduled.
+	TolerateAll bool
 }
 
 // NewUnstructuredPod creates a new *unstructured.Unstructured that represents a pod.
@@ -194,6 +203,22 @@ func NewUnstructuredPod(
 			"name":      opts.ConfigMapName,
 			"mountPath": "/configs",
 		})
+	}
+	for i, hostPath := range opts.HostMounts {
+		n := fmt.Sprintf("host-path-%d", i)
+		volumes = append(volumes, map[string]interface{}{
+			"name": n,
+			"hostPath": map[string]interface{}{
+				"path": hostPath,
+			},
+		})
+		volumeMounts = append(volumeMounts, map[string]interface{}{
+			"name": n,
+			"mountPath": filepath.Join("/host", hostPath),
+		})
+	}
+	if opts.TolerateAll {
+		podSpec["tolerations"] = []v1.Toleration{CatchAllToleration}
 	}
 
 	podContainer["volumeMounts"] = volumeMounts

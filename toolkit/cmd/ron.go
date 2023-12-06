@@ -44,6 +44,8 @@ type RonOptions struct {
 	ConfigMapMounts          []string
 	ConfigMapName            string
 	ShowEvents               bool
+	HostMounts               []string
+	TolerateAll              bool
 }
 
 var (
@@ -105,6 +107,13 @@ func init() {
 	ronCmd.PersistentFlags().BoolVar(
 		&RonOpts.ShowEvents, "show-events", false, "show kubernetes events (WARN lots of output!)",
 	)
+	ronCmd.PersistentFlags().StringSliceVar(
+		&RonOpts.HostMounts, "host-mounts", []string{}, "paths to mount from the host node into the ron pod",
+	)
+	ronCmd.PersistentFlags().BoolVar(
+		&RonOpts.TolerateAll, "tolerate-all", false,
+		"add a catch-all toleration to the pod so it is always scheduled",
+	)
 }
 
 func Ron() {}
@@ -153,6 +162,8 @@ var ronCmd = &cobra.Command{
 				ConfigMapName:      RonOpts.ConfigMapName,
 				HostNS:             true,
 				WithSleepContainer: RonOpts.PVC,
+				HostMounts:         RonOpts.HostMounts,
+				TolerateAll:        RonOpts.TolerateAll,
 			},
 		))
 		var cm *unstructured.Unstructured
@@ -319,8 +330,12 @@ var ronCmd = &cobra.Command{
 			if RonOpts.PVC && RonOpts.AutoCopy {
 				podLogger.Info("copying /store")
 				tarballBuffer := bytes.Buffer{}
-				err = khelp.PodExec(
-					RonOpts.PodName, "sleep", RonOpts.NSName, []string{"tar", "-zc", "/store"}, &tarballBuffer,
+				err = toolkit.SimpleRetry(
+					func() error {
+						return khelp.PodExec(
+							RonOpts.PodName, "sleep", RonOpts.NSName, []string{"tar", "-zc", "/store"}, &tarballBuffer,
+						)
+					}, 3, 5 * time.Second, podLogger.Logger,
 				)
 				exitIfError(err)
 				tarballAbsolutePath, err := filepath.Abs(RonOpts.AutoCopyTarball)

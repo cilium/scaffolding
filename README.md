@@ -70,6 +70,8 @@ As a convention, the filenames of these scripts should be in snake case.
 * **`get_node_internal_ip.sh`**: Return the address for a node with the type `InternalIP`.
 * **`k8s_api_readyz.sh`**: Grab the current context's API server IP and CA data and make a curl request to `/readyz?verbose=true` to check if the API server is up. If the CA data cannot be determined, then use `--insecure` with curl to still allow for a request to go out.
 * **`retry.sh`**: Retry a given command, using a given delay in-between attempts. For example, `retry.sh 5 echo hi` will attempt to run `echo hi` every `5` seconds until success.
+* **`profile_node.sh`**: Profile a k8s node's userspace and kernelspace stacks, saving the output and generated FlameGraph as an artifact. Requires the k8s node has `perf` installed and the executing node has `perl` installed.
+* **`netperf.sh`**: Helper script for kicking off netperf tests, including support for parallel netperf instances. Results are outputted in CSV format.
 
 ## kustomize
 
@@ -335,3 +337,17 @@ Requires three nodes, one for a load balancer, one for a netperf server, one for
 Implemented within `minikube` for local development, but can easily be modified for other environments as needed.
 
 Run `kubectl port-forward -n monitoring svc/grafana 3000:3000` to view the `node-exporter` dashboard, which can be used to monitor the CPU usage of the load balancer node.
+
+### netperf regression testing
+
+Perform latency and throughput regression testing between multiple versions of Cilium.
+Netperf latency and throughput tests are executed on a specific version of Cilium.
+An upgrade will then be performed to a new version of Cilium, and tests will be repeated.
+
+Profiles will be taken on nodes. Tests are run pod-to-pod.
+
+### IPSec testing
+
+Performs the same tests as above, with options for enabling encryption in Cilium.
+One can specify installing Cilium with IPSec enabled, wireguard enabled, or no encryption enabled.
+
