@@ -8,6 +8,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/cilium/clustermesh-apiserver/etcdinit"
 )
 
 func main() {
@@ -16,7 +18,9 @@ func main() {
 		Short: "Run the ClusterMesh apiserver mock",
 	}
 
-	cmd.AddCommand()
+	cmd.AddCommand(
+		etcdinit.NewCmd(),
+	)
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
