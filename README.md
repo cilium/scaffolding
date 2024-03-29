@@ -9,6 +9,7 @@ The project is organized as follows:
 * `./scripts`: collection of bash scripts which implement commonly used/required functionality.
 * `./kustomize`: collection of [kustomize](https://kustomize.io/) templates for applying commonly used manifests.
 * `./scenarios`: implementation scripts for running benchmarks within different scenarios for some purpose.
+* `./cmapisrv-mock`: a component which mocks the behavior of the Cilium Cluster Mesh API Server for scalability testing purposes.
 
 ## toolkit
 
