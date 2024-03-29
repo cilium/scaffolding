@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cmapisrv-mock.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cmapisrv-mock.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "cmapisrv-mock.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "cmapisrv-mock.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      initContainers:
+      - name: etcd-init
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - /usr/bin/cmapisrv-mock
+        args:
+        - etcdinit
+        - --debug={{ .Values.debug }}
+        - --etcd-cluster-name=clustermesh-mocker
+        - --etcd-initial-cluster-token=clustermesh-mocker
+        - --etcd-data-dir=/var/run/etcd
+        env:
+        - name: CILIUM_CLUSTER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: cilium-config
+              key: cluster-name
+        volumeMounts:
+        - name: etcd-data-dir
+          mountPath: /var/run/etcd
+        terminationMessagePolicy: FallbackToLogsOnError
+
+      containers:
+      - name: etcd
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - /usr/bin/etcd
+        args:
+        - --data-dir=/var/run/etcd
+        - --name=clustermesh-mocker
+        - --client-cert-auth
+        - --trusted-ca-file=/var/lib/etcd-secrets/ca.crt
+        - --cert-file=/var/lib/etcd-secrets/tls.crt
+        - --key-file=/var/lib/etcd-secrets/tls.key
+        - --listen-client-urls=https://127.0.0.1:2379,https://[$(HOSTNAME_IP)]:2379
+        - --advertise-client-urls=https://[$(HOSTNAME_IP)]:2379
+        - --initial-cluster-token=clustermesh-mocker
+        - --auto-compaction-retention=1
+        - --listen-metrics-urls=http://[$(HOSTNAME_IP)]:9998
+        - --metrics=basic
+        env:
+        - name: ETCDCTL_API
+          value: "3"
+        - name: HOSTNAME_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        ports:
+        - name: etcd
+          containerPort: 2379
+          protocol: TCP
+        - name: etcd-metrics
+          containerPort: 9998
+          protocol: TCP
+        volumeMounts:
+        - name: etcd-server-secrets
+          mountPath: /var/lib/etcd-secrets
+          readOnly: true
+        - name: etcd-data-dir
+          mountPath: /var/run/etcd
+        terminationMessagePolicy: FallbackToLogsOnError
+
+      - name: mocker
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - /usr/bin/cmapisrv-mock
+        args:
+        - mocker
+        - --debug={{ .Values.debug }}
+        - --enable-ipv6={{ .Values.config.ipv6 }}
+        - --clusters={{ .Values.config.clusters }}
+        - --first-cluster-id={{ .Values.config.firstClusterID }}
+        - --nodes={{ .Values.config.nodes }}
+        - --nodes-qps={{ .Values.config.nodesQPS }}
+        - --identities={{ .Values.config.identities }}
+        - --identities-qps={{ .Values.config.identitiesQPS }}
+        - --endpoints={{ .Values.config.endpoints }}
+        - --endpoints-qps={{ .Values.config.endpointsQPS }}
+        - --services={{ .Values.config.services }}
+        - --services-qps={{ .Values.config.servicesQPS }}
+        - --kvstore-opt=etcd.config=/var/lib/cilium/etcd-config.yaml
+        - --kvstore-opt=etcd.qps={{ .Values.config.etcdQPS }}
+        - --kvstore-opt=etcd.maxInflight={{ .Values.config.etcdMaxInflight }}
+        - --prometheus-serve-addr=:9999
+        ports:
+        - name: mocker-health
+          containerPort: 9880
+          protocol: TCP
+        - name: mocker-metrics
+          containerPort: 9999
+          protocol: TCP
+        startupProbe:
+          httpGet:
+            path: /readyz
+            port: mocker-health
+          failureThreshold: 1000
+          periodSeconds: 1
+        volumeMounts:
+        - name: etcd-admin-client
+          mountPath: /var/lib/cilium/etcd-secrets
+          readOnly: true
+        terminationMessagePolicy: FallbackToLogsOnError
+
+      volumes:
+      - name: etcd-server-secrets
+        projected:
+          # note: the leading zero means this number is in octal representation: do not remove it
+          defaultMode: 0400
+          sources:
+          - secret:
+              name: {{ include "cmapisrv-mock.fullname" $ }}-server
+              items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
+
+      - name: etcd-admin-client
+        projected:
+          # note: the leading zero means this number is in octal representation: do not remove it
+          defaultMode: 0400
+          sources:
+          - secret:
+              name: {{ include "cmapisrv-mock.fullname" $ }}-admin
+              items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
+
+      - name: etcd-data-dir
+        emptyDir:
+          medium: Memory
