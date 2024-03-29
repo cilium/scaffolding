@@ -1,0 +1,53 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: quay.io/cilium/cmapisrv-mock
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+debug: false
+
+config:
+  # Whether to mock both IPv4 and IPv6 addresses, or IPv4 only.
+  ipv6: true
+
+  # Number of clusters to be mocked.
+  clusters: 1
+  # Cluster ID of the first mocked cluster. It can be tuned to avoid conflicts,
+  # and in case multiple independent cmapisrv-mock instances are necessary to
+  # mock a large number of clusters, and a single etcd instance would be overloaded.
+  firstClusterID: 1
+
+  # Number of nodes to mock for each cluster.
+  nodes: 20
+  # Number of node create/delete operations per second at run-time.
+  nodesQPS: 0.2
+
+  # Number of identities to mock for each cluster.
+  identities: 100
+  # Number of identity create/delete operations per second at run-time.
+  identitiesQPS: 3
+
+  # Number of endpoints to mock for each cluster.
+  endpoints: 250
+  # Number of endpoint create/update/delete operations per second at run-time.
+  endpointsQPS: 10
+
+  # Number of global services to mock for each cluster.
+  services: 20
+  # Number of service create/update/delete operations per second at run-time.
+  servicesQPS: 5
+
+  # Global etcd rate limiting settings.
+  etcdQPS: 1000
+  etcdMaxInflight: 100
+
+podAnnotations: {}
+podLabels: {}
+
+service:
+  type: ClusterIP
+  port: 2379
+
+serviceMonitor: false

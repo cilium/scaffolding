@@ -1,0 +1,27 @@
+{{ if .Values.serviceMonitor }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "cmapisrv-mock.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cmapisrv-mock.labels" . | nindent 4 }}
+    app.kubernetes.io/component: metrics
+spec:
+  selector:
+    matchLabels:
+      {{- include "cmapisrv-mock.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: metrics
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+  - port: mocker-metrics
+    interval: 10s
+    honorLabels: true
+    path: /metrics
+  - port: etcd-metrics
+    interval: 10s
+    honorLabels: true
+    path: /metrics
+{{ end }}
