@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-export CLUSTER_NAME="rydrew-encrypt"
+export CLUSTER_NAME= // "changeme-encrypt"
 export DEV_REASON="encrypt-testing"
-export OWNER_NAME="rydrew"
+export OWNER_NAME= // "changeme"
 
