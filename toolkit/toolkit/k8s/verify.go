@@ -67,7 +67,7 @@ func DoesConditionShowReady(condition map[string]interface{}) (bool, error) {
 		return false, err
 	}
 	switch ct {
-	case "Ready", "Initialized", "ContainersReady", "PodScheduled", "Progressing", "Available":
+	case "Ready", "Initialized", "ContainersReady", "PodScheduled", "Progressing", "Available", "PodReadyToStartContainers":
 		return cs == string(v1.ConditionTrue), nil
 	case "MemoryPressure", "DiskPressure", "PIDPressure", "NetworkUnavailable", "FrequentDockerRestart",
 		"FrequentContainerdRestart", "KernelDeadlock", "ReadonlyFilesystem", "CorruptDockerOverlay2",
