@@ -1,0 +1,5 @@
+periodics:
+- name: perf-fqdn-main # Name of directory in bucket
+  tags:
+  - "perfDashPrefix: fqdn-perf-main" # Just the name what to display in perfdash
+  - "perfDashJobType: performance" # Type of metrics to display
