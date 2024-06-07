@@ -125,7 +125,7 @@ func CheckUnstructuredForReadyState(logger *log.Logger, resource *unstructured.U
 
 	// Now we do our checks
 	resourceIsReady := true
-	addComma := true
+	addComma := false
 
 	if phaseFound && kind != "" {
 		addComma = true
