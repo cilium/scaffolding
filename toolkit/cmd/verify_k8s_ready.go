@@ -9,10 +9,16 @@ import (
 	"github.com/cilium/scaffolding/toolkit/toolkit/k8s"
 )
 
+var (
+	ignoredNodes = []string{}
+)
+
 func init() {
 	verifyCmd.AddCommand(verifyK8sReadyCmd)
-	// add wait option here
 
+	verifyK8sReadyCmd.PersistentFlags().StringArrayVar(
+		&ignoredNodes, "ignored-nodes", []string{}, "Pass a list of nodes to ignore in the ready check.",
+	)
 }
 
 var verifyK8sReadyCmd = &cobra.Command{
@@ -21,7 +27,7 @@ var verifyK8sReadyCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, _ []string) {
 		khelp := k8s.NewHelperOrDie(Logger, Kubeconfig)
 
-		nodesReady, err := khelp.VerifyResourcesAreReady(CmdCtx, *k8s.GVRNode)
+		nodesReady, err := khelp.VerifyResourcesAreReady(CmdCtx, *k8s.GVRNode, ignoredNodes)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
 		}
@@ -29,7 +35,7 @@ var verifyK8sReadyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		podsReady, err := khelp.VerifyResourcesAreReady(CmdCtx, *k8s.GVRPod)
+		podsReady, err := khelp.VerifyResourcesAreReady(CmdCtx, *k8s.GVRPod, nil)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)
 		}
@@ -38,7 +44,7 @@ var verifyK8sReadyCmd = &cobra.Command{
 		}
 
 		deploymentsReady, err := khelp.VerifyResourcesAreReady(
-			CmdCtx, *k8s.GVRDeployment,
+			CmdCtx, *k8s.GVRDeployment, nil,
 		)
 		if err != nil {
 			toolkit.ExitWithError(Logger, err)

@@ -404,7 +404,7 @@ func (k *Helper) VerifyResourceIsReady(
 
 // VerifyResourcesAreReady will list all resources describe by the given GVR and pass them to
 // CheckUnstructuredForReadyState.
-func (k *Helper) VerifyResourcesAreReady(ctx context.Context, gvr schema.GroupVersionResource) (bool, error) {
+func (k *Helper) VerifyResourcesAreReady(ctx context.Context, gvr schema.GroupVersionResource, ignoredNames []string) (bool, error) {
 	resourceName := gvr.Resource
 	k.Logger.Info(fmt.Sprintf("verifying %s in ready state", resourceName))
 
@@ -424,6 +424,11 @@ func (k *Helper) VerifyResourcesAreReady(ctx context.Context, gvr schema.GroupVe
 
 	resourcesAreReady := true
 	for _, resource := range items {
+		if ignoredNames != nil && toolkit.SliceContains(ignoredNames, resource.GetName()) {
+			k.Logger.Info(fmt.Sprintf("ignoring resource named %s", resource.GetName()))
+			continue
+		}
+
 		ready, err := CheckUnstructuredForReadyState(k.Logger, &resource)
 		if err != nil {
 			return false, err
