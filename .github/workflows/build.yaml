@@ -1,0 +1,46 @@
+name: Image build
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    name: Build and Push
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - name: cmapisrv-mock
+            context: cmapisrv-mock
+            dockerfile: ./cmapisrv-mock/Dockerfile
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
+
+      - name: Login to quay.io
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
+        if: ${{ github.event_name == 'push' }}
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME_SCAFFOLDING }}
+          password: ${{ secrets.QUAY_PASSWORD_SCAFFOLDING }}
+
+      - name: Checkout Source Code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Build and Push
+        uses: docker/build-push-action@c382f710d39a5bb4e430307530a720f50c2d3318 # v6.0.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name == 'push' }}
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.event.pull_request.head.sha || github.sha }}
