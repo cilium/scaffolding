@@ -24,17 +24,16 @@ type services struct {
 	enableIPv6 bool
 }
 
-func newServices(log logrus.FieldLogger, cluster cmtypes.ClusterInfo,
-	factory store.Factory, backend store.SyncStoreBackend, enableIPv6 bool) *services {
+func newServices(log logrus.FieldLogger, cp cparams) *services {
 	prefix := kvstore.StateToCachePrefix(serviceStore.ServiceStorePrefix)
-	ss := factory.NewSyncStore(cluster.Name, backend,
-		path.Join(prefix, cluster.Name),
+	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend,
+		path.Join(prefix, cp.cluster.Name),
 		store.WSSWithSyncedKeyOverride(prefix))
 
 	svc := &services{
-		cluster:    cluster,
+		cluster:    cp.cluster,
 		cache:      newCache[*serviceStore.ClusterService](),
-		enableIPv6: enableIPv6,
+		enableIPv6: cp.enableIPv6,
 	}
 
 	svc.syncer = newSyncer(log, "services", ss, svc.next)

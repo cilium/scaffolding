@@ -27,16 +27,16 @@ type nodes struct {
 	enableIPv6 bool
 }
 
-func newNodes(log logrus.FieldLogger, cluster cmtypes.ClusterInfo, factory store.Factory, backend store.SyncStoreBackend, enableIPv6 bool) *nodes {
+func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
 	prefix := kvstore.StateToCachePrefix(nodeStore.NodeStorePrefix)
-	ss := factory.NewSyncStore(cluster.Name, backend,
-		path.Join(prefix, cluster.Name),
+	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend,
+		path.Join(prefix, cp.cluster.Name),
 		store.WSSWithSyncedKeyOverride(prefix))
 
 	ns := &nodes{
-		cluster:    cluster,
+		cluster:    cp.cluster,
 		cache:      newCache[*nodeTypes.Node](),
-		enableIPv6: enableIPv6,
+		enableIPv6: cp.enableIPv6,
 	}
 
 	ns.syncer = newSyncer(log, "nodes", ss, ns.next)
