@@ -26,16 +26,16 @@ type identities struct {
 	encoder func([]byte) string
 }
 
-func newIdentities(log logrus.FieldLogger, cluster cmtypes.ClusterInfo, factory store.Factory, backend kvstore.BackendOperations) *identities {
+func newIdentities(log logrus.FieldLogger, cp cparams) *identities {
 	prefix := kvstore.StateToCachePrefix(IdentitiesPath)
-	ss := factory.NewSyncStore(cluster.Name, backend,
-		path.Join(prefix, cluster.Name, "id"),
+	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend,
+		path.Join(prefix, cp.cluster.Name, "id"),
 		store.WSSWithSyncedKeyOverride(prefix))
 
 	ids := &identities{
-		cluster: cluster,
+		cluster: cp.cluster,
 		cache:   newCache[*store.KVPair](),
-		encoder: backend.Encode,
+		encoder: cp.backend.Encode,
 	}
 
 	ids.syncer = newSyncer(log, "identities", ss, ids.next)

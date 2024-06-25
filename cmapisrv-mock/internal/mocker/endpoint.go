@@ -30,24 +30,23 @@ type endpoints struct {
 }
 
 func newEndpoints(
-	log logrus.FieldLogger, cluster cmtypes.ClusterInfo,
-	factory store.Factory, backend store.SyncStoreBackend,
-	enableIPv6 bool, nodes *nodes, identities *identities) *endpoints {
+	log logrus.FieldLogger, cp cparams,
+	nodes *nodes, identities *identities) *endpoints {
 
 	prefix := kvstore.StateToCachePrefix(IPIdentitiesPath)
-	ss := factory.NewSyncStore(cluster.Name, backend,
-		path.Join(prefix, cluster.Name),
+	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend,
+		path.Join(prefix, cp.cluster.Name),
 		store.WSSWithSyncedKeyOverride(prefix))
 
 	eps := &endpoints{
-		cluster:        cluster,
+		cluster:        cp.cluster,
 		cache:          newCache[*identity.IPIdentityPair](),
 		podIPGetter:    rnd.PodIP4,
 		nodeIPGetter:   nodes.RandomHostIP,
 		identityGetter: identities.RandomIdentity,
 	}
 
-	if enableIPv6 {
+	if cp.enableIPv6 {
 		eps.podIPGetter = rnd.PodIP
 	}
 

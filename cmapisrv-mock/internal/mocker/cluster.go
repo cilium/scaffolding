@@ -32,8 +32,12 @@ func newClusters(log logrus.FieldLogger, cfg config, factory store.Factory, back
 		name := fmt.Sprintf("cluster-%03d", id)
 		cls.cls = append(cls.cls, newCluster(
 			log.WithField("cluster", name),
-			cmtypes.ClusterInfo{ID: uint32(id), Name: name},
-			factory, backend, cfg.EnableIPv6))
+			cparams{
+				cluster:    cmtypes.ClusterInfo{ID: uint32(id), Name: name},
+				factory:    factory,
+				backend:    backend,
+				enableIPv6: cfg.EnableIPv6,
+			}))
 	}
 
 	return cls
@@ -66,21 +70,26 @@ type cluster struct {
 	services   *services
 }
 
-func newCluster(log logrus.FieldLogger, cinfo cmtypes.ClusterInfo, factory store.Factory,
-	backend kvstore.BackendOperations, enableIPv6 bool) cluster {
+type cparams struct {
+	cluster    cmtypes.ClusterInfo
+	factory    store.Factory
+	backend    kvstore.BackendOperations
+	enableIPv6 bool
+}
 
+func newCluster(log logrus.FieldLogger, cp cparams) cluster {
 	log.Info("Creating cluster")
 	cl := cluster{
 		log:     log,
-		backend: backend,
-		cinfo:   cinfo,
+		backend: cp.backend,
+		cinfo:   cp.cluster,
 
-		nodes:      newNodes(log, cinfo, factory, backend, enableIPv6),
-		identities: newIdentities(log, cinfo, factory, backend),
-		services:   newServices(log, cinfo, factory, backend, enableIPv6),
+		nodes:      newNodes(log, cp),
+		identities: newIdentities(log, cp),
+		services:   newServices(log, cp),
 	}
 
-	cl.endpoints = newEndpoints(log, cinfo, factory, backend, enableIPv6, cl.nodes, cl.identities)
+	cl.endpoints = newEndpoints(log, cp, cl.nodes, cl.identities)
 	return cl
 }
 
