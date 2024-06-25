@@ -107,6 +107,12 @@ spec:
         - --endpoints-qps={{ .Values.config.endpointsQPS }}
         - --services={{ .Values.config.services }}
         - --services-qps={{ .Values.config.servicesQPS }}
+        - --random-node-ip4={{ .Values.config.randomNodeIP4 }}
+        - --random-node-ip6={{ .Values.config.randomNodeIP6 }}
+        - --random-pod-ip4={{ .Values.config.randomPodIP4 }}
+        - --random-pod-ip6={{ .Values.config.randomPodIP6 }}
+        - --random-svc-ip4={{ .Values.config.randomSvcIP4 }}
+        - --random-svc-ip6={{ .Values.config.randomSvcIP6 }}
         - --kvstore-opt=etcd.config=/var/lib/cilium/etcd-config.yaml
         - --kvstore-opt=etcd.qps={{ .Values.config.etcdQPS }}
         - --kvstore-opt=etcd.maxInflight={{ .Values.config.etcdMaxInflight }}
