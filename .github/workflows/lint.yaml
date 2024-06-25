@@ -1,0 +1,42 @@
+name: Lint Go files
+
+on:
+  pull_request: {}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - workdir: cmapisrv-mock
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        with:
+          # renovate: datasource=golang-version depName=go
+          go-version: 1.22.4
+
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Check module vendoring
+        working-directory: ${{ matrix.workdir }}
+        run: |
+          go mod tidy
+          go mod vendor
+          test -z "$(git status --porcelain)" || (echo "please run 'go mod tidy && go mod vendor', and submit your changes"; exit 1)
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
+        with:
+          # renovate: datasource=docker depName=golangci/golangci-lint
+          version: v1.59.1
+          skip-cache: true
+          working-directory: ${{ matrix.workdir }}
+          args: "--out-format colored-line-number --verbose --modules-download-mode=vendor"
