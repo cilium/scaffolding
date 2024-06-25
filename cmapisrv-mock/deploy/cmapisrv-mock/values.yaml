@@ -46,6 +46,9 @@ config:
 podAnnotations: {}
 podLabels: {}
 
+nodeSelector: {}
+tolerations: []
+
 service:
   type: ClusterIP
   port: 2379
