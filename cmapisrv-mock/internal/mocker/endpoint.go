@@ -23,6 +23,7 @@ type endpoints struct {
 
 	cluster cmtypes.ClusterInfo
 	cache   cache[*identity.IPIdentityPair]
+	rnd     *random
 
 	podIPGetter    func() net.IP
 	nodeIPGetter   func() net.IP
@@ -41,13 +42,14 @@ func newEndpoints(
 	eps := &endpoints{
 		cluster:        cp.cluster,
 		cache:          newCache[*identity.IPIdentityPair](),
-		podIPGetter:    rnd.PodIP4,
+		rnd:            cp.rnd,
+		podIPGetter:    cp.rnd.PodIP4,
 		nodeIPGetter:   nodes.RandomHostIP,
 		identityGetter: identities.RandomIdentity,
 	}
 
 	if cp.enableIPv6 {
-		eps.podIPGetter = rnd.PodIP
+		eps.podIPGetter = cp.rnd.PodIP
 	}
 
 	eps.syncer = newSyncer(log, "ips", ss, eps.next)
@@ -55,15 +57,15 @@ func newEndpoints(
 }
 
 func (eps *endpoints) next(synced bool) (obj *identity.IPIdentityPair, delete bool) {
-	if synced && rnd.ShouldUpdateUnlikely() && !eps.cache.AlmostEmpty() {
-		endpoint := eps.cache.Get()
+	if synced && eps.rnd.ShouldUpdateUnlikely() && !eps.cache.AlmostEmpty() {
+		endpoint := eps.cache.Get(eps.rnd)
 		endpoint.ID = eps.identityGetter()
 		eps.cache.Upsert(endpoint)
 		return endpoint, false
 	}
 
-	if synced && rnd.ShouldRemove() && !eps.cache.AlmostEmpty() {
-		return eps.cache.Remove(), true
+	if synced && eps.rnd.ShouldRemove() && !eps.cache.AlmostEmpty() {
+		return eps.cache.Remove(eps.rnd), true
 	}
 
 	for {
@@ -79,7 +81,7 @@ func (eps *endpoints) new() *identity.IPIdentityPair {
 		IP:           eps.podIPGetter(),
 		HostIP:       eps.nodeIPGetter(),
 		ID:           eps.identityGetter(),
-		K8sPodName:   rnd.Name(),
-		K8sNamespace: rnd.Namespace(),
+		K8sPodName:   eps.rnd.Name(),
+		K8sNamespace: eps.rnd.Namespace(),
 	}
 }

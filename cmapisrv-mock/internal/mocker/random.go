@@ -22,15 +22,17 @@ type random struct {
 	cidr4, cidr6     prefix
 }
 
-var rnd = random{
-	nodeIP4: addr{addr: netip.MustParseAddr("172.16.0.0")},
-	nodeIP6: addr{addr: netip.MustParseAddr("fc00::0")},
-	podIP4:  addr{addr: netip.MustParseAddr("10.0.0.0")},
-	podIP6:  addr{addr: netip.MustParseAddr("fd00::0")},
-	svcIP4:  addr{addr: netip.MustParseAddr("172.252.0.0")},
-	svcIP6:  addr{addr: netip.MustParseAddr("fdff::0")},
-	cidr4:   prefix{pfx: netip.MustParsePrefix("10.0.0.0/28")},
-	cidr6:   prefix{pfx: netip.MustParsePrefix("fd00::0/120")},
+func newRandom() *random {
+	return &random{
+		nodeIP4: addr{addr: netip.MustParseAddr("172.16.0.0")},
+		nodeIP6: addr{addr: netip.MustParseAddr("fc00::0")},
+		podIP4:  addr{addr: netip.MustParseAddr("10.0.0.0")},
+		podIP6:  addr{addr: netip.MustParseAddr("fd00::0")},
+		svcIP4:  addr{addr: netip.MustParseAddr("172.252.0.0")},
+		svcIP6:  addr{addr: netip.MustParseAddr("fdff::0")},
+		cidr4:   prefix{pfx: netip.MustParsePrefix("10.0.0.0/28")},
+		cidr6:   prefix{pfx: netip.MustParsePrefix("fd00::0/120")},
+	}
 }
 
 func (r *random) Name() string      { return petname.Generate(2, "-") }
@@ -69,7 +71,7 @@ func (r *random) IdentityLabels(cluster string) labels.LabelArray {
 	n := rand.Intn(8) + 1
 	lbls := make(labels.LabelArray, 0, n+4)
 
-	ns := rnd.Namespace()
+	ns := r.Namespace()
 	lbls = append(lbls, labels.NewLabel("io.kubernetes.pod.namespace", ns, labels.LabelSourceK8s))
 	lbls = append(lbls, labels.NewLabel("io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name", ns, labels.LabelSourceK8s))
 	lbls = append(lbls, labels.NewLabel("io.cilium.k8s.policy.serviceaccount", petname.Name(), labels.LabelSourceK8s))

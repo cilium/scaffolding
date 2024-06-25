@@ -24,6 +24,7 @@ type nodes struct {
 
 	cluster    cmtypes.ClusterInfo
 	cache      cache[*nodeTypes.Node]
+	rnd        *random
 	enableIPv6 bool
 }
 
@@ -36,6 +37,7 @@ func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
 	ns := &nodes{
 		cluster:    cp.cluster,
 		cache:      newCache[*nodeTypes.Node](),
+		rnd:        cp.rnd,
 		enableIPv6: cp.enableIPv6,
 	}
 
@@ -44,13 +46,13 @@ func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
 }
 
 func (ns *nodes) RandomHostIP() net.IP {
-	no := ns.cache.Get()
+	no := ns.cache.Get(ns.rnd)
 	return no.GetNodeInternalIPv4()
 }
 
 func (ns *nodes) next(synced bool) (obj *nodeTypes.Node, delete bool) {
-	if synced && rnd.ShouldRemove() && !ns.cache.AlmostEmpty() {
-		return ns.cache.Remove(), true
+	if synced && ns.rnd.ShouldRemove() && !ns.cache.AlmostEmpty() {
+		return ns.cache.Remove(ns.rnd), true
 	}
 
 	for {
@@ -62,7 +64,7 @@ func (ns *nodes) next(synced bool) (obj *nodeTypes.Node, delete bool) {
 }
 
 func (ns *nodes) new() *nodeTypes.Node {
-	name := rnd.Name()
+	name := ns.rnd.Name()
 
 	no := &nodeTypes.Node{
 		Name:      name,
@@ -74,21 +76,21 @@ func (ns *nodes) new() *nodeTypes.Node {
 			"kubernetes.io/os":       "linux",
 		},
 		IPAddresses: []nodeTypes.Address{
-			{Type: addressing.NodeInternalIP, IP: rnd.NodeIP4()},
-			{Type: addressing.NodeCiliumInternalIP, IP: rnd.PodIP4()},
+			{Type: addressing.NodeInternalIP, IP: ns.rnd.NodeIP4()},
+			{Type: addressing.NodeCiliumInternalIP, IP: ns.rnd.PodIP4()},
 		},
-		IPv4AllocCIDR: &cidr.CIDR{IPNet: rnd.CIDR4()},
-		IPv4HealthIP:  rnd.PodIP4(),
-		IPv4IngressIP: rnd.PodIP4(),
+		IPv4AllocCIDR: &cidr.CIDR{IPNet: ns.rnd.CIDR4()},
+		IPv4HealthIP:  ns.rnd.PodIP4(),
+		IPv4IngressIP: ns.rnd.PodIP4(),
 		NodeIdentity:  uint32(identity.ReservedIdentityRemoteNode),
 	}
 
 	if ns.enableIPv6 {
-		no.IPAddresses = append(no.IPAddresses, nodeTypes.Address{Type: addressing.NodeInternalIP, IP: rnd.NodeIP6()})
-		no.IPAddresses = append(no.IPAddresses, nodeTypes.Address{Type: addressing.NodeCiliumInternalIP, IP: rnd.PodIP6()})
-		no.IPv6AllocCIDR = &cidr.CIDR{IPNet: rnd.CIDR6()}
-		no.IPv6HealthIP = rnd.PodIP6()
-		no.IPv6IngressIP = rnd.PodIP6()
+		no.IPAddresses = append(no.IPAddresses, nodeTypes.Address{Type: addressing.NodeInternalIP, IP: ns.rnd.NodeIP6()})
+		no.IPAddresses = append(no.IPAddresses, nodeTypes.Address{Type: addressing.NodeCiliumInternalIP, IP: ns.rnd.PodIP6()})
+		no.IPv6AllocCIDR = &cidr.CIDR{IPNet: ns.rnd.CIDR6()}
+		no.IPv6HealthIP = ns.rnd.PodIP6()
+		no.IPv6IngressIP = ns.rnd.PodIP6()
 	}
 
 	return no

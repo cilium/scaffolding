@@ -25,6 +25,7 @@ type mocker struct {
 
 	backend promise.Promise[kvstore.BackendOperations]
 	factory store.Factory
+	rnd     *random
 
 	syncState syncstate.SyncState
 }
@@ -40,6 +41,7 @@ func newMocker(in struct {
 	Config    config
 	Backend   promise.Promise[kvstore.BackendOperations]
 	Factory   store.Factory
+	Random    *random
 	SyncState syncstate.SyncState
 }) *mocker {
 	mk := &mocker{
@@ -47,6 +49,7 @@ func newMocker(in struct {
 		log:       in.Logger,
 		backend:   in.Backend,
 		factory:   in.Factory,
+		rnd:       in.Random,
 		syncState: in.SyncState,
 	}
 
@@ -67,7 +70,7 @@ func (mk *mocker) Run(ctx context.Context, _ cell.HealthReporter) error {
 		return err
 	}
 
-	cls := newClusters(mk.log, mk.cfg, mk.factory, backend)
+	cls := newClusters(mk.log, mk.cfg, mk.factory, backend, mk.rnd)
 	cls.Run(ctx, mk.syncState)
 	return nil
 }

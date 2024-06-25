@@ -23,6 +23,7 @@ type identities struct {
 
 	cluster cmtypes.ClusterInfo
 	cache   cache[*store.KVPair]
+	rnd     *random
 	encoder func([]byte) string
 }
 
@@ -35,6 +36,7 @@ func newIdentities(log logrus.FieldLogger, cp cparams) *identities {
 	ids := &identities{
 		cluster: cp.cluster,
 		cache:   newCache[*store.KVPair](),
+		rnd:     cp.rnd,
 		encoder: cp.backend.Encode,
 	}
 
@@ -43,14 +45,14 @@ func newIdentities(log logrus.FieldLogger, cp cparams) *identities {
 }
 
 func (ids *identities) RandomIdentity() identity.NumericIdentity {
-	id := ids.cache.Get()
+	id := ids.cache.Get(ids.rnd)
 	parsed, _ := strconv.ParseUint(id.Key, 10, 32)
 	return identity.NumericIdentity(parsed)
 }
 
 func (ids *identities) next(synced bool) (obj *store.KVPair, delete bool) {
-	if synced && rnd.ShouldRemove() && !ids.cache.AlmostEmpty() {
-		return ids.cache.Remove(), true
+	if synced && ids.rnd.ShouldRemove() && !ids.cache.AlmostEmpty() {
+		return ids.cache.Remove(ids.rnd), true
 	}
 
 	for {
@@ -63,11 +65,11 @@ func (ids *identities) next(synced bool) (obj *store.KVPair, delete bool) {
 
 func (ids *identities) new(id identity.NumericIdentity) *store.KVPair {
 	if id == identity.InvalidIdentity {
-		id = rnd.Identity(ids.cluster.ID)
+		id = ids.rnd.Identity(ids.cluster.ID)
 	}
 
 	var lbls []byte
-	for _, lb := range rnd.IdentityLabels(ids.cluster.Name).Sort() {
+	for _, lb := range ids.rnd.IdentityLabels(ids.cluster.Name).Sort() {
 		lbls = append(lbls, lb.FormatForKVStore()...)
 	}
 

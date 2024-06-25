@@ -18,7 +18,7 @@ func newCache[T store.Key]() cache[T] {
 	return cache[T]{keys: make(map[string]int)}
 }
 
-func (c *cache[T]) Get() T {
+func (c *cache[T]) Get(rnd *random) T {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -41,7 +41,7 @@ func (c *cache[T]) Upsert(value T) {
 	c.upsert(value, true)
 }
 
-func (c *cache[T]) Remove() T {
+func (c *cache[T]) Remove(rnd *random) T {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
