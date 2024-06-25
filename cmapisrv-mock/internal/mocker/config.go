@@ -54,3 +54,32 @@ func (def config) Flags(flags *pflag.FlagSet) {
 	flags.Uint("services", def.Endpoints, "Number of services to mock (per cluster)")
 	flags.Float64("services-qps", def.EndpointsQPS, "Services QPS (per cluster)")
 }
+
+type rndcfg struct {
+	RandomNodeIP4 string
+	RandomNodeIP6 string
+	RandomPodIP4  string
+	RandomPodIP6  string
+	RandomSvcIP4  string
+	RandomSvcIP6  string
+}
+
+var defaultRndcfg = rndcfg{
+	RandomNodeIP4: "172.16.0.0",
+	RandomNodeIP6: "fc00::0",
+	RandomPodIP4:  "10.0.0.0",
+	RandomPodIP6:  "fd00::0",
+	RandomSvcIP4:  "172.252.0.0",
+	RandomSvcIP6:  "fdff::0",
+}
+
+func (def rndcfg) Flags(flags *pflag.FlagSet) {
+	flags.String("random-node-ip4", def.RandomNodeIP4, "The first mocked node IPv4 address")
+	flags.String("random-node-ip6", def.RandomNodeIP6, "The first mocked node IPv6 address")
+
+	flags.String("random-pod-ip4", def.RandomPodIP4, "The first mocked pod IPv4 address")
+	flags.String("random-pod-ip6", def.RandomPodIP6, "The first mocked pod IPv6 address")
+
+	flags.String("random-svc-ip4", def.RandomSvcIP4, "The first mocked service IPv4 address")
+	flags.String("random-svc-ip6", def.RandomSvcIP6, "The first mocked service IPv6 address")
+}

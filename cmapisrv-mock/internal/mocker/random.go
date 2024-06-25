@@ -22,17 +22,23 @@ type random struct {
 	cidr4, cidr6     prefix
 }
 
-func newRandom() *random {
+func newRandom(cfg rndcfg) (rnd *random, err error) {
+	defer func() {
+		if got := recover(); got != nil {
+			err = got.(error)
+		}
+	}()
+
 	return &random{
-		nodeIP4: addr{addr: netip.MustParseAddr("172.16.0.0")},
-		nodeIP6: addr{addr: netip.MustParseAddr("fc00::0")},
-		podIP4:  addr{addr: netip.MustParseAddr("10.0.0.0")},
-		podIP6:  addr{addr: netip.MustParseAddr("fd00::0")},
-		svcIP4:  addr{addr: netip.MustParseAddr("172.252.0.0")},
-		svcIP6:  addr{addr: netip.MustParseAddr("fdff::0")},
-		cidr4:   prefix{pfx: netip.MustParsePrefix("10.0.0.0/28")},
-		cidr6:   prefix{pfx: netip.MustParsePrefix("fd00::0/120")},
-	}
+		nodeIP4: addr{addr: netip.MustParseAddr(cfg.RandomNodeIP4)},
+		nodeIP6: addr{addr: netip.MustParseAddr(cfg.RandomNodeIP6)},
+		podIP4:  addr{addr: netip.MustParseAddr(cfg.RandomPodIP4)},
+		podIP6:  addr{addr: netip.MustParseAddr(cfg.RandomPodIP6)},
+		svcIP4:  addr{addr: netip.MustParseAddr(cfg.RandomSvcIP4)},
+		svcIP6:  addr{addr: netip.MustParseAddr(cfg.RandomSvcIP6)},
+		cidr4:   prefix{pfx: netip.MustParsePrefix(cfg.RandomPodIP4 + "/28")},
+		cidr6:   prefix{pfx: netip.MustParsePrefix(cfg.RandomPodIP6 + "/120")},
+	}, nil
 }
 
 func (r *random) Name() string      { return petname.Generate(2, "-") }

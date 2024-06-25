@@ -39,6 +39,21 @@ config:
   # Number of service create/update/delete operations per second at run-time.
   servicesQPS: 5
 
+  # The first mocked node IPv4 address
+  randomNodeIP4: 172.16.0.0
+  # The first mocked node IPv6 address
+  randomNodeIP6: fc00::0
+
+  # The first mocked pod IPv4 address
+  randomPodIP4: 10.0.0.0
+  # The first mocked pod IPv6 address
+  randomPodIP6: fd00::0
+
+  # The first mocked service IPv4 address
+  randomSvcIP4: 172.252.0.0
+  # The first mocked service IPv6 address
+  randomSvcIP6: fdff::0
+
   # Global etcd rate limiting settings.
   etcdQPS: 1000
   etcdMaxInflight: 100
