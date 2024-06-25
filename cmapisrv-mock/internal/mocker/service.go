@@ -21,6 +21,7 @@ type services struct {
 
 	cluster    cmtypes.ClusterInfo
 	cache      cache[*serviceStore.ClusterService]
+	rnd        *random
 	enableIPv6 bool
 }
 
@@ -33,6 +34,7 @@ func newServices(log logrus.FieldLogger, cp cparams) *services {
 	svc := &services{
 		cluster:    cp.cluster,
 		cache:      newCache[*serviceStore.ClusterService](),
+		rnd:        cp.rnd,
 		enableIPv6: cp.enableIPv6,
 	}
 
@@ -41,15 +43,15 @@ func newServices(log logrus.FieldLogger, cp cparams) *services {
 }
 
 func (svc *services) next(synced bool) (obj *serviceStore.ClusterService, delete bool) {
-	if synced && rnd.ShouldUpdateLikely() && !svc.cache.AlmostEmpty() {
-		service := svc.cache.Get()
+	if synced && svc.rnd.ShouldUpdateLikely() && !svc.cache.AlmostEmpty() {
+		service := svc.cache.Get(svc.rnd)
 		service.Backends = svc.updated(service.Backends)
 		svc.cache.Upsert(service)
 		return service, false
 	}
 
-	if synced && rnd.ShouldRemove() && !svc.cache.AlmostEmpty() {
-		return svc.cache.Remove(), true
+	if synced && svc.rnd.ShouldRemove() && !svc.cache.AlmostEmpty() {
+		return svc.cache.Remove(svc.rnd), true
 	}
 
 	for {
@@ -61,14 +63,14 @@ func (svc *services) next(synced bool) (obj *serviceStore.ClusterService, delete
 }
 
 func (svc *services) new() *serviceStore.ClusterService {
-	lbls := rnd.ServiceLabels()
+	lbls := svc.rnd.ServiceLabels()
 	return &serviceStore.ClusterService{
 		Cluster:         svc.cluster.Name,
 		ClusterID:       svc.cluster.ID,
-		Namespace:       rnd.Namespace(),
+		Namespace:       svc.rnd.Namespace(),
 		Labels:          lbls,
 		Selector:        lbls,
-		Name:            rnd.Name(),
+		Name:            svc.rnd.Name(),
 		Frontends:       svc.frontends(),
 		Backends:        svc.backends(),
 		Shared:          true,
@@ -83,16 +85,16 @@ func (svc *services) frontends() map[string]serviceStore.PortConfiguration {
 		"bar": loadbalancer.NewL4Addr(loadbalancer.TCP, 90),
 	}
 
-	fe[rnd.ServiceIP4().String()] = ports
+	fe[svc.rnd.ServiceIP4().String()] = ports
 	if svc.enableIPv6 {
-		fe[rnd.ServiceIP6().String()] = ports
+		fe[svc.rnd.ServiceIP6().String()] = ports
 	}
 
 	return fe
 }
 
 func (svc *services) backends() map[string]serviceStore.PortConfiguration {
-	n := rnd.ServiceBackends()
+	n := svc.rnd.ServiceBackends()
 	if svc.enableIPv6 {
 		n *= 2
 	}
@@ -104,9 +106,9 @@ func (svc *services) backends() map[string]serviceStore.PortConfiguration {
 	}
 
 	for len(be) < n {
-		be[rnd.PodIP4().String()] = ports
+		be[svc.rnd.PodIP4().String()] = ports
 		if svc.enableIPv6 {
-			be[rnd.PodIP6().String()] = ports
+			be[svc.rnd.PodIP6().String()] = ports
 		}
 	}
 
@@ -114,8 +116,8 @@ func (svc *services) backends() map[string]serviceStore.PortConfiguration {
 }
 
 func (svc *services) updated(be map[string]serviceStore.PortConfiguration) map[string]serviceStore.PortConfiguration {
-	if rnd.ShouldRemove() && len(be) > 0 {
-		key := maps.Keys(be)[rnd.Index(len(be))]
+	if svc.rnd.ShouldRemove() && len(be) > 0 {
+		key := maps.Keys(be)[svc.rnd.Index(len(be))]
 		delete(be, key)
 		return be
 	}
@@ -125,9 +127,9 @@ func (svc *services) updated(be map[string]serviceStore.PortConfiguration) map[s
 		"bar": loadbalancer.NewL4Addr(loadbalancer.TCP, 9090),
 	}
 
-	be[rnd.PodIP4().String()] = ports
+	be[svc.rnd.PodIP4().String()] = ports
 	if svc.enableIPv6 {
-		be[rnd.PodIP6().String()] = ports
+		be[svc.rnd.PodIP6().String()] = ports
 	}
 
 	return be

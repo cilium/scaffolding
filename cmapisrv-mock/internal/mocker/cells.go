@@ -40,6 +40,7 @@ var Cell = cell.Module(
 	gops.Cell(defaults.GopsPortKVStoreMesh),
 	cmmetrics.Cell,
 
+	cell.Provide(newRandom),
 	cell.Provide(newMocker),
 	cell.Invoke(func(_ *mocker) {}),
 )

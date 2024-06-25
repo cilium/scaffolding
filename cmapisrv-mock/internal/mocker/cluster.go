@@ -24,7 +24,7 @@ type clusters struct {
 	cls []cluster
 }
 
-func newClusters(log logrus.FieldLogger, cfg config, factory store.Factory, backend kvstore.BackendOperations) clusters {
+func newClusters(log logrus.FieldLogger, cfg config, factory store.Factory, backend kvstore.BackendOperations, rnd *random) clusters {
 	cls := clusters{cfg: cfg}
 
 	for i := uint(0); i < cfg.Clusters; i++ {
@@ -36,6 +36,7 @@ func newClusters(log logrus.FieldLogger, cfg config, factory store.Factory, back
 				cluster:    cmtypes.ClusterInfo{ID: uint32(id), Name: name},
 				factory:    factory,
 				backend:    backend,
+				rnd:        rnd,
 				enableIPv6: cfg.EnableIPv6,
 			}))
 	}
@@ -74,6 +75,7 @@ type cparams struct {
 	cluster    cmtypes.ClusterInfo
 	factory    store.Factory
 	backend    kvstore.BackendOperations
+	rnd        *random
 	enableIPv6 bool
 }
 
