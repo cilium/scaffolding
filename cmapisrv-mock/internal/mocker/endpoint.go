@@ -48,7 +48,7 @@ func newEndpoints(
 	}
 
 	if enableIPv6 {
-		eps.podIPGetter = rnd.PodIP6
+		eps.podIPGetter = rnd.PodIP
 	}
 
 	eps.syncer = newSyncer(log, "ips", ss, eps.next)
