@@ -17,7 +17,7 @@ docker-image-push: docker-image
 tests:
 	go test -mod=vendor ./...
 
-cmapisrv-mock: tests
+cmapisrv-mock:
 	CGO_ENABLED=0 go build -mod=vendor -o $@ *.go
 
 local: cmapisrv-mock
