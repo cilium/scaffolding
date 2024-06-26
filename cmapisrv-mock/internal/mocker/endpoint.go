@@ -11,10 +11,12 @@ import (
 
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/identity"
-	"github.com/cilium/cilium/pkg/ipcache"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/store"
 )
+
+// github.com/cilium/cilium/pkg/ipcache.IPIdentitiesPath
+var IPIdentitiesPath = path.Join(kvstore.BaseKeyPrefix, "state", "ip", "v1")
 
 type endpoints struct {
 	syncer[*identity.IPIdentityPair]
@@ -32,7 +34,7 @@ func newEndpoints(
 	factory store.Factory, backend store.SyncStoreBackend,
 	enableIPv6 bool, nodes *nodes, identities *identities) *endpoints {
 
-	prefix := kvstore.StateToCachePrefix(ipcache.IPIdentitiesPath)
+	prefix := kvstore.StateToCachePrefix(IPIdentitiesPath)
 	ss := factory.NewSyncStore(cluster.Name, backend,
 		path.Join(prefix, cluster.Name),
 		store.WSSWithSyncedKeyOverride(prefix))
