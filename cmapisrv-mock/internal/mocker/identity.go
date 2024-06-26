@@ -11,10 +11,12 @@ import (
 
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/identity"
-	identityCache "github.com/cilium/cilium/pkg/identity/cache"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/store"
 )
+
+// github.com/cilium/cilium/pkg/identity/cache.IdentitiesPath
+var IdentitiesPath = path.Join(kvstore.BaseKeyPrefix, "state", "identities", "v1")
 
 type identities struct {
 	syncer[*store.KVPair]
@@ -25,7 +27,7 @@ type identities struct {
 }
 
 func newIdentities(log logrus.FieldLogger, cluster cmtypes.ClusterInfo, factory store.Factory, backend kvstore.BackendOperations) *identities {
-	prefix := kvstore.StateToCachePrefix(identityCache.IdentitiesPath)
+	prefix := kvstore.StateToCachePrefix(IdentitiesPath)
 	ss := factory.NewSyncStore(cluster.Name, backend,
 		path.Join(prefix, cluster.Name, "id"),
 		store.WSSWithSyncedKeyOverride(prefix))
