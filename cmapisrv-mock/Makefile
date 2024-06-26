@@ -1,5 +1,7 @@
 DOCKER_IMAGE ?= quay.io/cilium/cmapisrv-mock:latest
 
+.PHONY: all docker-image docker-image-load docker-image-push tests cmapisrv-mock local clean
+
 all: local
 
 docker-image:
