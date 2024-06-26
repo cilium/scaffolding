@@ -37,7 +37,6 @@ github.com/cilium/cilium/clustermesh-apiserver/health
 github.com/cilium/cilium/clustermesh-apiserver/metrics
 github.com/cilium/cilium/clustermesh-apiserver/syncstate
 github.com/cilium/cilium/pkg/alibabacloud/eni/types
-github.com/cilium/cilium/pkg/allocator
 github.com/cilium/cilium/pkg/annotation
 github.com/cilium/cilium/pkg/api
 github.com/cilium/cilium/pkg/aws/eni/types
@@ -68,10 +67,6 @@ github.com/cilium/cilium/pkg/hive/job
 github.com/cilium/cilium/pkg/hive/metrics
 github.com/cilium/cilium/pkg/iana
 github.com/cilium/cilium/pkg/identity
-github.com/cilium/cilium/pkg/identity/cache
-github.com/cilium/cilium/pkg/identity/key
-github.com/cilium/cilium/pkg/identity/model
-github.com/cilium/cilium/pkg/idpool
 github.com/cilium/cilium/pkg/inctimer
 github.com/cilium/cilium/pkg/ip
 github.com/cilium/cilium/pkg/ipam/option
@@ -79,14 +74,7 @@ github.com/cilium/cilium/pkg/ipam/types
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io/utils
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2
-github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1
-github.com/cilium/cilium/pkg/k8s/client/clientset/versioned
-github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/scheme
-github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2
-github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2alpha1
 github.com/cilium/cilium/pkg/k8s/constants
-github.com/cilium/cilium/pkg/k8s/identitybackend
-github.com/cilium/cilium/pkg/k8s/informer
 github.com/cilium/cilium/pkg/k8s/slim/k8s/api/core/v1
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1
@@ -94,7 +82,6 @@ github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1/validation
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/selection
 github.com/cilium/cilium/pkg/k8s/utils
 github.com/cilium/cilium/pkg/kvstore
-github.com/cilium/cilium/pkg/kvstore/allocator
 github.com/cilium/cilium/pkg/kvstore/etcdinit
 github.com/cilium/cilium/pkg/kvstore/heartbeat
 github.com/cilium/cilium/pkg/kvstore/store
@@ -156,10 +143,6 @@ github.com/davecgh/go-spew/spew
 # github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2
 ## explicit; go 1.20
 github.com/dustinkirkland/golang-petname
-# github.com/emicklei/go-restful/v3 v3.11.2
-## explicit; go 1.13
-github.com/emicklei/go-restful/v3
-github.com/emicklei/go-restful/v3/log
 # github.com/fatih/color v1.16.0
 ## explicit; go 1.17
 github.com/fatih/color
@@ -230,17 +213,6 @@ github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/any
-github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/gnostic-models v0.6.8
-## explicit; go 1.18
-github.com/google/gnostic-models/compiler
-github.com/google/gnostic-models/extensions
-github.com/google/gnostic-models/jsonschema
-github.com/google/gnostic-models/openapiv2
-github.com/google/gnostic-models/openapiv3
 # github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
@@ -351,9 +323,6 @@ github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.2
 ## explicit; go 1.12
 github.com/modern-go/reflect2
-# github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
-## explicit
-github.com/munnerz/goautoneg
 # github.com/oklog/ulid v1.3.1
 ## explicit
 github.com/oklog/ulid
@@ -704,69 +673,15 @@ gopkg.in/yaml.v2
 gopkg.in/yaml.v3
 # k8s.io/api v0.29.2
 ## explicit; go 1.21
-k8s.io/api/admissionregistration/v1
-k8s.io/api/admissionregistration/v1alpha1
-k8s.io/api/admissionregistration/v1beta1
-k8s.io/api/apidiscovery/v2beta1
-k8s.io/api/apiserverinternal/v1alpha1
-k8s.io/api/apps/v1
-k8s.io/api/apps/v1beta1
-k8s.io/api/apps/v1beta2
-k8s.io/api/authentication/v1
-k8s.io/api/authentication/v1alpha1
-k8s.io/api/authentication/v1beta1
-k8s.io/api/authorization/v1
-k8s.io/api/authorization/v1beta1
-k8s.io/api/autoscaling/v1
-k8s.io/api/autoscaling/v2
-k8s.io/api/autoscaling/v2beta1
-k8s.io/api/autoscaling/v2beta2
-k8s.io/api/batch/v1
-k8s.io/api/batch/v1beta1
-k8s.io/api/certificates/v1
-k8s.io/api/certificates/v1alpha1
-k8s.io/api/certificates/v1beta1
-k8s.io/api/coordination/v1
-k8s.io/api/coordination/v1beta1
 k8s.io/api/core/v1
-k8s.io/api/discovery/v1
-k8s.io/api/discovery/v1beta1
-k8s.io/api/events/v1
-k8s.io/api/events/v1beta1
-k8s.io/api/extensions/v1beta1
-k8s.io/api/flowcontrol/v1
-k8s.io/api/flowcontrol/v1beta1
-k8s.io/api/flowcontrol/v1beta2
-k8s.io/api/flowcontrol/v1beta3
-k8s.io/api/networking/v1
-k8s.io/api/networking/v1alpha1
-k8s.io/api/networking/v1beta1
-k8s.io/api/node/v1
-k8s.io/api/node/v1alpha1
-k8s.io/api/node/v1beta1
-k8s.io/api/policy/v1
-k8s.io/api/policy/v1beta1
-k8s.io/api/rbac/v1
-k8s.io/api/rbac/v1alpha1
-k8s.io/api/rbac/v1beta1
-k8s.io/api/resource/v1alpha2
-k8s.io/api/scheduling/v1
-k8s.io/api/scheduling/v1alpha1
-k8s.io/api/scheduling/v1beta1
-k8s.io/api/storage/v1
-k8s.io/api/storage/v1alpha1
-k8s.io/api/storage/v1beta1
 # k8s.io/apimachinery v0.29.2
 ## explicit; go 1.21
-k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
 k8s.io/apimachinery/pkg/api/resource
-k8s.io/apimachinery/pkg/api/validation
 k8s.io/apimachinery/pkg/apis/meta/internalversion
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
-k8s.io/apimachinery/pkg/apis/meta/v1/validation
 k8s.io/apimachinery/pkg/apis/meta/v1beta1
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/conversion/queryparams
@@ -790,8 +705,6 @@ k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/json
-k8s.io/apimachinery/pkg/util/managedfields
-k8s.io/apimachinery/pkg/util/managedfields/internal
 k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/util/runtime
@@ -805,9 +718,6 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/reflect
 # k8s.io/client-go v0.29.2
 ## explicit; go 1.21
-k8s.io/client-go/discovery
-k8s.io/client-go/kubernetes/scheme
-k8s.io/client-go/openapi
 k8s.io/client-go/pkg/apis/clientauthentication
 k8s.io/client-go/pkg/apis/clientauthentication/install
 k8s.io/client-go/pkg/apis/clientauthentication/v1
@@ -838,17 +748,6 @@ k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
-# k8s.io/kube-openapi v0.0.0-20240105020646-a37d4de58910
-## explicit; go 1.21
-k8s.io/kube-openapi/pkg/cached
-k8s.io/kube-openapi/pkg/common
-k8s.io/kube-openapi/pkg/handler3
-k8s.io/kube-openapi/pkg/internal
-k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json
-k8s.io/kube-openapi/pkg/schemaconv
-k8s.io/kube-openapi/pkg/spec3
-k8s.io/kube-openapi/pkg/util/proto
-k8s.io/kube-openapi/pkg/validation/spec
 # k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 ## explicit; go 1.18
 k8s.io/utils/buffer
@@ -867,10 +766,6 @@ sigs.k8s.io/json
 sigs.k8s.io/json/internal/golang/encoding/json
 # sigs.k8s.io/structured-merge-diff/v4 v4.4.1
 ## explicit; go 1.13
-sigs.k8s.io/structured-merge-diff/v4/fieldpath
-sigs.k8s.io/structured-merge-diff/v4/merge
-sigs.k8s.io/structured-merge-diff/v4/schema
-sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.4.0
 ## explicit; go 1.12
