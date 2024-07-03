@@ -35,14 +35,14 @@ func (s syncer[T]) Run(ctx context.Context, target uint, qps rate.Limit) {
 	s.log.Info("Starting synchronization")
 	do := func(obj T, delete bool) {
 		if delete {
-			s.log.WithField("key", obj.GetKeyName()).Info("Deleting key")
+			s.log.WithField("key", obj.GetKeyName()).Debug("Deleting key")
 			if err := s.store.DeleteKey(ctx, obj); err != nil {
 				s.log.WithError(err).Fatal("Failed to delete key")
 			}
 			return
 		}
 
-		s.log.WithField("key", obj.GetKeyName()).Info("Upserting key")
+		s.log.WithField("key", obj.GetKeyName()).Debug("Upserting key")
 		if err := s.store.UpsertKey(ctx, obj); err != nil {
 			s.log.WithError(err).Fatal("Failed to upsert key")
 		}
