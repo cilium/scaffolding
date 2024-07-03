@@ -115,6 +115,7 @@ spec:
         - --random-svc-ip6={{ .Values.config.randomSvcIP6 }}
         - --kvstore-opt=etcd.config=/var/lib/cilium/etcd-config.yaml
         - --kvstore-opt=etcd.qps={{ .Values.config.etcdQPS }}
+        - --kvstore-opt=etcd.bootstrapQps={{ .Values.config.etcdBootstrapQPS }}
         - --kvstore-opt=etcd.maxInflight={{ .Values.config.etcdMaxInflight }}
         - --prometheus-serve-addr=:9999
         ports:

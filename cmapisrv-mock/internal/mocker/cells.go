@@ -30,7 +30,11 @@ var Cell = cell.Module(
 
 	kvstore.Cell(kvstore.EtcdBackendName),
 	heartbeat.Cell,
-	cell.Provide(func() *kvstore.ExtraOptions { return nil }),
+	cell.Provide(func(ss syncstate.SyncState) *kvstore.ExtraOptions {
+		return &kvstore.ExtraOptions{
+			BootstrapComplete: ss.WaitChannel(),
+		}
+	}),
 	store.Cell,
 
 	cmhealth.HealthAPIServerCell,
