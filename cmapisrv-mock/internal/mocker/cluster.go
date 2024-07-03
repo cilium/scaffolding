@@ -51,7 +51,7 @@ func (cls clusters) Run(ctx context.Context, ss syncstate.SyncState) {
 	for _, cl := range cls.cls {
 		synced := ss.WaitForResource()
 		go func(cl cluster) {
-			cl.Run(ctx, cls.cfg, synced)
+			cl.Run(ctx, cls.cfg, synced, ss.WaitChannel())
 			wg.Done()
 		}(cl)
 	}
@@ -95,7 +95,7 @@ func newCluster(log logrus.FieldLogger, cp cparams) cluster {
 	return cl
 }
 
-func (cl *cluster) Run(ctx context.Context, cfg config, synced func(context.Context)) {
+func (cl *cluster) Run(ctx context.Context, cfg config, synced func(context.Context), allSynced <-chan struct{}) {
 	var wg sync.WaitGroup
 
 	cl.log.Info("Starting cluster")
@@ -103,19 +103,19 @@ func (cl *cluster) Run(ctx context.Context, cfg config, synced func(context.Cont
 
 	wg.Add(1)
 	go func() {
-		cl.nodes.Run(ctx, cfg.Nodes, rate.Limit(cfg.NodesQPS))
+		cl.nodes.Run(ctx, cfg.Nodes, rate.Limit(cfg.NodesQPS), allSynced)
 		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
-		cl.identities.Run(ctx, cfg.Identities, rate.Limit(cfg.IdentitiesQPS))
+		cl.identities.Run(ctx, cfg.Identities, rate.Limit(cfg.IdentitiesQPS), allSynced)
 		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
-		cl.services.Run(ctx, cfg.Services, rate.Limit(cfg.ServicesQPS))
+		cl.services.Run(ctx, cfg.Services, rate.Limit(cfg.ServicesQPS), allSynced)
 		wg.Done()
 	}()
 
@@ -127,7 +127,7 @@ func (cl *cluster) Run(ctx context.Context, cfg config, synced func(context.Cont
 			return
 		}
 
-		cl.endpoints.Run(ctx, cfg.Endpoints, rate.Limit(cfg.EndpointsQPS))
+		cl.endpoints.Run(ctx, cfg.Endpoints, rate.Limit(cfg.EndpointsQPS), allSynced)
 	}()
 
 	if cl.nodes.WaitForSync(ctx) != nil || cl.identities.WaitForSync(ctx) != nil ||
