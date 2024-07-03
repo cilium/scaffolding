@@ -31,7 +31,7 @@ func newSyncer[T store.Key](log logrus.FieldLogger, typ string, store store.Sync
 	}
 }
 
-func (s syncer[T]) Run(ctx context.Context, target uint, qps rate.Limit) {
+func (s syncer[T]) Run(ctx context.Context, target uint, qps rate.Limit, allSynced <-chan struct{}) {
 	s.log.Info("Starting synchronization")
 	do := func(obj T, delete bool) {
 		if delete {
@@ -59,12 +59,19 @@ func (s syncer[T]) Run(ctx context.Context, target uint, qps rate.Limit) {
 		do(s.next(false))
 	}
 
-	s.store.Synced(ctx, func(context.Context) { close(s.init) })
-	if err := s.WaitForSync(ctx); err != nil {
-		return
-	}
+	s.store.Synced(ctx, func(context.Context) {
+		s.log.Info("Initial synchronization completed")
+		close(s.init)
+	})
 
-	s.log.Info("Initial synchronization completed")
+	select {
+	case <-ctx.Done():
+		return
+	case <-allSynced:
+		// Wait for synchronization completion in all mocked clusters and for
+		// all resources before starting the churn phase, to avoid unnecessarily
+		// consuming rate limiter slots before turning ready.
+	}
 
 	rl := rate.NewLimiter(qps, 1)
 	for {
