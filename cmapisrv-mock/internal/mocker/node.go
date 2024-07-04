@@ -5,7 +5,6 @@ package mocker
 
 import (
 	"net"
-	"path"
 
 	"github.com/sirupsen/logrus"
 
@@ -13,7 +12,6 @@ import (
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/kvstore"
-	"github.com/cilium/cilium/pkg/kvstore/store"
 	"github.com/cilium/cilium/pkg/node/addressing"
 	nodeStore "github.com/cilium/cilium/pkg/node/store"
 	nodeTypes "github.com/cilium/cilium/pkg/node/types"
@@ -30,9 +28,7 @@ type nodes struct {
 
 func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
 	prefix := kvstore.StateToCachePrefix(nodeStore.NodeStorePrefix)
-	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend,
-		path.Join(prefix, cp.cluster.Name),
-		store.WSSWithSyncedKeyOverride(prefix))
+	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend, prefix)
 
 	ns := &nodes{
 		cluster:    cp.cluster,

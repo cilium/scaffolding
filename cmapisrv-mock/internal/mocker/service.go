@@ -4,14 +4,11 @@
 package mocker
 
 import (
-	"path"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/kvstore"
-	"github.com/cilium/cilium/pkg/kvstore/store"
 	"github.com/cilium/cilium/pkg/loadbalancer"
 	serviceStore "github.com/cilium/cilium/pkg/service/store"
 )
@@ -27,9 +24,7 @@ type services struct {
 
 func newServices(log logrus.FieldLogger, cp cparams) *services {
 	prefix := kvstore.StateToCachePrefix(serviceStore.ServiceStorePrefix)
-	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend,
-		path.Join(prefix, cp.cluster.Name),
-		store.WSSWithSyncedKeyOverride(prefix))
+	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend, prefix)
 
 	svc := &services{
 		cluster:    cp.cluster,
