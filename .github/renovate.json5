@@ -1,0 +1,90 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":gitSignOff",
+    "helpers:pinGitHubActionDigests"
+  ],
+  // This ensures that the gitAuthor and gitSignOff fields match
+  "gitAuthor": "renovate[bot] <bot@renovateapp.com>",
+  "includePaths": [
+    ".github/workflows/*.yaml",
+    "cmapisrv-mock/go.*",
+    "cmapisrv-mock/Dockerfile"
+  ],
+  "pinDigests": true,
+  "ignorePresets": [":prHourlyLimit2"],
+  "separateMajorMinor": false,
+  "separateMinorPatch": false,
+  "pruneStaleBranches": true,
+  "baseBranches": [
+    "main"
+  ],
+  "schedule": [
+    "on monday"
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "labels": [
+    "dependencies",
+    "renovate/stop-updating"
+  ],
+  "stopUpdatingLabel": "renovate/stop-updating",
+  "packageRules": [
+    {
+      "groupName": "all github action dependencies",
+      "groupSlug": "all-github-action",
+      "matchFileNames": [
+        ".github/workflows/**"
+      ]
+    },
+    {
+      "groupName": "all go dependencies",
+      "groupSlug": "all-go-deps",
+      "matchFileNames": [
+        "**/go.mod",
+        "**/go.sum"
+      ],
+      "postUpdateOptions": [
+        // update source import paths on major updates
+        "gomodTidy",
+        "gomodUpdateImportPaths"
+      ]
+    },
+    {
+      // Avoid updating patch releases of golang in go.mod
+      "enabled": false,
+      "matchFileNames": [
+        "**/go.mod"
+      ],
+      "matchDepNames": [
+        "go"
+      ],
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ]
+    },
+    {
+      "groupName": "all docker images dependencies",
+      "groupSlug": "all-images-deps",
+      "matchFileNames": [
+        "**/Dockerfile"
+      ]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        ".github/workflows/.*\\.yaml"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.*version: (?<currentValue>.*)"
+      ]
+    }
+  ]
+}
