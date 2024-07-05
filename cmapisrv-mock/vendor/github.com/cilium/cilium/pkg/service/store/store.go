@@ -5,6 +5,8 @@ package store
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/netip"
 	"path"
 
@@ -64,6 +66,9 @@ type ClusterService struct {
 
 	// Backends is map indexed by the backend IP address
 	Backends map[string]PortConfiguration `json:"backends"`
+
+	// Hostnames is map indexed by the backend IP address
+	Hostnames map[string]string `json:"hostnames"`
 
 	// Labels are the labels of the service
 	Labels map[string]string `json:"labels"`
@@ -126,6 +131,15 @@ func (s *ClusterService) Unmarshal(_ string, data []byte) error {
 }
 
 func (s *ClusterService) validate() error {
+	switch {
+	case s.Cluster == "":
+		return errors.New("cluster is unset")
+	case s.Namespace == "":
+		return errors.New("namespace is unset")
+	case s.Name == "":
+		return errors.New("name is unset")
+	}
+
 	// Skip the ClusterID check if it matches the local one, as we assume that
 	// it has already been validated, and to allow it to be zero.
 	if s.ClusterID != option.Config.ClusterID {
@@ -156,8 +170,75 @@ func NewClusterService(name, namespace string) ClusterService {
 		Namespace: namespace,
 		Frontends: map[string]PortConfiguration{},
 		Backends:  map[string]PortConfiguration{},
+		Hostnames: map[string]string{},
 		Labels:    map[string]string{},
 		Selector:  map[string]string{},
+	}
+}
+
+// ValidatingClusterService wraps a ClusterService to perform additional
+// validation at unmarshal time.
+type ValidatingClusterService struct {
+	ClusterService
+
+	validators []clusterServiceValidator
+}
+
+type clusterServiceValidator func(key string, svc *ClusterService) error
+
+func (vcs *ValidatingClusterService) Unmarshal(key string, data []byte) error {
+	if err := vcs.ClusterService.Unmarshal(key, data); err != nil {
+		return err
+	}
+
+	for _, validator := range vcs.validators {
+		if err := validator(key, &vcs.ClusterService); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ClusterNameValidator returns a validator enforcing that the cluster field
+// of the unmarshaled service matches the provided one.
+func ClusterNameValidator(clusterName string) clusterServiceValidator {
+	return func(_ string, svc *ClusterService) error {
+		if svc.Cluster != clusterName {
+			return fmt.Errorf("unexpected cluster name: got %s, expected %s", svc.Cluster, clusterName)
+		}
+		return nil
+	}
+}
+
+// NamespacedNameValidator returns a validator enforcing that the namespaced
+// name of the unmarshaled service matches the kvstore key.
+func NamespacedNameValidator() clusterServiceValidator {
+	return func(key string, svc *ClusterService) error {
+		if got := svc.NamespaceServiceName().String(); got != key {
+			return fmt.Errorf("namespaced name does not match key: got %s, expected %s", got, key)
+		}
+		return nil
+	}
+}
+
+// ClusterIDValidator returns a validator enforcing that the cluster ID of the
+// unmarshaled service matches the provided one. The access to the provided
+// clusterID value is not synchronized, and it shall not be mutated concurrently.
+func ClusterIDValidator(clusterID *uint32) clusterServiceValidator {
+	return func(_ string, svc *ClusterService) error {
+		if svc.ClusterID != *clusterID {
+			return fmt.Errorf("unexpected cluster ID: got %d, expected %d", svc.ClusterID, *clusterID)
+		}
+		return nil
+	}
+}
+
+// KeyCreator returns a store.KeyCreator for ClusterServices, configuring the
+// specified extra validators.
+func KeyCreator(validators ...clusterServiceValidator) store.KeyCreator {
+	return func() store.Key {
+		return &ValidatingClusterService{validators: validators}
 	}
 }
 
@@ -173,11 +254,11 @@ type clusterServiceObserver struct {
 
 // OnUpdate is called when a service in a remote cluster is updated
 func (c *clusterServiceObserver) OnUpdate(key store.Key) {
-	if svc, ok := key.(*ClusterService); ok {
+	if svc, ok := key.(*ValidatingClusterService); ok {
 		scopedLog := log.WithField(logfields.ServiceName, svc.String())
 		scopedLog.Debugf("Update event of cluster service %#v", svc)
 
-		c.merger.MergeClusterServiceUpdate(svc, c.swg)
+		c.merger.MergeClusterServiceUpdate(&svc.ClusterService, c.swg)
 	} else {
 		log.Warningf("Received unexpected cluster service update object %+v", key)
 	}
@@ -185,11 +266,11 @@ func (c *clusterServiceObserver) OnUpdate(key store.Key) {
 
 // OnDelete is called when a service in a remote cluster is deleted
 func (c *clusterServiceObserver) OnDelete(key store.NamedKey) {
-	if svc, ok := key.(*ClusterService); ok {
+	if svc, ok := key.(*ValidatingClusterService); ok {
 		scopedLog := log.WithField(logfields.ServiceName, svc.String())
 		scopedLog.Debugf("Delete event of cluster service %#v", svc)
 
-		c.merger.MergeClusterServiceDelete(svc, c.swg)
+		c.merger.MergeClusterServiceDelete(&svc.ClusterService, c.swg)
 	} else {
 		log.Warningf("Received unexpected cluster service delete object %+v", key)
 	}
@@ -203,9 +284,10 @@ func JoinClusterServices(merger ServiceMerger, clusterName string) {
 	// JoinSharedStore performs initial sync of services
 	_, err := store.JoinSharedStore(store.Configuration{
 		Prefix: path.Join(ServiceStorePrefix, clusterName),
-		KeyCreator: func() store.Key {
-			return &ClusterService{}
-		},
+		KeyCreator: KeyCreator(
+			ClusterNameValidator(clusterName),
+			NamespacedNameValidator(),
+		),
 		Observer: &clusterServiceObserver{
 			merger: merger,
 			swg:    swg,

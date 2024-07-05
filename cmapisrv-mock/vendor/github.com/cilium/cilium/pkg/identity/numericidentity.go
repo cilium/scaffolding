@@ -132,6 +132,10 @@ const (
 	// ReservedIdentityWorldIPv6 represents any endpoint outside of the cluster
 	// for IPv6 address only.
 	ReservedIdentityWorldIPv6
+
+	// ReservedEncryptedOverlay represents overlay traffic which must be IPSec
+	// encrypted before it leaves the host
+	ReservedEncryptedOverlay
 )
 
 // Special identities for well-known cluster components
@@ -216,6 +220,12 @@ func (w wellKnownIdentities) LookupByLabels(lbls labels.Labels) *Identity {
 	}
 
 	return nil
+}
+
+func (w wellKnownIdentities) ForEach(yield func(*Identity)) {
+	for _, id := range w {
+		yield(id.identity)
+	}
 }
 
 func (w wellKnownIdentities) lookupByNumericIdentity(identity NumericIdentity) *Identity {
@@ -402,33 +412,34 @@ func initClusterIDShift() {
 
 // GetMinimalNumericIdentity returns the minimal numeric identity not used for
 // reserved purposes.
-func GetMinimalAllocationIdentity() NumericIdentity {
-	if option.Config.ClusterID > 0 {
+func GetMinimalAllocationIdentity(clusterID uint32) NumericIdentity {
+	if clusterID > 0 {
 		// For ClusterID > 0, the identity range just starts from cluster shift,
 		// no well-known-identities need to be reserved from the range.
-		return NumericIdentity((1 << GetClusterIDShift()) * option.Config.ClusterID)
+		return NumericIdentity((1 << GetClusterIDShift()) * clusterID)
 	}
 	return MinimalNumericIdentity
 }
 
 // GetMaximumAllocationIdentity returns the maximum numeric identity that
 // should be handed out by the identity allocator.
-func GetMaximumAllocationIdentity() NumericIdentity {
-	return NumericIdentity((1<<GetClusterIDShift())*(option.Config.ClusterID+1) - 1)
+func GetMaximumAllocationIdentity(clusterID uint32) NumericIdentity {
+	return NumericIdentity((1<<GetClusterIDShift())*(clusterID+1) - 1)
 }
 
 var (
 	reservedIdentities = map[string]NumericIdentity{
-		labels.IDNameHost:          ReservedIdentityHost,
-		labels.IDNameWorld:         ReservedIdentityWorld,
-		labels.IDNameWorldIPv4:     ReservedIdentityWorldIPv4,
-		labels.IDNameWorldIPv6:     ReservedIdentityWorldIPv6,
-		labels.IDNameUnmanaged:     ReservedIdentityUnmanaged,
-		labels.IDNameHealth:        ReservedIdentityHealth,
-		labels.IDNameInit:          ReservedIdentityInit,
-		labels.IDNameRemoteNode:    ReservedIdentityRemoteNode,
-		labels.IDNameKubeAPIServer: ReservedIdentityKubeAPIServer,
-		labels.IDNameIngress:       ReservedIdentityIngress,
+		labels.IDNameHost:             ReservedIdentityHost,
+		labels.IDNameWorld:            ReservedIdentityWorld,
+		labels.IDNameWorldIPv4:        ReservedIdentityWorldIPv4,
+		labels.IDNameWorldIPv6:        ReservedIdentityWorldIPv6,
+		labels.IDNameUnmanaged:        ReservedIdentityUnmanaged,
+		labels.IDNameHealth:           ReservedIdentityHealth,
+		labels.IDNameInit:             ReservedIdentityInit,
+		labels.IDNameRemoteNode:       ReservedIdentityRemoteNode,
+		labels.IDNameKubeAPIServer:    ReservedIdentityKubeAPIServer,
+		labels.IDNameIngress:          ReservedIdentityIngress,
+		labels.IDNameEncryptedOverlay: ReservedEncryptedOverlay,
 	}
 	reservedIdentityNames = map[NumericIdentity]string{
 		IdentityUnknown:               "unknown",

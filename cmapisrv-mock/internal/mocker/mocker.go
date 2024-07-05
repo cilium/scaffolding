@@ -9,10 +9,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/cilium/hive/cell"
+	"github.com/cilium/hive/job"
+
 	"github.com/cilium/cilium/clustermesh-apiserver/health"
 	"github.com/cilium/cilium/clustermesh-apiserver/syncstate"
-	"github.com/cilium/cilium/pkg/hive/cell"
-	"github.com/cilium/cilium/pkg/hive/job"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/store"
 	"github.com/cilium/cilium/pkg/promise"
@@ -33,10 +34,9 @@ type mocker struct {
 func newMocker(in struct {
 	cell.In
 
-	Lifecycle   cell.Lifecycle
-	Logger      logrus.FieldLogger
-	JobRegistry job.Registry
-	Scope       cell.Scope
+	Lifecycle cell.Lifecycle
+	Logger    logrus.FieldLogger
+	JobGroup  job.Group
 
 	Config    config
 	Backend   promise.Promise[kvstore.BackendOperations]
@@ -53,18 +53,11 @@ func newMocker(in struct {
 		syncState: in.SyncState,
 	}
 
-	group := in.JobRegistry.NewGroup(
-		in.Scope,
-		job.WithLogger(in.Logger),
-	)
-
-	group.Add(job.OneShot("mocker", mk.Run))
-
-	in.Lifecycle.Append(group)
+	in.JobGroup.Add(job.OneShot("mocker", mk.Run))
 	return mk
 }
 
-func (mk *mocker) Run(ctx context.Context, _ cell.HealthReporter) error {
+func (mk *mocker) Run(ctx context.Context, _ cell.Health) error {
 	backend, err := mk.backend.Await(ctx)
 	if err != nil {
 		return err
