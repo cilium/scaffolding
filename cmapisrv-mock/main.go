@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -47,7 +48,7 @@ func newMockerCmd(h *hive.Hive) *cobra.Command {
 		Use:   "mocker",
 		Short: "Run ClusterMesh mocker",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := h.Run(); err != nil {
+			if err := h.Run(slog.Default()); err != nil {
 				log.Fatal(err)
 			}
 		},

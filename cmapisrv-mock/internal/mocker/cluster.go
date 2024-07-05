@@ -153,7 +153,7 @@ func (cl *cluster) writeClusterConfig(ctx context.Context) {
 		},
 	}
 
-	if err := cmutils.SetClusterConfig(ctx, cl.cinfo.Name, &config, cl.backend); err != nil {
+	if err := cmutils.SetClusterConfig(ctx, cl.cinfo.Name, config, cl.backend); err != nil {
 		cl.log.WithError(err).Fatal("Failed to write ClusterConfig")
 	}
 	cl.log.Info("Written ClusterConfig")

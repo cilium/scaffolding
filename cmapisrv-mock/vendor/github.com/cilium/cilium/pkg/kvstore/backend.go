@@ -46,6 +46,9 @@ type ExtraOptions struct {
 	// have an initial rate limit equal to etcd.bootstrapQps and be updated to
 	// etcd.qps after this channel is closed.
 	BootstrapComplete <-chan struct{}
+
+	// NoEndpointStatusChecks disables the status checks for the endpoints
+	NoEndpointStatusChecks bool
 }
 
 // StatusCheckInterval returns the interval of status checks depending on the
@@ -188,7 +191,7 @@ type BackendOperations interface {
 	ListPrefixIfLocked(ctx context.Context, prefix string, lock KVLocker) (KeyValuePairs, error)
 
 	// Close closes the kvstore client
-	Close(ctx context.Context)
+	Close()
 
 	// Encodes a binary slice into a character set that the backend
 	// supports

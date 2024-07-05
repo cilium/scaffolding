@@ -4,6 +4,8 @@
 package mocker
 
 import (
+	"github.com/cilium/hive/cell"
+
 	cmhealth "github.com/cilium/cilium/clustermesh-apiserver/health"
 	cmmetrics "github.com/cilium/cilium/clustermesh-apiserver/metrics"
 	"github.com/cilium/cilium/clustermesh-apiserver/syncstate"
@@ -11,8 +13,6 @@ import (
 	"github.com/cilium/cilium/pkg/controller"
 	"github.com/cilium/cilium/pkg/defaults"
 	"github.com/cilium/cilium/pkg/gops"
-	"github.com/cilium/cilium/pkg/hive/cell"
-	"github.com/cilium/cilium/pkg/hive/job"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/heartbeat"
 	"github.com/cilium/cilium/pkg/kvstore/store"
@@ -26,7 +26,6 @@ var Cell = cell.Module(
 	cell.Config(defaultRndcfg),
 
 	controller.Cell,
-	job.Cell,
 
 	kvstore.Cell(kvstore.EtcdBackendName),
 	heartbeat.Cell,

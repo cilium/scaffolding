@@ -14,20 +14,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cilium/cilium/pkg/defaults"
-	kvstoreEtcdInit "github.com/cilium/cilium/pkg/kvstore/etcdinit"
-	"github.com/cilium/cilium/pkg/logging"
-	"github.com/cilium/cilium/pkg/logging/logfields"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/cilium/cilium/pkg/defaults"
+	kvstoreEtcdInit "github.com/cilium/cilium/pkg/kvstore/etcdinit"
+	"github.com/cilium/cilium/pkg/logging"
+	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/version"
 )
 
-// etcdBinaryLocation is hardcoded because we expect this command to be run inside a Cilium container that places the
+// EtcdBinaryLocation is hardcoded because we expect this command to be run inside a Cilium container that places the
 // etcd binary in a specific location.
-const etcdBinaryLocation = "/usr/bin/etcd"
+const EtcdBinaryLocation = "/usr/bin/etcd"
 
 var (
 	log = logging.DefaultLogger.WithField(logfields.LogSubsys, "etcdinit")
@@ -38,6 +40,10 @@ func NewCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "etcdinit",
 		Short: "Initialise an etcd data directory for use by the etcd sidecar of clustermesh-apiserver",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			option.LogRegisteredOptions(vp, log)
+			log.Infof("Cilium ClusterMesh etcd init %s", version.Version)
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := InitEtcdLocal()
 			// The error has already been handled and logged by InitEtcdLocal. We just use it to determine the exit code
@@ -126,14 +132,14 @@ func InitEtcdLocal() (returnErr error) {
 	}).
 		Info("Starting localhost-only etcd process")
 	// Specify the full path to the etcd binary to avoid any PATH search binary replacement nonsense
-	etcdCmd := exec.CommandContext(ctx, etcdBinaryLocation,
+	etcdCmd := exec.CommandContext(ctx, EtcdBinaryLocation,
 		fmt.Sprintf("--data-dir=%s", etcdDataDir),
 		fmt.Sprintf("--name=%s", etcdClusterName),
 		fmt.Sprintf("--listen-client-urls=%s", loopbackEndpoint),
 		fmt.Sprintf("--advertise-client-urls=%s", loopbackEndpoint),
 		fmt.Sprintf("--initial-cluster-token=%s", etcdInitialClusterToken),
 		"--initial-cluster-state=new")
-	log.WithField("etcdBinary", etcdBinaryLocation).
+	log.WithField("etcdBinary", EtcdBinaryLocation).
 		WithField("etcdFlags", etcdCmd.Args).
 		Debug("Executing etcd")
 
@@ -141,7 +147,7 @@ func InitEtcdLocal() (returnErr error) {
 	// it'll never complete of course.
 	err = etcdCmd.Start()
 	if err != nil {
-		log.WithField("etcdBinary", etcdBinaryLocation).
+		log.WithField("etcdBinary", EtcdBinaryLocation).
 			WithField("etcdFlags", etcdCmd.Args).
 			WithError(err).
 			Error("Failed to launch etcd process")
@@ -171,7 +177,8 @@ func InitEtcdLocal() (returnErr error) {
 		log.Info("Waiting for etcd process to exit")
 		err = etcdCmd.Wait()
 		if err != nil {
-			if exitError, ok := err.(*exec.ExitError); ok {
+			exitError := &exec.ExitError{}
+			if errors.As(err, &exitError) {
 				if exitError.ExitCode() == -1 {
 					// We SIGTERMed the etcd process, so a nonzero exit code is expected.
 					// Check the context as a last sanity check
