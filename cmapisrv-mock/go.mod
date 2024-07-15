@@ -3,7 +3,7 @@ module github.com/cilium/scaffolding/cmapisrv-mock
 go 1.22.0
 
 require (
-	github.com/cilium/cilium v1.16.0-rc.1
+	github.com/cilium/cilium v1.16.0-rc.2
 	github.com/cilium/hive v0.0.0-20240529072208-d997f86e4219
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/sirupsen/logrus v1.9.3
