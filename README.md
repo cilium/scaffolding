@@ -353,3 +353,7 @@ Profiles will be taken on nodes. Tests are run pod-to-pod.
 Performs the same tests as above, with options for enabling encryption in Cilium.
 One can specify installing Cilium with IPSec enabled, wireguard enabled, or no encryption enabled.
 
+### EGW masquerade delay
+
+Executes a small-scale scalability test in a kind cluster to determine the amount of time it takes for traffic egressing from a workload pod to be masqueraded through an EGW node.
+Used for testing the components within the `egw-scale-utils` directory.
