@@ -7,19 +7,57 @@ on:
       - main
 
 jobs:
+  generate-matrix:
+    name: Create build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate-matrix.outputs.matrix }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Check code changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        if: ${{ github.event_name == 'pull_request' }}
+        id: changes
+        with:
+          # These filter names must be synced with the `name` attribute for
+          # each entry in images.json.
+          filters: |
+            all:
+              - '.github/images.json'
+              - '.github/workflows/build.yaml'
+            cmapisrv-mock:
+              - 'cmapisrv-mock/**'
+            egw-scale-utils:
+              - 'egw-scale-utils/**'
+
+      - name: Generate matrix
+        id: generate-matrix
+        run: |
+          if [[ "${{ github.event_name }}" == "push" || "${{ steps.changes.outputs.all }}" == "true" ]]; then
+            echo "Using full matrix"
+            jq -c . ./.github/images.json > /tmp/matrix.json
+          else
+            echo "Building matrix from changes"
+            jq -c '{"include": [ .include[] | select(any(.name == ${{ steps.changes.outputs.changes }}[]; .)) ]}' ./.github/images.json > /tmp/matrix.json
+          fi
+
+          echo "Final matrix:"
+          jq . /tmp/matrix.json
+
+          echo "matrix=$(jq -c . /tmp/matrix.json)" >> $GITHUB_OUTPUT
+
   build-and-push:
     name: Build and Push
     runs-on: ubuntu-latest
+    needs: generate-matrix
 
     strategy:
-      matrix:
-        include:
-          - name: cmapisrv-mock
-            context: cmapisrv-mock
-            dockerfile: ./cmapisrv-mock/Dockerfile
-          - name: egw-scale-utils
-            context: egw-scale-utils
-            dockerfile: ./egw-scale-utils/Dockerfile
+      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
 
     steps:
       - name: Set up Docker Buildx
