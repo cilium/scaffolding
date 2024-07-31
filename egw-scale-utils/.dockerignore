@@ -1,0 +1,3 @@
+deploy/
+.gitignore
+.golangci.yaml
