@@ -132,7 +132,7 @@ var ronCmd = &cobra.Command{
 				if !ok {
 					return
 				}
-				toolkit.ExitWithError(Logger, err.(error))
+				toolkit.ExitWithError(Logger, err)
 			}
 		}
 

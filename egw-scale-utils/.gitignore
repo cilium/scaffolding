@@ -1,0 +1,4 @@
+/egw-scale-utils
+/test/manifests/client-pod.yaml
+/test/manifests/external-target-pod.yaml
+/test/manifests/egw-policy.yaml
