@@ -12,6 +12,7 @@ jobs:
       matrix:
         include:
           - workdir: cmapisrv-mock
+          - workdir: egw-scale-utils
 
     steps:
       - name: Install Go
