@@ -84,15 +84,16 @@ each of the components in the test. The binary has two subcommands:
 The cluster needs to be created with four types of nodes:
 
 1. At least one Node for the EGW clients to be deployed onto, labeled with
-   `role.scaffolding/component: egw-client-node`.
+   `role.scaffolding/egw-client: true`.
 2. At least one node to act as the EGW Node, labeled with
-   `role.scaffolding/component: egw-node`
+   `role.scaffolding/egw-node: true`.
 3. A node to deploy the external target onto, labeled with
    `cilium.io/no-schedule "true"`. This label will prevent Cilium from being
    scheduled onto the node, tricking Cilium Agents running on other nodes into
    believing the node is external to the cluster.
 4. A node to deploy monitoring infrastructure onto, to isolate
-   monitoring-related traffic and resource usage from the test.
+   monitoring-related traffic and resource usage from the test, labeled
+   with `role.scaffolding/monitoring: true`.
 
 ### Test Set Up
 
