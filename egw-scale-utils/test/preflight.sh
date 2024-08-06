@@ -28,5 +28,5 @@ done
 if [ "$1" != "baseline" ]; then
     kubectl apply -f ./manifests/egw-policy.yaml
 elif  kubectl get ciliumegressgatewaypolicies.cilium.io egw-scale-test-route-external; then
-    kubectl delete  kubectl get ciliumegressgatewaypolicies.cilium.io/egw-scale-test-route-external 
+    kubectl delete ciliumegressgatewaypolicies.cilium.io/egw-scale-test-route-external
 fi
