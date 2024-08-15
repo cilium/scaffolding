@@ -17,7 +17,7 @@ jobs:
           - name: cmapisrv-mock
             context: cmapisrv-mock
             dockerfile: ./cmapisrv-mock/Dockerfile
-          - name: scale-utils
+          - name: egw-scale-utils
             context: egw-scale-utils
             dockerfile: ./egw-scale-utils/Dockerfile
 
