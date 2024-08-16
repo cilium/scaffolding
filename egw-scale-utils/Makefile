@@ -1,4 +1,4 @@
-DOCKER_IMAGE ?= quay.io/cilium/scale-utils:latest
+DOCKER_IMAGE ?= quay.io/cilium/egw-scale-utils:latest
 
 all: local
 
