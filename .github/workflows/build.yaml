@@ -76,6 +76,17 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Generate image tags
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main" && "${{ github.repository }}" == "cilium/cilium" ]]; then
+            tag="latest"
+          else
+            tag="${{ github.event.pull_request.head.sha || github.sha }}"
+          fi
+
+          echo "tag=quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${tag}" >> $GITHUB_OUTPUT
+
       - name: Build and Push
         uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
         with:
@@ -84,4 +95,4 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           platforms: linux/amd64,linux/arm64
           tags: |
-            quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.event.pull_request.head.sha || github.sha }}
+            ${{ steps.tag.outputs.tag }}
