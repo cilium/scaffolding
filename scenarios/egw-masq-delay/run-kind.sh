@@ -28,7 +28,7 @@ test_dir=$ROOT_DIR/egw-scale-utils/test
 
 # Run preflight steps
 pushd $test_dir
-./preflight.sh $baseline
+EGW_IMAGE_TAG=latest ./preflight.sh $baseline
 popd
 
 # Run the test
