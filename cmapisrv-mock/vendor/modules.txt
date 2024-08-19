@@ -13,7 +13,7 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.16.0
+# github.com/cilium/cilium v1.16.1
 ## explicit; go 1.22.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -123,7 +123,7 @@ github.com/cilium/ebpf/internal/sysenc
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-# github.com/cilium/hive v0.0.0-20240529072208-d997f86e4219
+# github.com/cilium/hive v0.0.0-20240816121742-535330fad6ce
 ## explicit; go 1.21.3
 github.com/cilium/hive
 github.com/cilium/hive/cell
@@ -132,7 +132,7 @@ github.com/cilium/hive/job
 # github.com/cilium/proxy v0.0.0-20240418093727-2c7164c53e26
 ## explicit; go 1.22
 github.com/cilium/proxy/pkg/policy/api/kafka
-# github.com/cilium/statedb v0.1.1
+# github.com/cilium/statedb v0.2.4
 ## explicit; go 1.22.0
 github.com/cilium/statedb
 github.com/cilium/statedb/index

@@ -3,8 +3,8 @@ module github.com/cilium/scaffolding/cmapisrv-mock
 go 1.22.0
 
 require (
-	github.com/cilium/cilium v1.16.0
-	github.com/cilium/hive v0.0.0-20240529072208-d997f86e4219
+	github.com/cilium/cilium v1.16.1
+	github.com/cilium/hive v0.0.0-20240816121742-535330fad6ce
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
@@ -21,7 +21,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cilium/ebpf v0.15.0 // indirect
 	github.com/cilium/proxy v0.0.0-20240418093727-2c7164c53e26 // indirect
-	github.com/cilium/statedb v0.1.1 // indirect
+	github.com/cilium/statedb v0.2.4 // indirect
 	github.com/cilium/stream v0.0.0-20240226091623-f979d32855f8 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
