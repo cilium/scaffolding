@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -xeo pipefail
 
-EGW_IMAGE_TAG=${EGW_IMAGE_TAG:-$(git rev-parse HEAD)}
+export EGW_IMAGE_TAG=${EGW_IMAGE_TAG:-$(git rev-parse HEAD)}
 
 fill_template() {
     echo $EGW_EXTERNAL_TARGET_CIDR
