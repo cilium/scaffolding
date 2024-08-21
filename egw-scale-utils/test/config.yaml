@@ -1,5 +1,6 @@
 {{$NumEGWClients := DefaultParam .CL2_NUM_EGW_CLIENTS 9}}
 {{$QPS := DefaultParam .CL2_EGW_CLIENTS_QPS 3}}
+{{$ADDITIONAL_MEASUREMENT_MODULES := DefaultParam .CL2_ADDITIONAL_MEASUREMENT_MODULES nil}}
 
 name: egw-scale-test-masq-delay
 namespace:
@@ -51,6 +52,16 @@ steps:
       labelSelector: app.kubernetes.io/name=egw-client,scaffolding.cilium.io/egw-client-is-bootstrap=true
       desiredPodCount: 1
       timeout: 55s
+
+{{if $ADDITIONAL_MEASUREMENT_MODULES}}
+{{range $ADDITIONAL_MEASUREMENT_MODULES}}
+- module:
+    path: {{.}}
+    params:
+      action: start
+{{end}}
+{{end}}
+
 - name: Start measurements
   measurements:
   - Identifier: EGWMasqueradeDelayMetrics
@@ -141,3 +152,12 @@ steps:
     Method: GenericPrometheusQuery
     Params:
       action: gather
+
+{{if $ADDITIONAL_MEASUREMENT_MODULES}}
+{{range $ADDITIONAL_MEASUREMENT_MODULES}}
+- module:
+    path: {{.}}
+    params:
+      action: gather
+{{end}}
+{{end}}
