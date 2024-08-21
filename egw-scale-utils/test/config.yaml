@@ -5,6 +5,7 @@
 name: egw-scale-test-masq-delay
 namespace:
   number: 1
+  deleteAutomanagedNamespaces: false
 tuningSets:
 - name: Uniform1qps
   qpsLoad:
@@ -161,3 +162,4 @@ steps:
       action: gather
 {{end}}
 {{end}}
+
