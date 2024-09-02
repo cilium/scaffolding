@@ -123,7 +123,7 @@ github.com/cilium/ebpf/internal/sysenc
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-# github.com/cilium/hive v0.0.0-20240816121742-535330fad6ce
+# github.com/cilium/hive v0.0.0-20240826173949-af1b4bf1ab98
 ## explicit; go 1.21.3
 github.com/cilium/hive
 github.com/cilium/hive/cell
