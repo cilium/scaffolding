@@ -33,12 +33,13 @@ func newClusters(log logrus.FieldLogger, cfg config, factory store.Factory, back
 		cls.cls = append(cls.cls, newCluster(
 			log.WithField("cluster", name),
 			cparams{
-				cluster:    cmtypes.ClusterInfo{ID: uint32(id), Name: name},
-				factory:    factory,
-				backend:    backend,
-				rnd:        rnd,
-				enableIPv6: cfg.EnableIPv6,
-				encryption: cfg.Encryption,
+				cluster:         cmtypes.ClusterInfo{ID: uint32(id), Name: name},
+				factory:         factory,
+				backend:         backend,
+				rnd:             rnd,
+				enableIPv6:      cfg.EnableIPv6,
+				encryption:      cfg.Encryption,
+				nodeAnnotations: cfg.NodeAnnotations,
 			}))
 	}
 
@@ -73,12 +74,13 @@ type cluster struct {
 }
 
 type cparams struct {
-	cluster    cmtypes.ClusterInfo
-	factory    store.Factory
-	backend    kvstore.BackendOperations
-	rnd        *random
-	enableIPv6 bool
-	encryption encryptionMode
+	cluster         cmtypes.ClusterInfo
+	factory         store.Factory
+	backend         kvstore.BackendOperations
+	rnd             *random
+	enableIPv6      bool
+	encryption      encryptionMode
+	nodeAnnotations map[string]string
 }
 
 func newCluster(log logrus.FieldLogger, cp cparams) cluster {
