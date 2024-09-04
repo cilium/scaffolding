@@ -20,11 +20,12 @@ import (
 type nodes struct {
 	syncer[*nodeTypes.Node]
 
-	cluster    cmtypes.ClusterInfo
-	cache      cache[*nodeTypes.Node]
-	rnd        *random
-	enableIPv6 bool
-	encryption encryptionMode
+	cluster     cmtypes.ClusterInfo
+	cache       cache[*nodeTypes.Node]
+	rnd         *random
+	enableIPv6  bool
+	encryption  encryptionMode
+	annotations map[string]string
 }
 
 func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
@@ -32,11 +33,12 @@ func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
 	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend, prefix)
 
 	ns := &nodes{
-		cluster:    cp.cluster,
-		cache:      newCache[*nodeTypes.Node](),
-		rnd:        cp.rnd,
-		enableIPv6: cp.enableIPv6,
-		encryption: cp.encryption,
+		cluster:     cp.cluster,
+		cache:       newCache[*nodeTypes.Node](),
+		rnd:         cp.rnd,
+		enableIPv6:  cp.enableIPv6,
+		encryption:  cp.encryption,
+		annotations: cp.nodeAnnotations,
 	}
 
 	ns.syncer = newSyncer(log, "nodes", ss, ns.next)
@@ -73,6 +75,7 @@ func (ns *nodes) new() *nodeTypes.Node {
 			"kubernetes.io/arch":     "amd64",
 			"kubernetes.io/os":       "linux",
 		},
+		Annotations: ns.annotations,
 		IPAddresses: []nodeTypes.Address{
 			{Type: addressing.NodeInternalIP, IP: ns.rnd.NodeIP4()},
 			{Type: addressing.NodeCiliumInternalIP, IP: ns.rnd.PodIP4()},

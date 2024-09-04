@@ -26,6 +26,8 @@ config:
   nodes: 20
   # Number of node create/delete operations per second at run-time.
   nodesQPS: 0.2
+  # Extra annotations configured for each mocked node.
+  nodeAnnotations: ~
 
   # Number of identities to mock for each cluster.
   identities: 100

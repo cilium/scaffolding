@@ -119,6 +119,13 @@ spec:
         - --kvstore-opt=etcd.bootstrapQps={{ .Values.config.etcdBootstrapQPS }}
         - --kvstore-opt=etcd.maxInflight={{ .Values.config.etcdMaxInflight }}
         - --prometheus-serve-addr=:9999
+        {{ if .Values.config.nodeAnnotations }}
+        {{- $rendered := list -}}
+        {{- range $key, $value := .Values.config.nodeAnnotations -}}
+        {{- $rendered = append $rendered (printf "%s=%s" $key $value) -}}
+        {{- end -}}
+        - --node-annotations={{ join "," $rendered }}
+        {{ end }}
         ports:
         - name: mocker-health
           containerPort: 9880

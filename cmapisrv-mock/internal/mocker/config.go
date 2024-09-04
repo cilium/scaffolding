@@ -37,8 +37,9 @@ type config struct {
 	Clusters       uint
 	FirstClusterID uint
 
-	Nodes    uint
-	NodesQPS float64
+	Nodes           uint
+	NodesQPS        float64
+	NodeAnnotations map[string]string
 
 	Identities    uint
 	IdentitiesQPS float64
@@ -72,6 +73,7 @@ func (def config) Flags(flags *pflag.FlagSet) {
 
 	flags.Uint("nodes", def.Nodes, "Number of nodes to mock (per cluster)")
 	flags.Float64("nodes-qps", def.NodesQPS, "Node QPS (per cluster)")
+	flags.StringToString("node-annotations", def.NodeAnnotations, "Extra annotations configured for each mocked node")
 
 	flags.Uint("identities", def.Identities, "Number of identities to mock (per cluster)")
 	flags.Float64("identities-qps", def.IdentitiesQPS, "Identities QPS (per cluster)")
