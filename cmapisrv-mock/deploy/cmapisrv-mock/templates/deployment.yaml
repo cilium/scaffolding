@@ -97,6 +97,7 @@ spec:
         - mocker
         - --debug={{ .Values.debug }}
         - --enable-ipv6={{ .Values.config.ipv6 }}
+        - --encryption={{ .Values.config.encryption }}
         - --clusters={{ .Values.config.clusters }}
         - --first-cluster-id={{ .Values.config.firstClusterID }}
         - --nodes={{ .Values.config.nodes }}

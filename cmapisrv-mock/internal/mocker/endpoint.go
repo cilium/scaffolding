@@ -28,6 +28,7 @@ type endpoints struct {
 	podIPGetter    func() net.IP
 	nodeIPGetter   func() net.IP
 	identityGetter func() identity.NumericIdentity
+	encKeyGetter   func() uint8
 }
 
 func newEndpoints(
@@ -46,6 +47,7 @@ func newEndpoints(
 		podIPGetter:    cp.rnd.PodIP4,
 		nodeIPGetter:   nodes.RandomHostIP,
 		identityGetter: identities.RandomIdentity,
+		encKeyGetter:   cp.encryption.toKey,
 	}
 
 	if cp.enableIPv6 {
@@ -81,6 +83,7 @@ func (eps *endpoints) new() *identity.IPIdentityPair {
 		IP:           eps.podIPGetter(),
 		HostIP:       eps.nodeIPGetter(),
 		ID:           eps.identityGetter(),
+		Key:          eps.encKeyGetter(),
 		K8sPodName:   eps.rnd.Name(),
 		K8sNamespace: eps.rnd.Namespace(),
 	}
