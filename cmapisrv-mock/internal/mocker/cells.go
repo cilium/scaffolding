@@ -23,6 +23,7 @@ var Cell = cell.Module(
 	"Cilium Cluster Mesh Mocker",
 
 	cell.Config(defaultConfig),
+	cell.Invoke(config.validate),
 	cell.Config(defaultRndcfg),
 
 	controller.Cell,

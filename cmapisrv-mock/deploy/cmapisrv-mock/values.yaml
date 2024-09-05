@@ -12,6 +12,9 @@ config:
   # Whether to mock both IPv4 and IPv6 addresses, or IPv4 only.
   ipv6: true
 
+  # Cilium's encryption mode. Supported values: disabled|ipsec|wireguard
+  encryption: disabled
+
   # Number of clusters to be mocked.
   clusters: 1
   # Cluster ID of the first mocked cluster. It can be tuned to avoid conflicts,

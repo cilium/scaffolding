@@ -38,6 +38,7 @@ func newClusters(log logrus.FieldLogger, cfg config, factory store.Factory, back
 				backend:    backend,
 				rnd:        rnd,
 				enableIPv6: cfg.EnableIPv6,
+				encryption: cfg.Encryption,
 			}))
 	}
 
@@ -77,6 +78,7 @@ type cparams struct {
 	backend    kvstore.BackendOperations
 	rnd        *random
 	enableIPv6 bool
+	encryption encryptionMode
 }
 
 func newCluster(log logrus.FieldLogger, cp cparams) cluster {

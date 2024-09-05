@@ -9,6 +9,7 @@ import (
 	"net/netip"
 
 	petname "github.com/dustinkirkland/golang-petname"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/labels"
@@ -100,6 +101,15 @@ func (r *random) ServiceLabels() map[string]string {
 	}
 
 	return lbls
+}
+
+func (r *random) WireGuardPublicKey() (string, error) {
+	key, err := wgtypes.GeneratePrivateKey()
+	if err != nil {
+		return "", err
+	}
+
+	return key.PublicKey().String(), nil
 }
 
 type addr struct {

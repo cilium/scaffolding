@@ -3,10 +3,36 @@
 
 package mocker
 
-import "github.com/spf13/pflag"
+import (
+	"fmt"
+
+	"github.com/spf13/pflag"
+
+	wgTypes "github.com/cilium/cilium/pkg/wireguard/types"
+)
+
+type encryptionMode string
+
+func (em encryptionMode) toKey() uint8 {
+	switch em {
+	case encryptionModeIPSec:
+		return 1
+	case encryptionModeWireGuard:
+		return wgTypes.StaticEncryptKey
+	default:
+		return 0
+	}
+}
+
+const (
+	encryptionModeDisabled  = encryptionMode("disabled")
+	encryptionModeIPSec     = encryptionMode("ipsec")
+	encryptionModeWireGuard = encryptionMode("wireguard")
+)
 
 type config struct {
 	EnableIPv6 bool
+	Encryption encryptionMode
 
 	Clusters       uint
 	FirstClusterID uint
@@ -26,6 +52,7 @@ type config struct {
 
 var defaultConfig = config{
 	EnableIPv6: false,
+	Encryption: encryptionModeDisabled,
 
 	Clusters:       1,
 	FirstClusterID: 1,
@@ -38,6 +65,7 @@ var defaultConfig = config{
 
 func (def config) Flags(flags *pflag.FlagSet) {
 	flags.Bool("enable-ipv6", def.EnableIPv6, "Enable IPv6")
+	flags.String("encryption", string(def.Encryption), "Cilium's encryption mode; supported values: disabled|ipsec|wireguard")
 
 	flags.Uint("clusters", def.Clusters, "Number of clusters to mock")
 	flags.Uint("first-cluster-id", def.FirstClusterID, "Cluster ID of the initial cluster")
@@ -53,6 +81,16 @@ func (def config) Flags(flags *pflag.FlagSet) {
 
 	flags.Uint("services", def.Endpoints, "Number of services to mock (per cluster)")
 	flags.Float64("services-qps", def.EndpointsQPS, "Services QPS (per cluster)")
+}
+
+func (cfg config) validate() error {
+	switch cfg.Encryption {
+	case encryptionModeDisabled, encryptionModeIPSec, encryptionModeWireGuard:
+	default:
+		return fmt.Errorf("unsupported encryption mode %q; must be one of disabled|ipsec|wireguard", cfg.Encryption)
+	}
+
+	return nil
 }
 
 type rndcfg struct {

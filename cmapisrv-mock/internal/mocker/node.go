@@ -24,6 +24,7 @@ type nodes struct {
 	cache      cache[*nodeTypes.Node]
 	rnd        *random
 	enableIPv6 bool
+	encryption encryptionMode
 }
 
 func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
@@ -35,6 +36,7 @@ func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
 		cache:      newCache[*nodeTypes.Node](),
 		rnd:        cp.rnd,
 		enableIPv6: cp.enableIPv6,
+		encryption: cp.encryption,
 	}
 
 	ns.syncer = newSyncer(log, "nodes", ss, ns.next)
@@ -79,6 +81,7 @@ func (ns *nodes) new() *nodeTypes.Node {
 		IPv4HealthIP:  ns.rnd.PodIP4(),
 		IPv4IngressIP: ns.rnd.PodIP4(),
 		NodeIdentity:  uint32(identity.ReservedIdentityRemoteNode),
+		EncryptionKey: ns.encryption.toKey(),
 	}
 
 	if ns.enableIPv6 {
@@ -87,6 +90,15 @@ func (ns *nodes) new() *nodeTypes.Node {
 		no.IPv6AllocCIDR = &cidr.CIDR{IPNet: ns.rnd.CIDR6()}
 		no.IPv6HealthIP = ns.rnd.PodIP6()
 		no.IPv6IngressIP = ns.rnd.PodIP6()
+	}
+
+	if ns.encryption == encryptionModeWireGuard {
+		key, err := ns.rnd.WireGuardPublicKey()
+		if err != nil {
+			ns.log.WithError(err).Fatal("Failed to generate WireGuard key")
+		}
+
+		no.WireguardPubKey = key
 	}
 
 	return no
