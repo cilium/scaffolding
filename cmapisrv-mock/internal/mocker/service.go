@@ -4,8 +4,10 @@
 package mocker
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/kvstore"
@@ -112,7 +114,7 @@ func (svc *services) backends() map[string]serviceStore.PortConfiguration {
 
 func (svc *services) updated(be map[string]serviceStore.PortConfiguration) map[string]serviceStore.PortConfiguration {
 	if svc.rnd.ShouldRemove() && len(be) > 0 {
-		key := maps.Keys(be)[svc.rnd.Index(len(be))]
+		key := slices.Collect(maps.Keys(be))[svc.rnd.Index(len(be))]
 		delete(be, key)
 		return be
 	}
