@@ -4,10 +4,11 @@
 
 set -xeo pipefail
 
-export SERVER_ADDRESS="0.0.0.0:8080"
-export BUILDS="100"
-export BUCKET="cilium-scale-results"
-export GITHUB_CONFIG="https://api.github.com/repos/cilium/scaffolding/contents/scale-tests/jobs"
+export SERVER_ADDRESS="${SERVER_ADDRESS:-0.0.0.0:8080}"
+export BUILDS="${BUILDS:-10}"
+export BUCKET="${BUCKET:-cilium-scale-results}"
+export CONFIG_PATH="${CONFIG_PATH:-../../jobs/tests.yaml}"
+export STORAGE_URL="https://console.cloud.google.com/storage/browser"
 
 update_perf_tests () {
     if ! [ -d ./perf-tests ]
@@ -24,13 +25,14 @@ build_perfdash () {
 }
 
 run_perfdash () {
-	./perfdash \
-		--www \
-		--address=$SERVER_ADDRESS \
-		--builds=$BUILDS \
-		--force-builds \
-		--logsBucket=$BUCKET \
-		--githubConfigDir=$GITHUB_CONFIG
+    ./perfdash \
+        --www \
+        --address=$SERVER_ADDRESS \
+        --builds=$BUILDS \
+        --force-builds \
+        --logsBucket=$BUCKET \
+        --configPath=$CONFIG_PATH \
+        --storageURL=$STORAGE_URL
 }
 
 main () {
