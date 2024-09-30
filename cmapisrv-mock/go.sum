@@ -27,12 +27,12 @@ github.com/census-instrumentation/opencensus-proto v0.4.1/go.mod h1:4T9NM4+4Vw91
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cilium/cilium v1.16.1 h1:7FiLrRJbO3d/RE423FUN0GxhrFDQBYRwr1veHN7uBys=
-github.com/cilium/cilium v1.16.1/go.mod h1:SIurqFNFBU9/sQTPC9tvrOktAMDnQOGPBCSYtsnjxp4=
+github.com/cilium/cilium v1.16.2 h1:c/SMeMOp6VD6OuzNQ35dyqKFemT/T3jgSDnABFimhHA=
+github.com/cilium/cilium v1.16.2/go.mod h1:w6huXlvvCbDrOdKW1P5FXjT3JIXzEREtXbvhhMZHxKM=
 github.com/cilium/ebpf v0.15.0 h1:7NxJhNiBT3NG8pZJ3c+yfrVdHY8ScgKD27sScgjLMMk=
 github.com/cilium/ebpf v0.15.0/go.mod h1:DHp1WyrLeiBh19Cf/tfiSMhqheEiK8fXFZ4No0P1Hso=
-github.com/cilium/hive v0.0.0-20240917114221-cb506b465edc h1:KdVwJSiBxkAyQ5dAwX2O5nTSBMiuYp/1wRKea36njRI=
-github.com/cilium/hive v0.0.0-20240917114221-cb506b465edc/go.mod h1:6tW1eCwSq8Wz8IVtpZE0MemoCWSrEOUa8aLKotmBRCo=
+github.com/cilium/hive v0.0.0-20240926131619-aa37668760f2 h1:xZn7yvMbK1+Au6D/YLKEMdcEsyMt6Qu7CUv+yQHGqv0=
+github.com/cilium/hive v0.0.0-20240926131619-aa37668760f2/go.mod h1:6tW1eCwSq8Wz8IVtpZE0MemoCWSrEOUa8aLKotmBRCo=
 github.com/cilium/proxy v0.0.0-20240418093727-2c7164c53e26 h1:wzm/nEkcMO6oGSySoqe3/bMcF1sxrxI2ByidN3gg30A=
 github.com/cilium/proxy v0.0.0-20240418093727-2c7164c53e26/go.mod h1:jzAmtWhlyR3kx+AwYdQvGM04lmHwsWhq1ySfAVpY/SA=
 github.com/cilium/statedb v0.2.4 h1:jCyXGcsiXgpJSfpfRRGKd+TD3U1teeDtOnqCyErsHsI=
