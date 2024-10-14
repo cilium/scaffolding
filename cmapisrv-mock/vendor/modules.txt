@@ -13,7 +13,7 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.16.2
+# github.com/cilium/cilium v1.16.3
 ## explicit; go 1.22.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -124,12 +124,14 @@ github.com/cilium/ebpf/internal/sysenc
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-# github.com/cilium/hive v0.0.0-20241007101850-fe7b4c552779
+# github.com/cilium/hive v0.0.0-20241011093954-8df06c41a157
 ## explicit; go 1.21.3
 github.com/cilium/hive
 github.com/cilium/hive/cell
 github.com/cilium/hive/internal
 github.com/cilium/hive/job
+github.com/cilium/hive/script
+github.com/cilium/hive/script/internal/diff
 # github.com/cilium/proxy v0.0.0-20240418093727-2c7164c53e26
 ## explicit; go 1.22
 github.com/cilium/proxy/pkg/policy/api/kafka
@@ -508,10 +510,9 @@ go.uber.org/zap/zapgrpc
 # go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 ## explicit; go 1.18
 go4.org/netipx
-# golang.org/x/crypto v0.24.0
-## explicit; go 1.18
+# golang.org/x/crypto v0.27.0
+## explicit; go 1.20
 golang.org/x/crypto/curve25519
-golang.org/x/crypto/curve25519/internal/field
 # golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 ## explicit; go 1.22.0
 golang.org/x/exp/constraints
@@ -520,7 +521,7 @@ golang.org/x/exp/slices
 golang.org/x/exp/slog
 golang.org/x/exp/slog/internal
 golang.org/x/exp/slog/internal/buffer
-# golang.org/x/net v0.26.0
+# golang.org/x/net v0.29.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
@@ -536,15 +537,15 @@ golang.org/x/oauth2/internal
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.21.0
+# golang.org/x/sys v0.25.0
 ## explicit; go 1.18
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.21.0
+# golang.org/x/term v0.24.0
 ## explicit; go 1.18
 golang.org/x/term
-# golang.org/x/text v0.16.0
+# golang.org/x/text v0.18.0
 ## explicit; go 1.18
 golang.org/x/text/encoding
 golang.org/x/text/encoding/internal
@@ -559,6 +560,9 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.7.0
 ## explicit; go 1.18
 golang.org/x/time/rate
+# golang.org/x/tools v0.25.0
+## explicit; go 1.22.0
+golang.org/x/tools/txtar
 # golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 ## explicit; go 1.20
 golang.zx2c4.com/wireguard/wgctrl/wgtypes
