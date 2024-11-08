@@ -18,8 +18,8 @@ fi
 
 CURRENT_CONTEXT=$(kubectl config current-context)
 CONFIG=$(kubectl config view --raw -o json)
-CLUSTER=$(echo "$CONFIG" | jq '.clusters[] | select(.name=="'$CURRENT_CONTEXT'")')
-CLUSTER_NAME=$(echo "$CLUSTER" | jq -r '.name')
+CLUSTER_NAME=$(echo "$CONFIG" | jq -r '.contexts[] | select(.name=="'$CURRENT_CONTEXT'") | .context.cluster')
+CLUSTER=$(echo "$CONFIG" | jq '.clusters[] | select(.name=="'$CLUSTER_NAME'")')
 CLUSTER_URL=$(echo "$CLUSTER" | jq -r '.cluster.server')
 
 CADATA=""
