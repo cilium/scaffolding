@@ -4,12 +4,12 @@ go 1.23.0
 
 require (
 	github.com/cilium/cilium v1.16.3
-	github.com/cilium/hive v0.0.0-20241104095320-a606391fc119
+	github.com/cilium/hive v0.0.0-20241107100319-bedf51d6e63b
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
-	golang.org/x/time v0.7.0
+	golang.org/x/time v0.8.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 )
 
