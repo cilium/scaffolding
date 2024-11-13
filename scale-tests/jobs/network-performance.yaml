@@ -1,33 +1,25 @@
 periodics:
-- name: gke-perf-native-hubble-main
+- name: gke-perf-native-main
   tags:
-  - "perfDashPrefix: gke-perf-native-hubble-main"
+  - "perfDashPrefix: gke-perf-native-main"
   - "perfDashJobType: networking"
-- name: gke-perf-native-ipsec-hubble-main
+- name: gke-perf-tunnel-main
   tags:
-  - "perfDashPrefix: gke-perf-native-ipsec-hubble-main"
+  - "perfDashPrefix: gke-perf-tunnel-main"
   - "perfDashJobType: networking"
 - name: gke-perf-native-ipsec-main
   tags:
   - "perfDashPrefix: gke-perf-native-ipsec-main"
   - "perfDashJobType: networking"
-- name: gke-perf-native-main
-  tags:
-  - "perfDashPrefix: gke-perf-native-main"
-  - "perfDashJobType: networking"
-- name: gke-perf-tunnel-hubble-main
-  tags:
-  - "perfDashPrefix: gke-perf-tunnel-hubble-main"
-  - "perfDashJobType: networking"
-- name: gke-perf-tunnel-ipsec-hubble-main
-  tags:
-  - "perfDashPrefix: gke-perf-tunnel-ipsec-hubble-main"
-  - "perfDashJobType: networking"
 - name: gke-perf-tunnel-ipsec-main
   tags:
   - "perfDashPrefix: gke-perf-tunnel-ipsec-main"
   - "perfDashJobType: networking"
-- name: gke-perf-tunnel-main
+- name: gke-perf-native-wireguard-main
   tags:
-  - "perfDashPrefix: gke-perf-tunnel-main"
+  - "perfDashPrefix: gke-perf-native-wireguard-main"
+  - "perfDashJobType: networking"
+- name: gke-perf-tunnel-wireguard-main
+  tags:
+  - "perfDashPrefix: gke-perf-tunnel-wireguard-main"
   - "perfDashJobType: networking"
