@@ -3,8 +3,8 @@ module github.com/cilium/scaffolding/cmapisrv-mock
 go 1.23.0
 
 require (
-	github.com/cilium/cilium v1.16.3
-	github.com/cilium/hive v0.0.0-20241107100319-bedf51d6e63b
+	github.com/cilium/cilium v1.16.4
+	github.com/cilium/hive v0.0.0-20241122120553-e90d0875ae01
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
@@ -90,7 +90,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/vishvananda/netlink v1.2.1-beta.2.0.20240524165444-4d4ba1473f21 // indirect
+	github.com/vishvananda/netlink v1.3.1-0.20241022031324-976bd8de7d81 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.14 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.14 // indirect
