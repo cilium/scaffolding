@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/cilium/cilium v1.16.4
-	github.com/cilium/hive v0.0.0-20241122120553-e90d0875ae01
+	github.com/cilium/hive v0.0.0-20241129122706-af5052cfd6d4
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
