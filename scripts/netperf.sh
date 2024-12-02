@@ -23,7 +23,7 @@ remote="$1"
 duration="$2"
 p="$3"
 typ="$4"
-proto=${5:=tcp}
+proto=${5:-tcp}
 
 tmp="/tmp"
 common_selectors="ELAPSED_TIME"

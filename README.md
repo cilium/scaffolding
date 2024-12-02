@@ -353,6 +353,11 @@ Profiles will be taken on nodes. Tests are run pod-to-pod.
 Performs the same tests as above, with options for enabling encryption in Cilium.
 One can specify installing Cilium with IPSec enabled, wireguard enabled, or no encryption enabled.
 
+### IPSec RPS testing
+
+Performs the same tests as above, but uses a single version of Cilium and includes a
+build of Cilium that includes an RPS implementation for IPSec.
+
 ### EGW masquerade delay
 
 Executes a small-scale scalability test in a kind cluster to determine the amount of time it takes for traffic egressing from a workload pod to be masqueraded through an EGW node.
