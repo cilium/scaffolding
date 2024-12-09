@@ -8,6 +8,4 @@ resources:
 - dashboards.yaml
 - dashboard-provider.yaml
 patches:
-- dashboards/cilium-agent-112.yaml
-- dashboards/cilium-operator-112.yaml
-- dashboards/node-exporter-dashboard.yaml
+- path: dashboards/node-exporter-dashboard.yaml
