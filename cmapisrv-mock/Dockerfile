@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=docker.io/library/alpine:3.21.2@sha256:56fa17d2a7e7f168a043a2712e63aed1f8543aeafdcee47c58dcffe38ed51099
-ARG GOLANG_IMAGE=docker.io/library/golang:1.23.5@sha256:51a6466e8dbf3e00e422eb0f7a97ac450b2d57b33617bbe8d2ee0bddcd9d0d37
-ARG ETCD_SERVER_IMAGE=gcr.io/etcd-development/etcd:v3.5.17@sha256:15b1882f07aeaf357a48fbbcf35a566ae3ea110395704711488ea263fa86838d
+ARG GOLANG_IMAGE=docker.io/library/golang:1.23.5@sha256:8c10f21bec412f08f73aa7b97ca5ac5f28a39d8a88030ad8a339fd0a781d72b4
+ARG ETCD_SERVER_IMAGE=gcr.io/etcd-development/etcd:v3.5.18@sha256:9079538aa6e9ff9a57b4d737ca1f03f978e7b9e8fe45bb91b19bd933deb98912
 
 FROM ${GOLANG_IMAGE} AS builder
 ADD . /go/src/github.com/cilium/scaffolding/cmapisrv-mock
