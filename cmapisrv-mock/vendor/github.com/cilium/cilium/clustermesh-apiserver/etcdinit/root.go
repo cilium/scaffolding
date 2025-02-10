@@ -39,7 +39,7 @@ var (
 func NewCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "etcdinit",
-		Short: "Initialise an etcd data directory for use by the etcd sidecar of clustermesh-apiserver",
+		Short: "Initialize an etcd data directory for use by the etcd sidecar of clustermesh-apiserver",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			option.LogRegisteredOptions(vp, log)
 			log.Infof("Cilium ClusterMesh etcd init %s", version.Version)
@@ -218,6 +218,7 @@ func InitEtcdLocal() (returnErr error) {
 	}()
 
 	// With the etcd server process launched, we need to construct an etcd client
+	//exhaustruct:ignore // Not all etcd config options are required.
 	config := clientv3.Config{
 		Context:   ctx,
 		Endpoints: []string{loopbackEndpoint},
