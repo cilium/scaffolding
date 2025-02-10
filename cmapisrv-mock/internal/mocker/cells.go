@@ -28,7 +28,7 @@ var Cell = cell.Module(
 
 	controller.Cell,
 
-	kvstore.Cell(kvstore.EtcdBackendName),
+	kvstore.Cell,
 	heartbeat.Cell,
 	cell.Provide(func(ss syncstate.SyncState) *kvstore.ExtraOptions {
 		return &kvstore.ExtraOptions{
