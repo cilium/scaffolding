@@ -24,7 +24,6 @@ type identities struct {
 	cluster cmtypes.ClusterInfo
 	cache   cache[*store.KVPair]
 	rnd     *random
-	encoder func([]byte) string
 }
 
 func newIdentities(log logrus.FieldLogger, cp cparams) *identities {
@@ -37,7 +36,6 @@ func newIdentities(log logrus.FieldLogger, cp cparams) *identities {
 		cluster: cp.cluster,
 		cache:   newCache[*store.KVPair](),
 		rnd:     cp.rnd,
-		encoder: cp.backend.Encode,
 	}
 
 	ids.syncer = newSyncer(log, "identities", ss, ids.next)
@@ -73,5 +71,5 @@ func (ids *identities) new(id identity.NumericIdentity) *store.KVPair {
 		lbls = append(lbls, lb.FormatForKVStore()...)
 	}
 
-	return store.NewKVPair(strconv.FormatUint(uint64(id), 10), ids.encoder(lbls))
+	return store.NewKVPair(strconv.FormatUint(uint64(id), 10), string(lbls))
 }
