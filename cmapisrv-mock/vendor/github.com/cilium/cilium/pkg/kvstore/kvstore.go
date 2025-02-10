@@ -15,7 +15,6 @@ type Value struct {
 	Data        []byte
 	ModRevision uint64
 	LeaseID     int64
-	SessionID   string
 }
 
 // KeyValuePairs is a map of key=value pairs
@@ -38,17 +37,6 @@ const (
 	// HeartbeatPath is the path to the key at which the operator updates
 	// the heartbeat
 	HeartbeatPath = BaseKeyPrefix + "/.heartbeat"
-
-	// HasClusterConfigPath is the path to the key used to convey that the cluster
-	// configuration will be eventually created, and remote cilium agents shall
-	// wait until it is present. If this key is not set, the cilium configuration
-	// might, or might not, be configured, but the agents will continue regardless,
-	// falling back to the backward compatible behavior. It must be set before that
-	// the agents have the possibility to connect to the kvstore (that is, when
-	// it is not yet exposed). The corresponding values is ignored.
-	// Starting from v1.16, Cilium always expects the cluster configuration to be
-	// present. This key is now deprecated and shall be removed in Cilium v1.17.
-	HasClusterConfigPath = BaseKeyPrefix + "/.has-cluster-config"
 
 	// ClusterConfigPrefix is the kvstore prefix to cluster configuration
 	ClusterConfigPrefix = BaseKeyPrefix + "/cluster-config"

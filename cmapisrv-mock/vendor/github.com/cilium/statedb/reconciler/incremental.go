@@ -6,6 +6,7 @@ package reconciler
 import (
 	"context"
 	"errors"
+	"iter"
 	"time"
 
 	"github.com/cilium/hive/cell"
@@ -46,7 +47,7 @@ type opResult struct {
 	id       uint64 // the "pending" identifier
 }
 
-func (r *reconciler[Obj]) incremental(ctx context.Context, txn statedb.ReadTxn, changes statedb.ChangeIterator[Obj]) []error {
+func (r *reconciler[Obj]) incremental(ctx context.Context, txn statedb.ReadTxn, changes iter.Seq2[statedb.Change[Obj], statedb.Revision]) []error {
 	round := incrementalRound[Obj]{
 		moduleID:       r.ModuleID,
 		metrics:        r.config.Metrics,
@@ -82,9 +83,9 @@ func (r *reconciler[Obj]) incremental(ctx context.Context, txn statedb.ReadTxn, 
 	return errs
 }
 
-func (round *incrementalRound[Obj]) single(changes statedb.ChangeIterator[Obj]) {
+func (round *incrementalRound[Obj]) single(changes iter.Seq2[statedb.Change[Obj], statedb.Revision]) {
 	// Iterate in revision order through new and changed objects.
-	for change, _, ok := changes.Next(); ok; change, _, ok = changes.Next() {
+	for change, rev := range changes {
 		obj := change.Object
 
 		status := round.config.GetObjectStatus(obj)
@@ -98,7 +99,7 @@ func (round *incrementalRound[Obj]) single(changes statedb.ChangeIterator[Obj]) 
 		// Clear retries as the object has changed.
 		round.retries.Clear(obj)
 
-		round.processSingle(obj, change.Revision, change.Deleted)
+		round.processSingle(obj, rev, change.Deleted)
 		round.numReconciled++
 		if round.numReconciled >= round.config.IncrementalRoundSize {
 			break
@@ -106,12 +107,12 @@ func (round *incrementalRound[Obj]) single(changes statedb.ChangeIterator[Obj]) 
 	}
 }
 
-func (round *incrementalRound[Obj]) batch(changes statedb.ChangeIterator[Obj]) {
+func (round *incrementalRound[Obj]) batch(changes iter.Seq2[statedb.Change[Obj], statedb.Revision]) {
 	ops := round.config.BatchOperations
 	updateBatch := []BatchEntry[Obj]{}
 	deleteBatch := []BatchEntry[Obj]{}
 
-	for change, rev, ok := changes.Next(); ok; change, rev, ok = changes.Next() {
+	for change, rev := range changes {
 		obj := change.Object
 
 		status := round.config.GetObjectStatus(obj)
@@ -173,7 +174,7 @@ func (round *incrementalRound[Obj]) batch(changes statedb.ChangeIterator[Obj]) {
 			if entry.Result == nil {
 				round.retries.Clear(entry.Object)
 			}
-			round.results[entry.Object] = opResult{rev: entry.Revision, id: status.id, err: entry.Result, original: entry.original}
+			round.results[entry.Object] = opResult{rev: entry.Revision, id: status.ID, err: entry.Result, original: entry.original}
 		}
 	}
 }
@@ -212,7 +213,7 @@ func (round *incrementalRound[Obj]) processSingle(obj Obj, rev statedb.Revision,
 		op = OpUpdate
 		err = round.config.Operations.Update(round.ctx, round.txn, obj)
 		status := round.config.GetObjectStatus(obj)
-		round.results[obj] = opResult{original: orig, id: status.id, rev: rev, err: err}
+		round.results[obj] = opResult{original: orig, id: status.ID, rev: rev, err: err}
 	}
 	round.metrics.ReconciliationDuration(round.moduleID, op, time.Since(start))
 
@@ -255,7 +256,7 @@ func (round *incrementalRound[Obj]) commitStatus() (numErrors int) {
 			// modifying the object during reconciliation as the following will forget
 			// the changes.
 			currentStatus := round.config.GetObjectStatus(current)
-			if currentStatus.Kind == StatusKindPending && currentStatus.id == result.id {
+			if currentStatus.Kind == StatusKindPending && currentStatus.ID == result.id {
 				current = round.config.CloneObject(current)
 				current = round.config.SetObjectStatus(current, status)
 				round.table.Insert(wtxn, current)
