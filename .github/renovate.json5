@@ -10,7 +10,9 @@
   "includePaths": [
     ".github/workflows/*.yaml",
     "cmapisrv-mock/go.*",
-    "cmapisrv-mock/Dockerfile"
+    "cmapisrv-mock/Dockerfile",
+    "egw-scale-utils/go.*",
+    "egw-scale-utils/Dockerfile"
   ],
   "pinDigests": true,
   "ignorePresets": [":prHourlyLimit2"],
