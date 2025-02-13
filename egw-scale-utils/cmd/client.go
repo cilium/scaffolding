@@ -29,6 +29,9 @@ func init() {
 		&clientCfg.ExternalTargetAddr, "external-target-addr", "", "Address of external target to connect to. Needs to be of the format 'IP:Port'",
 	)
 	clientCmd.PersistentFlags().DurationVar(
+		&clientCfg.Interval, "interval", 50*time.Millisecond, "The interval at which the client sends probes to the server.",
+	)
+	clientCmd.PersistentFlags().DurationVar(
 		&clientCfg.TestTimeout, "test-timeout", time.Minute, "The duration the client has to connect to the external target before cancelling the test.",
 	)
 

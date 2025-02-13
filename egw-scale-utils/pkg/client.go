@@ -20,6 +20,7 @@ import (
 
 type ClientConfig struct {
 	ExternalTargetAddr string
+	Interval           time.Duration
 	TestTimeout        time.Duration
 }
 
@@ -51,8 +52,7 @@ func getHttpReadinessProbeHandler(testHasFinished *atomic.Bool) http.HandlerFunc
 }
 
 func connectToExternalTarget(
-	externalTargetAddr string,
-	timeout time.Duration,
+	cfg *ClientConfig,
 	testHasFinished *atomic.Bool,
 	logger *slog.Logger,
 ) error {
@@ -60,46 +60,50 @@ func connectToExternalTarget(
 		testHasFinished.Store(true)
 	}()
 
-	d := net.Dialer{
-		Timeout: time.Millisecond * 50,
-	}
-
-	var err error
-	var conn net.Conn
 	var endTime time.Time
-
-	needIterationDelay := false
 	startTime := time.Now()
-	timeoutTimer := time.NewTimer(timeout)
+	nextAt := startTime
 
-	defer timeoutTimer.Stop()
-
+	timeout := time.After(cfg.TestTimeout)
 	for {
 		select {
-		case <-timeoutTimer.C:
-			logger.Error("Hit timeout, abandoning test", "timeout", timeout.String())
+		case <-time.After(time.Until(nextAt)):
+		case <-timeout:
+			logger.Error("Hit timeout, abandoning test", "timeout", cfg.TestTimeout.String())
 			testFailureCounter.Inc()
 
 			return nil
-		default:
 		}
 
-		if needIterationDelay {
-			time.Sleep(50 * time.Millisecond)
+		nextAt = nextAt.Add(cfg.Interval)
+
+		conn, err := (&net.Dialer{
+			Deadline: nextAt,
+		}).Dial("tcp4", cfg.ExternalTargetAddr)
+		if err != nil {
+			logger.Warn("Failed to dial target", "err", err)
+
+			leakedRequestsCounter.Add(1)
+			continue
 		}
 
-		conn, err = d.Dial("tcp4", externalTargetAddr)
 		endTime = time.Now()
 
-		if err != nil {
-			return err
+		if err = conn.SetDeadline(nextAt); err != nil {
+			logger.Warn("Failed to set deadline on connection", "err", err)
+			conn.Close()
+
+			leakedRequestsCounter.Add(1)
+			continue
 		}
 
 		reply, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil && !errors.Is(err, io.EOF) {
+			logger.Warn("Failed reading from connection", "err", err)
 			conn.Close()
 
-			return err
+			leakedRequestsCounter.Add(1)
+			continue
 		}
 
 		if reply != "pong\n" {
@@ -107,8 +111,6 @@ func connectToExternalTarget(
 			conn.Close()
 
 			leakedRequestsCounter.Add(1)
-			needIterationDelay = true
-
 			continue
 		}
 
@@ -134,17 +136,17 @@ func RunClient(cfg *ClientConfig) error {
 	http.Handle("/metrics", promhttp.Handler())
 	http.Handle("/readyz", getHttpReadinessProbeHandler(testHasFinished))
 
-	rrors := make(chan error)
+	errors := make(chan error)
 
 	go func() {
-		if err := connectToExternalTarget(cfg.ExternalTargetAddr, cfg.TestTimeout, testHasFinished, logger); err != nil {
-			rrors <- err
+		if err := connectToExternalTarget(cfg, testHasFinished, logger); err != nil {
+			errors <- err
 		}
 	}()
 
 	go func() {
-		rrors <- http.ListenAndServe("0.0.0.0:2112", nil)
+		errors <- http.ListenAndServe("0.0.0.0:2112", nil)
 	}()
 
-	return <-rrors
+	return <-errors
 }
