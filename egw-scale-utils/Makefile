@@ -1,5 +1,7 @@
 DOCKER_IMAGE ?= quay.io/cilium/egw-scale-utils:latest
 
+.PHONY: all docker-image docker-image-load docker-image-push egw-scale-utils local clean
+
 all: local
 
 docker-image:
