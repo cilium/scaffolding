@@ -129,6 +129,7 @@ func connectToExternalTarget(
 
 func RunClient(cfg *ClientConfig) error {
 	logger := NewLogger("client").With("external-target", cfg.ExternalTargetAddr)
+	logger.Info("Starting")
 
 	testHasFinished := &atomic.Bool{}
 	testHasFinished.Store(false)
