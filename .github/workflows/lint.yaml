@@ -35,10 +35,10 @@ jobs:
           test -z "$(git status --porcelain)" || (echo "please run 'go mod tidy && go mod vendor', and submit your changes"; exit 1)
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@051d91933864810ecd5e2ea2cfd98f6a5bca5347 # v6.3.2
+        uses: golangci/golangci-lint-action@2226d7cb06a077cd73e56eedd38eecad18e5d837 # v6.5.0
         with:
           # renovate: datasource=docker depName=golangci/golangci-lint
-          version: v1.64.2
+          version: v1.64.5
           skip-cache: true
           working-directory: ${{ matrix.workdir }}
           args: "--out-format colored-line-number --verbose --modules-download-mode=vendor"
