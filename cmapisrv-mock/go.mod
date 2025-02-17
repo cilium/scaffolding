@@ -3,11 +3,11 @@ module github.com/cilium/scaffolding/cmapisrv-mock
 go 1.23.0
 
 require (
-	github.com/cilium/cilium v1.17.0
+	github.com/cilium/cilium v1.17.1
 	github.com/cilium/hive v0.0.0-20250212105618-0e864ff1658b
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	golang.org/x/time v0.10.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
