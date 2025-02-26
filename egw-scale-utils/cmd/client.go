@@ -34,6 +34,12 @@ func init() {
 	clientCmd.PersistentFlags().DurationVar(
 		&clientCfg.TestTimeout, "test-timeout", time.Minute, "The duration the client has to connect to the external target before cancelling the test.",
 	)
+	clientCmd.PersistentFlags().BoolVar(
+		&clientCfg.Stress, "stress", false, "Keep opening connections to the external target until repeated failures occur.",
+	)
+	clientCmd.PersistentFlags().DurationVar(
+		&clientCfg.StressDelay, "stress-delay", 0, "Delay before starting the connections stress test, for metrics scraping purpose.",
+	)
 
 	rootCmd.AddCommand(clientCmd)
 }
