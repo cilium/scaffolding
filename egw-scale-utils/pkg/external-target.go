@@ -12,9 +12,27 @@ import (
 type ExternalTargetConfig struct {
 	AllowedCIDRString string
 	ListenPort        int
+	KeepOpen          bool
 }
 
-func handleConnection(conn net.Conn, allowedCIDR *net.IPNet, logger *slog.Logger) {
+type lkey struct{ ip, op string }
+
+var limiter = NewLogLimiter[lkey]()
+
+func readUntilError(conn net.Conn) error {
+	var (
+		buffer = make([]byte, 10)
+		err    error
+	)
+
+	for ; err == nil; _, err = conn.Read(buffer) {
+		// Keep blocking on reading until an error occurs.
+	}
+
+	return err
+}
+
+func handleConnection(conn net.Conn, allowedCIDR *net.IPNet, keepOpen bool, logger *slog.Logger) {
 	defer conn.Close()
 
 	var remoteIP net.IP
@@ -45,7 +63,18 @@ func handleConnection(conn net.Conn, allowedCIDR *net.IPNet, logger *slog.Logger
 		logger.Error("Unexpected error while writing data back to client", "remote-ip", remoteIP.String(), "err", err)
 	}
 
-	logger.Info("Responded to IP in allowed cidr", "ip", remoteIP.String())
+	if cnt, can := limiter.CanLog(lkey{remoteIP.String(), "open"}); can {
+		logger.Info("Responded to IP in allowed cidr", "ip", remoteIP.String(), "cnt", cnt)
+	}
+
+	if keepOpen {
+		// Wait until the client closes the connection before closing our side.
+		err := readUntilError(conn)
+
+		if cnt, can := limiter.CanLog(lkey{remoteIP.String(), "close"}); can {
+			logger.Info("Read returned, closing connection", "ip", remoteIP.String(), "cnt", cnt, "err", err)
+		}
+	}
 }
 
 func RunExternalTarget(cfg *ExternalTargetConfig) error {
@@ -70,7 +99,7 @@ func RunExternalTarget(cfg *ExternalTargetConfig) error {
 		return err
 	}
 
-	logger.Info("Listening for new connections", "listen-addr", listenAddr)
+	logger.Info("Listening for new connections", "listen-addr", listenAddr, "keep-open", cfg.KeepOpen)
 
 	for {
 		conn, err := listener.Accept()
@@ -80,6 +109,6 @@ func RunExternalTarget(cfg *ExternalTargetConfig) error {
 			continue
 		}
 
-		go handleConnection(conn, allowedCIDR, logger)
+		go handleConnection(conn, allowedCIDR, cfg.KeepOpen, logger)
 	}
 }

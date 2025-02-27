@@ -27,7 +27,11 @@ func init() {
 		&externalTargetCfg.AllowedCIDRString, "allowed-cidr", "", "Only respond to clients from the given CIDR",
 	)
 	externalTargetCmd.PersistentFlags().IntVar(
-		&externalTargetCfg.ListenPort, "listen-port", 1337, "Port to listen for incomming connections on",
+		&externalTargetCfg.ListenPort, "listen-port", 1337, "Port to listen for incoming connections on",
+	)
+
+	externalTargetCmd.PersistentFlags().BoolVar(
+		&externalTargetCfg.KeepOpen, "keep-open", false, "Keep incoming connections open until the client closes them",
 	)
 
 	rootCmd.AddCommand(externalTargetCmd)
