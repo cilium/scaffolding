@@ -124,7 +124,7 @@ github.com/cilium/ebpf/internal/testutils/fdtrace
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-# github.com/cilium/hive v0.0.0-20250217113459-914947d44393
+# github.com/cilium/hive v0.0.0-20250225134141-234bb76adde9
 ## explicit; go 1.21.3
 github.com/cilium/hive
 github.com/cilium/hive/cell
