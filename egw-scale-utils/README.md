@@ -76,3 +76,24 @@ each of the components in the test. The binary has two subcommands:
 |`egw_scale_test_leaked_requests_total`|The total number of leaked requests a client made when trying to access the external target.|
 |`egw_scale_test_masquerade_delay_seconds_total`|The number of seconds between a client pod starting and hitting the external target.|
 |`egw_scale_test_failed_tests_total`|Incremented when a client Pod is unable to connect to the external target after a preconfigured timeout.|
+
+## Max Parallel Connections
+
+This test measures the maximum number of parallel connections that can be opened
+from a client to an external destination via the egress gateway. Specifically,
+once the first connection is successfully established, the client continuously
+opens new connections until repeated failures are encountered. All connections
+are kept open by the server, and closed only when the client process gets terminated.
+
+This test leverages the same binary as the pod masquerade delay test. The
+`external-target` shall be passed the `--keep-open` flag to keep connections open.
+The client, instead, shall be passed the `--stress` flag to execute the parallel
+connections stress test; optionally, the `--stress-delay` flag may be also configured
+to introduce a delay before starting the test (for metrics scraping purposes).
+
+### Client Pod Metrics
+
+|Name|Description|
+|---|---|
+|`egw_scale_test_stress_connections_total`|The total number connections towards the external target. Labeled by *operation*, with possible values *open* (i.e., connections successfully opened) and *close* (i.e., connections unexpectedly closed).|
+|`egw_scale_test_stress_connection_latency_seconds`|The time that it takes for a new connection to be successfully opened|
