@@ -1,9 +1,9 @@
 periodics:
-- name: egw-md-bs-100-20-main
+- name: egw-baseline-100-20-main
   tags:
   - "perfDashPrefix: egw-baseline-main"
-  - "perfDashJobType: performance"
-- name: egw-md-100-20-main
+  - "perfDashJobType: networking"
+- name: egw-egw-100-20-main
   tags:
   - "perfDashPrefix: egw-main"
-  - "perfDashJobType: performance"
+  - "perfDashJobType: networking"
