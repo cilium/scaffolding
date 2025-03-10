@@ -124,7 +124,7 @@ github.com/cilium/ebpf/internal/testutils/fdtrace
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-# github.com/cilium/hive v0.0.0-20250225134141-234bb76adde9
+# github.com/cilium/hive v0.0.0-20250305081751-08596a874b92
 ## explicit; go 1.21.3
 github.com/cilium/hive
 github.com/cilium/hive/cell
@@ -532,8 +532,8 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.10.0
-## explicit; go 1.18
+# golang.org/x/time v0.11.0
+## explicit; go 1.23.0
 golang.org/x/time/rate
 # golang.org/x/tools v0.28.0
 ## explicit; go 1.22.0
