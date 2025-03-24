@@ -63,6 +63,14 @@ func (mk *mocker) Run(ctx context.Context, _ cell.Health) error {
 		return err
 	}
 
+	// The etcdinit container initializes the RBAC so that the remote user can
+	// only access the information of the specific target cluster, while the
+	// local one can access the data cached via KVStoreMesh. However, in this
+	// scale test, the mocker leverages the KVStoreMesh API to mock multiple
+	// clusters at once. Hence, let's tune the user permissions so that the
+	// real KVStoreMesh container can then retrieve the mocked data.
+	backend.UserEnforcePresence(ctx, "remote", []string{"local", "remote"})
+
 	cls := newClusters(mk.log, mk.cfg, mk.factory, backend, mk.rnd)
 	cls.Run(ctx, mk.syncState)
 	return nil
