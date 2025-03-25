@@ -41,4 +41,4 @@ jobs:
           version: v2.0.0
           skip-cache: true
           working-directory: ${{ matrix.workdir }}
-          args: "--out-format colored-line-number --verbose --modules-download-mode=vendor"
+          args: "--verbose --modules-download-mode=vendor"
