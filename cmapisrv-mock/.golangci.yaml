@@ -1,16 +1,7 @@
-# options for analysis running
+version: "2"
+
 run:
-  # default concurrency is a available CPU number
   concurrency: 4
-
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  timeout: 20m
-
-  # exit code when at least one issue was found, default is 1
-  issues-exit-code: 1
-
-  # include test files or not, default is true
-  tests: true
 
   # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit
@@ -22,90 +13,100 @@ run:
   # the dependency descriptions in go.mod.
   modules-download-mode: readonly
 
-# all available settings of specific linters
-linters-settings:
-  govet:
-    enable:
-      - nilness
-  goimports:
-    local-prefixes: github.com/cilium
-  goheader:
-    values:
-      regexp:
-        PROJECT: 'Cilium|Hubble'
-    template: |-
-      SPDX-License-Identifier: Apache-2.0
-      Copyright Authors of {{ PROJECT }}
-  gosec:
-    includes:
-      - G402
-  gomodguard:
-    blocked:
-      modules:
-        - github.com/miekg/dns:
-            recommendations:
-              - github.com/cilium/dns
-            reason: "use the cilium fork directly to avoid replace directives in go.mod, see https://github.com/cilium/cilium/pull/27582"
-        - gopkg.in/check.v1:
-            recommendations:
-              - testing
-              - github.com/stretchr/testify/assert
-            reason: "gocheck has been deprecated, see https://docs.cilium.io/en/latest/contributing/testing/unit/#migrating-tests-off-of-gopkg-in-check-v1"
-        - go.uber.org/multierr:
-            recommendations:
-              - errors
-            reason: "Go 1.20+ has support for combining multiple errors, see https://go.dev/doc/go1.20#errors"
+  # exit code when at least one issue was found, default is 1
+  issues-exit-code: 1
 
-  stylecheck:
-    checks: ["ST1019"]
-
-issues:
-  # Excluding configuration per-path, per-linter, per-text and per-source
-  exclude-rules:
-    - linters: [staticcheck]
-      text: "SA1019"                  # this is rule for deprecated method
-    - linters: [staticcheck]
-      text: "SA9003: empty branch"
-    - linters: [staticcheck]
-      text: "SA2001: empty critical section"
-    - linters: [err113]
-      text: "do not define dynamic errors, use wrapped static errors instead" # This rule to avoid opinionated check fmt.Errorf("text")
-    # Skip goimports check on generated files
-    - path: \\.(generated\\.deepcopy|pb)\\.go$
-      linters:
-        - goimports
-    # Skip goheader check on files imported and modified from upstream k8s
-    - path: "pkg/ipam/(cidrset|service)/.+\\.go"
-      linters:
-        - goheader
+  # include test files or not, default is true
+  tests: true
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - err113
-    - gofmt
-    - goimports
+    - goheader
+    - gomodguard
+    - gosec
     - govet
     - ineffassign
     - misspell
     - staticcheck
-    - stylecheck
     - unused
-    - goheader
-    - gosec
-    - gomodguard
-    - gosimple
 
-# To enable later if makes sense
-#    - deadcode
-#    - errcheck
-#    - gocyclo
-#    - golint
-#    - gosec
-#    - gosimple
-#    - lll
-#    - maligned
-#    - misspell
-#    - prealloc
-#    - structcheck
-#    - typecheck
+  settings:
+    goheader:
+      values:
+        regexp:
+          PROJECT: Cilium|Hubble
+      template: |-
+        SPDX-License-Identifier: Apache-2.0
+        Copyright Authors of {{ PROJECT }}
+    gomodguard:
+      blocked:
+        modules:
+          - github.com/miekg/dns:
+              recommendations:
+                - github.com/cilium/dns
+              reason: use the cilium fork directly to avoid replace directives in go.mod, see https://github.com/cilium/cilium/pull/27582
+          - gopkg.in/check.v1:
+              recommendations:
+                - testing
+                - github.com/stretchr/testify/assert
+              reason: gocheck has been deprecated, see https://docs.cilium.io/en/latest/contributing/testing/unit/#migrating-tests-off-of-gopkg-in-check-v1
+          - go.uber.org/multierr:
+              recommendations:
+                - errors
+              reason: Go 1.20+ has support for combining multiple errors, see https://go.dev/doc/go1.20#errors
+    gosec:
+      includes:
+        - G402
+    govet:
+      enable:
+        - nilness
+    staticcheck:
+      checks:
+        - ST1019
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - staticcheck
+        text: SA1019
+      - linters:
+          - staticcheck
+        text: 'SA9003: empty branch'
+      - linters:
+          - staticcheck
+        text: 'SA2001: empty critical section'
+      - linters:
+          - err113
+        text: do not define dynamic errors, use wrapped static errors instead
+      - linters:
+          - goheader
+        path: pkg/ipam/(cidrset|service)/.+\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/cilium
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - \\.(generated\\.deepcopy|pb)\\.go$
