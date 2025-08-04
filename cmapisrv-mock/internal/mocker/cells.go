@@ -4,6 +4,8 @@
 package mocker
 
 import (
+	"errors"
+
 	"github.com/cilium/hive/cell"
 
 	cmhealth "github.com/cilium/cilium/clustermesh-apiserver/health"
@@ -31,7 +33,16 @@ var Cell = cell.Module(
 
 	controller.Cell,
 
-	kvstore.Cell,
+	kvstore.Cell(kvstore.EtcdBackendName),
+	cell.Invoke(func(client kvstore.Client) error {
+		if !client.IsEnabled() {
+			return errors.New("KVStore client not configured, cannot continue")
+		}
+
+		return nil
+	}),
+
+	heartbeat.Enabled,
 	heartbeat.Cell,
 	cell.Provide(func(ss syncstate.SyncState) *kvstore.ExtraOptions {
 		return &kvstore.ExtraOptions{
@@ -45,7 +56,7 @@ var Cell = cell.Module(
 	syncstate.Cell,
 	cell.Provide((*mocker).HealthEndpoints),
 
-	gops.Cell(defaults.GopsPortKVStoreMesh),
+	gops.Cell(defaults.EnableGops, defaults.GopsPortKVStoreMesh),
 	cmmetrics.Cell,
 
 	cell.Provide(newRandom),

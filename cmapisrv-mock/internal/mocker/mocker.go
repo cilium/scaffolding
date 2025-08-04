@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/store"
 	"github.com/cilium/cilium/pkg/logging/logfields"
-	"github.com/cilium/cilium/pkg/promise"
 )
 
 type mocker struct {
@@ -24,7 +23,7 @@ type mocker struct {
 
 	log *slog.Logger
 
-	backend promise.Promise[kvstore.BackendOperations]
+	backend kvstore.Client
 	factory store.Factory
 	rnd     *random
 
@@ -39,7 +38,7 @@ func newMocker(in struct {
 	JobGroup  job.Group
 
 	Config    config
-	Backend   promise.Promise[kvstore.BackendOperations]
+	Backend   kvstore.Client
 	Factory   store.Factory
 	Random    *random
 	SyncState syncstate.SyncState
@@ -58,20 +57,15 @@ func newMocker(in struct {
 }
 
 func (mk *mocker) Run(ctx context.Context, _ cell.Health) error {
-	backend, err := mk.backend.Await(ctx)
-	if err != nil {
-		return err
-	}
-
 	// The etcdinit container initializes the RBAC so that the remote user can
 	// only access the information of the specific target cluster, while the
 	// local one can access the data cached via KVStoreMesh. However, in this
 	// scale test, the mocker leverages the KVStoreMesh API to mock multiple
 	// clusters at once. Hence, let's tune the user permissions so that the
 	// real KVStoreMesh container can then retrieve the mocked data.
-	backend.UserEnforcePresence(ctx, "remote", []string{"local", "remote"})
+	mk.backend.UserEnforcePresence(ctx, "remote", []string{"local", "remote"})
 
-	cls := newClusters(mk.log, mk.cfg, mk.factory, backend, mk.rnd)
+	cls := newClusters(mk.log, mk.cfg, mk.factory, mk.backend, mk.rnd)
 	cls.Run(ctx, mk.syncState)
 	return nil
 }

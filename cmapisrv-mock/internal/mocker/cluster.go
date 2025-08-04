@@ -13,8 +13,8 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/cilium/cilium/clustermesh-apiserver/syncstate"
+	"github.com/cilium/cilium/pkg/clustermesh/clustercfg"
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
-	cmutils "github.com/cilium/cilium/pkg/clustermesh/utils"
 	"github.com/cilium/cilium/pkg/defaults"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/store"
@@ -159,7 +159,7 @@ func (cl *cluster) writeClusterConfig(ctx context.Context) {
 		},
 	}
 
-	if err := cmutils.SetClusterConfig(ctx, cl.cinfo.Name, config, cl.backend); err != nil {
+	if err := clustercfg.Set(ctx, cl.cinfo.Name, config, cl.backend); err != nil {
 		cl.log.Error("Failed to write ClusterConfig", logfields.Error, err)
 		os.Exit(-1)
 	}
