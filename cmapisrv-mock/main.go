@@ -18,10 +18,6 @@ import (
 	"github.com/cilium/scaffolding/cmapisrv-mock/internal/mocker"
 )
 
-var (
-	log = logging.DefaultLogger.WithField(logfields.LogSubsys, "mocker")
-)
-
 func main() {
 	cmd := &cobra.Command{
 		Use:   "cmapisrv-mock",
@@ -53,7 +49,8 @@ func newMockerCmd(h *hive.Hive) *cobra.Command {
 			metrics.Namespace = "mocker"
 			option.Config.SetupLogging(h.Viper(), "mocker")
 
-			option.LogRegisteredOptions(h.Viper(), log)
+			logger := logging.DefaultSlogLogger.With(logfields.LogSubsys, "mocker")
+			option.LogRegisteredSlogOptions(h.Viper(), logger)
 		},
 	}
 

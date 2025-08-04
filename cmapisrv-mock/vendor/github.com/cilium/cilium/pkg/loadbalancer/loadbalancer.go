@@ -4,22 +4,38 @@
 package loadbalancer
 
 import (
+	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
-	"sort"
+	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
+	"unsafe"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/cilium/statedb/index"
 	"github.com/cilium/statedb/part"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/cilium/cilium/api/v1/models"
-	"github.com/cilium/cilium/pkg/cidr"
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
-	"github.com/cilium/cilium/pkg/option"
-	"github.com/cilium/cilium/pkg/u8proto"
+	"github.com/cilium/cilium/pkg/container/cache"
+	"github.com/cilium/cilium/pkg/hive"
+)
+
+// InitWaitFunc is provided by the load-balancing cell to wait until the
+// load-balancing control-plane has finished reconciliation of the initial
+// data set.
+type InitWaitFunc hive.WaitFunc
+
+type IPFamily = bool
+
+const (
+	IPFamilyIPv4 = IPFamily(false)
+	IPFamilyIPv6 = IPFamily(true)
 )
 
 // SVCType is a type of a service.
@@ -56,34 +72,46 @@ const (
 type SVCForwardingMode string
 
 const (
-	SVCForwardingModeUndef = SVCForwardingMode("undef")
+	SVCForwardingModeUndef = SVCForwardingMode("")
 	SVCForwardingModeDSR   = SVCForwardingMode("dsr")
 	SVCForwardingModeSNAT  = SVCForwardingMode("snat")
 )
 
 func ToSVCForwardingMode(s string) SVCForwardingMode {
-	if s == option.NodePortModeDSR {
+	switch s {
+	case LBModeDSR:
 		return SVCForwardingModeDSR
-	}
-	if s == option.NodePortModeSNAT {
+	case LBModeSNAT:
 		return SVCForwardingModeSNAT
+	default:
+		return SVCForwardingModeUndef
 	}
-	return SVCForwardingModeUndef
 }
 
 type SVCLoadBalancingAlgorithm uint8
 
 const (
-	SVCLoadBalancingAlgorithmUndef  = 0
-	SVCLoadBalancingAlgorithmRandom = 1
-	SVCLoadBalancingAlgorithmMaglev = 2
+	SVCLoadBalancingAlgorithmUndef  SVCLoadBalancingAlgorithm = 0
+	SVCLoadBalancingAlgorithmRandom SVCLoadBalancingAlgorithm = 1
+	SVCLoadBalancingAlgorithmMaglev SVCLoadBalancingAlgorithm = 2
 )
 
+func (d SVCLoadBalancingAlgorithm) String() string {
+	switch d {
+	case SVCLoadBalancingAlgorithmRandom:
+		return "random"
+	case SVCLoadBalancingAlgorithmMaglev:
+		return "maglev"
+	default:
+		return "undef"
+	}
+}
+
 func ToSVCLoadBalancingAlgorithm(s string) SVCLoadBalancingAlgorithm {
-	if s == option.NodePortAlgMaglev {
+	if s == LBAlgorithmMaglev {
 		return SVCLoadBalancingAlgorithmMaglev
 	}
-	if s == option.NodePortAlgRandom {
+	if s == LBAlgorithmRandom {
 		return SVCLoadBalancingAlgorithmRandom
 	}
 	return SVCLoadBalancingAlgorithmUndef
@@ -94,6 +122,13 @@ type SVCSourceRangesPolicy string
 const (
 	SVCSourceRangesPolicyAllow = SVCSourceRangesPolicy("allow")
 	SVCSourceRangesPolicyDeny  = SVCSourceRangesPolicy("deny")
+)
+
+type SVCProxyDelegation string
+
+const (
+	SVCProxyDelegationNone            = SVCProxyDelegation("none")
+	SVCProxyDelegationDelegateIfLocal = SVCProxyDelegation("delegate-if-local")
 )
 
 // ServiceFlags is the datapath representation of the service flags that can be
@@ -124,6 +159,7 @@ const (
 	serviceFlagFwdModeDSR      = 1 << 15
 )
 
+// +k8s:deepcopy-gen=true
 type SvcFlagParam struct {
 	SvcType          SVCType
 	SvcNatPolicy     SVCNatPolicy
@@ -152,9 +188,6 @@ func NewSvcFlag(p *SvcFlagParam) ServiceFlags {
 		flags |= serviceFlagLoadBalancer
 	case SVCTypeHostPort:
 		flags |= serviceFlagHostPort
-		if p.LoopbackHostport {
-			flags |= serviceFlagLoopback
-		}
 	case SVCTypeLocalRedirect:
 		flags |= serviceFlagLocalRedirect
 	}
@@ -195,6 +228,9 @@ func NewSvcFlag(p *SvcFlagParam) ServiceFlags {
 	}
 	if p.SvcFwdModeDSR {
 		flags |= serviceFlagFwdModeDSR
+	}
+	if p.LoopbackHostport {
+		flags |= serviceFlagLoopback
 	}
 
 	return flags
@@ -299,7 +335,11 @@ func (s ServiceFlags) String() string {
 		str = append(str, "l7-load-balancer")
 	}
 	if s&serviceFlagLoopback != 0 {
-		str = append(str, "loopback")
+		if s.SVCType() == SVCTypeHostPort {
+			str = append(str, "loopback")
+		} else {
+			str = append(str, "delegate-if-local")
+		}
 	}
 	if !seenDeny && s&serviceFlagQuarantined != 0 {
 		str = append(str, "quarantined")
@@ -441,31 +481,167 @@ type ServiceID uint16
 
 // ServiceName represents the fully-qualified reference to the service by name,
 // including both the namespace and name of the service (and optionally the cluster).
+// +k8s:deepcopy-gen=true
 type ServiceName struct {
-	Namespace string
-	Name      string
-	Cluster   string
+	// str is (<cluster>/)<namespace>/<name>
+	str string
+
+	// namePos is where the name starts
+	// (<cluster>/)<namespace>/<name>
+	//                         ^
+	namePos uint16
+
+	// clusterEndPos is where the cluster (including '/' ends. If zero then there is
+	// no cluster.
+	// (<cluster>/)<namespace>/<name>
+	//             ^
+	clusterEndPos uint16
+}
+
+func (s ServiceName) Cluster() string {
+	if s.clusterEndPos > 0 {
+		return s.str[:s.clusterEndPos-1]
+	}
+	return ""
+}
+
+func (s ServiceName) Name() string {
+	return s.str[s.namePos:]
+}
+
+func (s ServiceName) Namespace() string {
+	return s.str[s.clusterEndPos : s.namePos-1]
+}
+
+func (n ServiceName) Key() index.Key {
+	// index.Key is never mutated so it's safe to return the underlying
+	// string as []byte without copying.
+	return unsafe.Slice(unsafe.StringData(n.str), len(n.str))
+}
+
+func NewServiceName(namespace, name string) ServiceName {
+	return NewServiceNameInCluster("", namespace, name)
+}
+
+// serviceNameCache for deduplicating the [ServiceName.str] to reduce overall
+// memory usage.
+var serviceNameCache = cache.New(
+	func(n ServiceName) uint64 {
+		return serviceNameHash(n.Cluster(), n.Namespace(), n.Name())
+	},
+	nil,
+	func(a, b ServiceName) bool {
+		return b.str != "" /* only match if non-zero value */ &&
+			a.str == b.str
+	},
+)
+
+func serviceNameHash(cluster, namespace, name string) uint64 {
+	var d xxhash.Digest
+	d.WriteString(cluster)
+	d.WriteString(namespace)
+	d.WriteString(name)
+	return d.Sum64()
+}
+
+func NewServiceNameInCluster(cluster, namespace, name string) ServiceName {
+	return cache.GetOrPutWith(
+		serviceNameCache,
+		serviceNameHash(cluster, namespace, name),
+		func(sn ServiceName) bool {
+			return len(sn.str) > 0 &&
+				sn.Cluster() == cluster && sn.Namespace() == namespace && sn.Name() == name
+		},
+		func() ServiceName {
+			// ServiceName not found from cache, create it.
+			var b strings.Builder
+			pos := 0
+			if cluster != "" {
+				n, _ := b.WriteString(cluster)
+				b.WriteRune('/')
+				pos += n + 1
+			}
+			cendPos := pos
+			n, _ := b.WriteString(namespace)
+			b.WriteRune('/')
+			pos += n + 1
+			b.WriteString(name)
+			return ServiceName{
+				str:           b.String(),
+				clusterEndPos: uint16(cendPos),
+				namePos:       uint16(pos),
+			}
+		},
+	)
+}
+
+func (n ServiceName) MarshalJSON() ([]byte, error) {
+	return json.Marshal(n.str)
+}
+
+func (n *ServiceName) UnmarshalJSON(bs []byte) error {
+	return n.unmarshalString(strings.Trim(string(bs), `"`))
+}
+
+func (n *ServiceName) unmarshalString(s string) error {
+	s = strings.TrimSpace(s[:min(len(s), 65535)])
+	orig := s
+	n.str = s
+	pos := 0
+	popSlash := func() int {
+		if len(s) > 0 {
+			idx := strings.Index(s, "/")
+			if idx >= 0 {
+				s = s[idx+1:]
+				pos += idx + 1
+				return pos
+			}
+		}
+		return -1
+	}
+	i1, i2 := popSlash(), popSlash()
+	switch {
+	case i1 < 0:
+		n.str = ""
+		return fmt.Errorf("invalid service name: no namespace in %q", orig)
+	case i2 < 0:
+		n.namePos = uint16(i1)
+	default:
+		n.clusterEndPos = uint16(i1)
+		n.namePos = uint16(i2)
+	}
+	// Deduplicate
+	*n = serviceNameCache.Get(*n)
+	return nil
+}
+
+func (n ServiceName) MarshalYAML() (any, error) {
+	return n.String(), nil
+}
+
+func (n *ServiceName) UnmarshalYAML(value *yaml.Node) error {
+	return n.unmarshalString(value.Value)
 }
 
 func (n *ServiceName) Equal(other ServiceName) bool {
-	return n.Namespace == other.Namespace &&
-		n.Name == other.Name &&
-		n.Cluster == other.Cluster
+	return n.clusterEndPos == other.clusterEndPos &&
+		n.namePos == other.namePos &&
+		n.str == other.str
 }
 
 func (n ServiceName) Compare(other ServiceName) int {
 	switch {
-	case n.Namespace < other.Namespace:
+	case n.Namespace() < other.Namespace():
 		return -1
-	case n.Namespace > other.Namespace:
+	case n.Namespace() > other.Namespace():
 		return 1
-	case n.Name < other.Name:
+	case n.Name() < other.Name():
 		return -1
-	case n.Name > other.Name:
+	case n.Name() > other.Name():
 		return 1
-	case n.Cluster < other.Cluster:
+	case n.Cluster() < other.Cluster():
 		return -1
-	case n.Cluster > other.Cluster:
+	case n.Cluster() > other.Cluster():
 		return 1
 	default:
 		return 0
@@ -473,165 +649,19 @@ func (n ServiceName) Compare(other ServiceName) int {
 }
 
 func (n ServiceName) String() string {
-	if n.Cluster != "" {
-		return n.Cluster + "/" + n.Namespace + "/" + n.Name
-	}
+	return n.str
+}
 
-	return n.Namespace + "/" + n.Name
+func (n ServiceName) AppendSuffix(suffix string) ServiceName {
+	n.str += suffix
+	return n
 }
 
 // BackendID is the backend's ID.
 type BackendID uint32
 
-// ID is the ID of L3n4Addr endpoint (either service or backend).
-type ID uint32
-
 // BackendState is the state of a backend for load-balancing service traffic.
 type BackendState uint8
-
-// Preferred indicates if this backend is preferred to be load balanced.
-type Preferred bool
-
-// Backend represents load balancer backend.
-type Backend struct {
-	// FEPortName is the frontend port name. This is used to filter backends sending to EDS.
-	FEPortName string
-	// ID of the backend
-	ID BackendID
-	// Weight of backend
-	Weight uint16
-	// Node hosting this backend. This is used to determine backends local to
-	// a node.
-	NodeName string
-	// Zone where backend is located.
-	ZoneID uint8
-	L3n4Addr
-	// State of the backend for load-balancing service traffic
-	State BackendState
-	// Preferred indicates if the healthy backend is preferred
-	Preferred Preferred
-}
-
-func (b *Backend) String() string {
-	state, _ := b.State.String()
-	return "[" + b.L3n4Addr.String() + "," + "State:" + state + "]"
-}
-
-// SVC is a structure for storing service details.
-type SVC struct {
-	Frontend                  L3n4AddrID        // SVC frontend addr and an allocated ID
-	Backends                  []*Backend        // List of service backends
-	Type                      SVCType           // Service type
-	ForwardingMode            SVCForwardingMode // Service mode (DSR vs SNAT)
-	ExtTrafficPolicy          SVCTrafficPolicy  // Service external traffic policy
-	IntTrafficPolicy          SVCTrafficPolicy  // Service internal traffic policy
-	NatPolicy                 SVCNatPolicy      // Service NAT 46/64 policy
-	SourceRangesPolicy        SVCSourceRangesPolicy
-	SessionAffinity           bool
-	SessionAffinityTimeoutSec uint32
-	HealthCheckNodePort       uint16                    // Service health check node port
-	Name                      ServiceName               // Fully qualified service name
-	LoadBalancerAlgorithm     SVCLoadBalancingAlgorithm // Service LB algorithm (random or maglev)
-	LoadBalancerSourceRanges  []*cidr.CIDR
-	L7LBProxyPort             uint16 // Non-zero for L7 LB services
-	LoopbackHostport          bool
-	Annotations               map[string]string
-}
-
-func (s *SVC) GetModel() *models.Service {
-	var natPolicy string
-	type backendPlacement struct {
-		pos int
-		id  BackendID
-	}
-
-	if s == nil {
-		return nil
-	}
-
-	id := int64(s.Frontend.ID)
-	if s.NatPolicy != SVCNatPolicyNone {
-		natPolicy = string(s.NatPolicy)
-	}
-	spec := &models.ServiceSpec{
-		ID:               id,
-		FrontendAddress:  s.Frontend.GetModel(),
-		BackendAddresses: make([]*models.BackendAddress, len(s.Backends)),
-		Flags: &models.ServiceSpecFlags{
-			Type:                string(s.Type),
-			TrafficPolicy:       string(s.ExtTrafficPolicy),
-			ExtTrafficPolicy:    string(s.ExtTrafficPolicy),
-			IntTrafficPolicy:    string(s.IntTrafficPolicy),
-			NatPolicy:           natPolicy,
-			HealthCheckNodePort: s.HealthCheckNodePort,
-
-			Name:      s.Name.Name,
-			Namespace: s.Name.Namespace,
-		},
-	}
-
-	if s.Name.Cluster != option.Config.ClusterName {
-		spec.Flags.Cluster = s.Name.Cluster
-	}
-
-	placements := make([]backendPlacement, len(s.Backends))
-	for i, be := range s.Backends {
-		placements[i] = backendPlacement{pos: i, id: be.ID}
-	}
-	sort.Slice(placements,
-		func(i, j int) bool { return placements[i].id < placements[j].id })
-	for i, placement := range placements {
-		spec.BackendAddresses[i] = s.Backends[placement.pos].GetBackendModel()
-	}
-
-	return &models.Service{
-		Spec: spec,
-		Status: &models.ServiceStatus{
-			Realized: spec,
-		},
-	}
-}
-
-func IsValidStateTransition(old, new BackendState) bool {
-	if old == new {
-		return true
-	}
-	if new == BackendStateInvalid {
-		return false
-	}
-
-	switch old {
-	case BackendStateActive:
-	case BackendStateTerminating:
-		return false
-	case BackendStateQuarantined:
-		if new == BackendStateMaintenance {
-			return false
-		}
-	case BackendStateMaintenance:
-		if new != BackendStateActive {
-			return false
-		}
-	default:
-		return false
-	}
-	return true
-}
-
-func GetBackendState(state string) (BackendState, error) {
-	switch strings.ToLower(state) {
-	case models.BackendAddressStateActive, "":
-		return BackendStateActive, nil
-	case models.BackendAddressStateTerminating:
-		return BackendStateTerminating, nil
-	case models.BackendAddressStateQuarantined:
-		return BackendStateQuarantined, nil
-	case models.BackendAddressStateMaintenance:
-		return BackendStateMaintenance, nil
-	default:
-		return BackendStateInvalid, fmt.Errorf("invalid backend state %s", state)
-	}
-}
 
 func (state BackendState) String() (string, error) {
 	switch state {
@@ -646,12 +676,6 @@ func (state BackendState) String() (string, error) {
 	default:
 		return "", fmt.Errorf("invalid backend state %d", state)
 	}
-}
-
-func IsValidBackendState(state string) bool {
-	_, err := GetBackendState(state)
-
-	return err == nil
 }
 
 func NewL4Type(name string) (L4Type, error) {
@@ -687,6 +711,7 @@ func NewL4TypeFromNumber(proto uint8) L4Type {
 // L4Addr is an abstraction for the backend port with a L4Type, usually tcp or udp, and
 // the Port number.
 //
+// +k8s:deepcopy-gen=true
 // +deepequal-gen=true
 // +deepequal-gen:private-method=true
 type L4Addr struct {
@@ -703,23 +728,17 @@ func (l *L4Addr) DeepEqual(o *L4Addr) bool {
 }
 
 // NewL4Addr creates a new L4Addr.
-func NewL4Addr(protocol L4Type, number uint16) *L4Addr {
-	return &L4Addr{Protocol: protocol, Port: number}
+func NewL4Addr(protocol L4Type, number uint16) L4Addr {
+	return L4Addr{Protocol: protocol, Port: number}
 }
 
 // Equals returns true if both L4Addr are considered equal.
-func (l *L4Addr) Equals(o *L4Addr) bool {
-	switch {
-	case (l == nil) != (o == nil):
-		return false
-	case (l == nil) && (o == nil):
-		return true
-	}
+func (l L4Addr) Equals(o L4Addr) bool {
 	return l.Port == o.Port && l.Protocol == o.Protocol
 }
 
 // String returns a string representation of an L4Addr
-func (l *L4Addr) String() string {
+func (l L4Addr) String() string {
 	return fmt.Sprintf("%d/%s", l.Port, l.Protocol)
 }
 
@@ -730,6 +749,7 @@ func (l *L4Addr) String() string {
 //
 // +deepequal-gen=true
 // +deepequal-gen:private-method=true
+// +k8s:deepcopy-gen=true
 type L3n4Addr struct {
 	AddrCluster cmtypes.AddrCluster
 	L4Addr
@@ -745,12 +765,9 @@ func (l *L3n4Addr) DeepEqual(o *L3n4Addr) bool {
 }
 
 // NewL3n4Addr creates a new L3n4Addr.
-func NewL3n4Addr(protocol L4Type, addrCluster cmtypes.AddrCluster, portNumber uint16, scope uint8) *L3n4Addr {
+func NewL3n4Addr(protocol L4Type, addrCluster cmtypes.AddrCluster, portNumber uint16, scope uint8) L3n4Addr {
 	lbport := NewL4Addr(protocol, portNumber)
-
-	addr := L3n4Addr{AddrCluster: addrCluster, L4Addr: *lbport, Scope: scope}
-
-	return &addr
+	return L3n4Addr{AddrCluster: addrCluster, L4Addr: lbport, Scope: scope}
 }
 
 func NewL3n4AddrFromModel(base *models.FrontendAddress) (*L3n4Addr, error) {
@@ -787,7 +804,7 @@ func NewL3n4AddrFromModel(base *models.FrontendAddress) (*L3n4Addr, error) {
 		return nil, fmt.Errorf("invalid scope \"%s\"", base.Scope)
 	}
 
-	return &L3n4Addr{AddrCluster: addrCluster, L4Addr: *l4addr, Scope: scope}, nil
+	return &L3n4Addr{AddrCluster: addrCluster, L4Addr: l4addr, Scope: scope}, nil
 }
 
 // L3n4AddrFromString constructs a StateDB key by parsing the input in the form of
@@ -795,7 +812,7 @@ func NewL3n4AddrFromModel(base *models.FrontendAddress) (*L3n4Addr, error) {
 // keys for prefix searches, e.g. "1.2.3.4".
 // This must be kept in sync with Bytes().
 func L3n4AddrFromString(key string) (index.Key, error) {
-	keyErr := errors.New("bad key, expected \"<addr>:<port>/<proto>(/i)\", e.g. \"1.2.3.4:80/TCP\"")
+	keyErr := errors.New("bad key, expected \"<addr>:<port>/<proto>(/i)\", e.g. \"1.2.3.4:80/TCP\" or classful prefix \"10.0.0.0/8\"")
 	var out []byte
 
 	if len(key) == 0 {
@@ -818,6 +835,22 @@ func L3n4AddrFromString(key string) (index.Key, error) {
 
 	addrCluster, err := cmtypes.ParseAddrCluster(addr)
 	if err != nil {
+		// See if the address is a prefix and try to parse it as such.
+		// We only support classful searches, e.g. /8, /16, /24, /32 since
+		// indexing is byte-wise.
+		if prefix, err := netip.ParsePrefix(addr); err == nil {
+			bits := prefix.Bits()
+			if bits%8 != 0 {
+				return index.Key{}, fmt.Errorf("%w: only classful prefixes supported (/8,/16,/24,/32)", keyErr)
+			}
+			bytes := prefix.Addr().As16()
+			if prefix.Addr().Is6() {
+				return index.Key(bytes[:bits/8]), nil
+			} else {
+				// The address is in the 16-byte format, cut from the last 4 bytes.
+				return index.Key(bytes[:12+bits/8]), nil
+			}
+		}
 		return index.Key{}, fmt.Errorf("%w: %w", keyErr, err)
 	}
 	addr20 := addrCluster.As20()
@@ -860,72 +893,62 @@ func L3n4AddrFromString(key string) (index.Key, error) {
 	return index.Key(out), nil
 }
 
-// NewBackend creates the Backend struct instance from given params.
-// The default state for the returned Backend is BackendStateActive.
-func NewBackend(id BackendID, protocol L4Type, addrCluster cmtypes.AddrCluster, portNumber uint16) *Backend {
-	return NewBackendWithState(id, protocol, addrCluster, portNumber, 0, BackendStateActive)
-}
+func (l *L3n4Addr) ParseFromString(s string) error {
+	formatError := fmt.Errorf(
+		"bad address %q, expected \"<addr>:<port>/<proto>(/i)\", e.g. \"1.2.3.4:80/TCP\"",
+		s,
+	)
 
-// NewBackendWithState creates the Backend struct instance from given params.
-func NewBackendWithState(id BackendID, protocol L4Type, addrCluster cmtypes.AddrCluster, portNumber uint16, zone uint8,
-	state BackendState) *Backend {
-	lbport := NewL4Addr(protocol, portNumber)
-	b := Backend{
-		ID:       id,
-		L3n4Addr: L3n4Addr{AddrCluster: addrCluster, L4Addr: *lbport},
-		State:    state,
-		Weight:   DefaultBackendWeight,
-		ZoneID:   zone,
+	// Parse address
+	var addr string
+	if strings.HasPrefix(s, "[") {
+		addr, s, _ = strings.Cut(s[1:], "]")
+		switch {
+		case strings.HasPrefix(s, ":"):
+			s = s[1:]
+		case len(s) > 0:
+			return formatError
+		}
+	} else {
+		addr, s, _ = strings.Cut(s, ":")
 	}
 
-	return &b
-}
-
-func NewBackendFromBackendModel(base *models.BackendAddress) (*Backend, error) {
-	if base.IP == nil {
-		return nil, fmt.Errorf("missing IP address")
-	}
-
-	l4addr := NewL4Addr(base.Protocol, base.Port)
-	addrCluster, err := cmtypes.ParseAddrCluster(*base.IP)
+	var err error
+	l.AddrCluster, err = cmtypes.ParseAddrCluster(addr)
 	if err != nil {
-		return nil, err
+		return formatError
 	}
-	state, err := GetBackendState(base.State)
+
+	// Parse port
+	if len(s) < 1 {
+		return formatError
+	}
+
+	var portS string
+	portS, s, _ = strings.Cut(s, "/")
+	port, err := strconv.ParseUint(portS, 10, 16)
 	if err != nil {
-		return nil, fmt.Errorf("invalid backend state [%s]", base.State)
+		return formatError
+	}
+	l.L4Addr.Port = uint16(port)
+
+	// Parse protocol
+	l.L4Addr.Protocol = TCP
+	if len(s) > 0 {
+		var proto string
+		proto, s, _ = strings.Cut(s, "/")
+		l.L4Addr.Protocol = L4Type(strings.ToUpper(proto))
+		if !slices.Contains(AllProtocols, l.L4Addr.Protocol) {
+			return formatError
+		}
 	}
 
-	b := &Backend{
-		NodeName:  base.NodeName,
-		ZoneID:    option.Config.GetZoneID(base.Zone),
-		L3n4Addr:  L3n4Addr{AddrCluster: addrCluster, L4Addr: *l4addr},
-		State:     state,
-		Preferred: Preferred(base.Preferred),
+	// Parse scope.
+	l.Scope = ScopeExternal
+	if s == "i" {
+		l.Scope = ScopeInternal
 	}
-
-	if base.Weight != nil {
-		b.Weight = *base.Weight
-	}
-
-	if b.Weight == 0 {
-		b.State = BackendStateMaintenance
-	}
-
-	return b, nil
-}
-
-func NewL3n4AddrFromBackendModel(base *models.BackendAddress) (*L3n4Addr, error) {
-	if base.IP == nil {
-		return nil, fmt.Errorf("missing IP address")
-	}
-
-	l4addr := NewL4Addr(base.Protocol, base.Port)
-	addrCluster, err := cmtypes.ParseAddrCluster(*base.IP)
-	if err != nil {
-		return nil, err
-	}
-	return &L3n4Addr{AddrCluster: addrCluster, L4Addr: *l4addr}, nil
+	return nil
 }
 
 func (a *L3n4Addr) GetModel() *models.FrontendAddress {
@@ -942,25 +965,6 @@ func (a *L3n4Addr) GetModel() *models.FrontendAddress {
 		Protocol: a.Protocol,
 		Port:     a.Port,
 		Scope:    scope,
-	}
-}
-
-func (b *Backend) GetBackendModel() *models.BackendAddress {
-	if b == nil {
-		return nil
-	}
-
-	addrClusterStr := b.AddrCluster.String()
-	stateStr, _ := b.State.String()
-	return &models.BackendAddress{
-		IP:        &addrClusterStr,
-		Protocol:  b.Protocol,
-		Port:      b.Port,
-		NodeName:  b.NodeName,
-		Zone:      option.Config.GetZone(b.ZoneID),
-		State:     stateStr,
-		Preferred: bool(b.Preferred),
-		Weight:    &b.Weight,
 	}
 }
 
@@ -988,88 +992,93 @@ func (a *L3n4Addr) StringID() string {
 	return a.String()
 }
 
-// Hash calculates a unique string of the L3n4Addr e.g for use as a key in maps.
-// Note: the resulting string is meant to be used as a key for maps and is not
-// readable by a human eye when printed out.
-func (a L3n4Addr) Hash() string {
-	const lenProto = 1 // proto is uint8
-	const lenScope = 1 // scope is uint8 which is an alias for byte
-	const lenPort = 2  // port is uint16 which is 2 bytes
-
-	b := make([]byte, cmtypes.AddrClusterLen+lenProto+lenScope+lenPort)
-	ac20 := a.AddrCluster.As20()
-	copy(b, ac20[:])
-	u8p, _ := u8proto.ParseProtocol(a.Protocol)
-	b[net.IPv6len] = byte(u8p)
-	// scope is a uint8 which is an alias for byte so a cast is safe
-	b[net.IPv6len+lenProto] = byte(a.Scope)
-	// port is a uint16, so 2 bytes
-	b[net.IPv6len+lenProto+lenScope] = byte(a.Port >> 8)
-	b[net.IPv6len+lenProto+lenScope+1] = byte(a.Port & 0xff)
-	return string(b)
-}
-
 // IsIPv6 returns true if the IP address in the given L3n4Addr is IPv6 or not.
 func (a *L3n4Addr) IsIPv6() bool {
 	return a.AddrCluster.Is6()
 }
 
-// ProtocolsEqual returns true if protocols match for both L3 and L4.
-func (l *L3n4Addr) ProtocolsEqual(o *L3n4Addr) bool {
-	return l.Protocol == o.Protocol &&
-		(l.AddrCluster.Is4() && o.AddrCluster.Is4() ||
-			l.AddrCluster.Is6() && o.AddrCluster.Is6())
+func (l *L3n4Addr) AddrString() string {
+	str := l.AddrCluster.Addr().String() + ":" + strconv.FormatUint(uint64(l.Port), 10)
+
+	return str
+}
+
+type l3n4AddrCacheEntry struct {
+	addr  L3n4Addr
+	bytes []byte
+}
+
+var l3n4AddrCache = cache.New(
+	func(e l3n4AddrCacheEntry) uint64 {
+		return e.addr.l3n4AddrCacheHash()
+	},
+	nil,
+	func(a, b l3n4AddrCacheEntry) bool {
+		return bytes.Equal(a.bytes, b.bytes)
+	},
+)
+
+func (l L3n4Addr) l3n4AddrCacheHash() uint64 {
+	var d xxhash.Digest
+	buf := l.AddrCluster.Addr().As16()
+	d.Write(buf[:])
+	binary.BigEndian.PutUint16(buf[:], l.Port)
+	d.Write(buf[:2])
+	return d.Sum64()
 }
 
 // Bytes returns the address as a byte slice for indexing purposes.
 // Similar to Hash() but includes the L4 protocol.
 func (l L3n4Addr) Bytes() []byte {
-	const keySize = cmtypes.AddrClusterLen +
-		2 /* Port */ +
-		1 /* Protocol */ +
-		1 /* Scope */
+	return cache.GetOrPutWith(
+		l3n4AddrCache,
+		l.l3n4AddrCacheHash(),
+		func(e l3n4AddrCacheEntry) bool {
+			return e.addr.DeepEqual(&l)
+		},
+		func() l3n4AddrCacheEntry {
+			const keySize = cmtypes.AddrClusterLen +
+				2 /* Port */ +
+				1 /* Protocol */ +
+				1 /* Scope */
 
-	key := make([]byte, 0, keySize)
-	addr20 := l.AddrCluster.As20()
-	key = append(key, addr20[:]...)
-	key = binary.BigEndian.AppendUint16(key, l.Port)
-	key = append(key, L4TypeAsByte(l.Protocol))
-	key = append(key, l.Scope)
-	return key
+			key := make([]byte, 0, keySize)
+			addr20 := l.AddrCluster.As20()
+			key = append(key, addr20[:]...)
+			key = binary.BigEndian.AppendUint16(key, l.Port)
+			key = append(key, L4TypeAsByte(l.Protocol))
+			key = append(key, l.Scope)
+			return l3n4AddrCacheEntry{
+				addr:  l,
+				bytes: key,
+			}
+		}).bytes
 }
 
-// L3n4AddrID is used to store, as an unique L3+L4 plus the assigned ID, in the
-// KVStore.
-//
-// +deepequal-gen=true
-// +deepequal-gen:private-method=true
-type L3n4AddrID struct {
-	L3n4Addr
-	ID ID
+func (l L3n4Addr) MarshalYAML() (any, error) {
+	return l.StringWithProtocol(), nil
+
+}
+func (l *L3n4Addr) UnmarshalYAML(value *yaml.Node) error {
+	return l.ParseFromString(value.Value)
 }
 
-// DeepEqual returns true if both the receiver and 'o' are deeply equal.
-func (l *L3n4AddrID) DeepEqual(o *L3n4AddrID) bool {
-	if l == nil {
-		return o == nil
+func NewL3n4AddrFromBackendModel(base *models.BackendAddress) (*L3n4Addr, error) {
+	if base.IP == nil {
+		return nil, fmt.Errorf("missing IP address")
 	}
-	return l.deepEqual(o)
-}
 
-// NewL3n4AddrID creates a new L3n4AddrID.
-func NewL3n4AddrID(protocol L4Type, addrCluster cmtypes.AddrCluster, portNumber uint16, scope uint8, id ID) *L3n4AddrID {
-	l3n4Addr := NewL3n4Addr(protocol, addrCluster, portNumber, scope)
-	return &L3n4AddrID{L3n4Addr: *l3n4Addr, ID: id}
-}
-
-// IsIPv6 returns true if the IP address in L3n4Addr's L3n4AddrID is IPv6 or not.
-func (l *L3n4AddrID) IsIPv6() bool {
-	return l.L3n4Addr.IsIPv6()
+	l4addr := NewL4Addr(base.Protocol, base.Port)
+	addrCluster, err := cmtypes.ParseAddrCluster(*base.IP)
+	if err != nil {
+		return nil, err
+	}
+	return &L3n4Addr{AddrCluster: addrCluster, L4Addr: l4addr}, nil
 }
 
 func init() {
 	// Register the types for use with part.Map and part.Set.
 	part.RegisterKeyType(
-		func(name ServiceName) []byte { return []byte(name.String()) })
+		func(name ServiceName) []byte { return []byte(name.Key()) })
 	part.RegisterKeyType(L3n4Addr.Bytes)
 }

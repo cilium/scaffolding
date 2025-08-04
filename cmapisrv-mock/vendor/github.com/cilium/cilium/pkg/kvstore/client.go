@@ -6,52 +6,87 @@ package kvstore
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"github.com/cilium/cilium/pkg/time"
+	"github.com/cilium/hive/cell"
+	"github.com/cilium/hive/script"
+
+	"github.com/cilium/cilium/pkg/spanstat"
 )
 
-var (
-	// defaultClient is the default client initialized by initClient
-	defaultClient BackendOperations
-	// defaultClientSet is a channel that is closed whenever the defaultClient
-	// is set.
-	defaultClientSet = make(chan struct{})
-)
+// Client is the client to interact with the kvstore (i.e., etcd).
+type Client interface {
+	// IsEnabled returns true if kvstore support is enabled,
+	// and the client can be used.
+	IsEnabled() bool
 
-func initClient(ctx context.Context, module backendModule, opts *ExtraOptions) error {
-	scopedLog := log.WithField(fieldKVStoreModule, module.getName())
-	c, errChan := module.newClient(ctx, opts)
-	if c == nil {
-		err := <-errChan
-		scopedLog.WithError(err).Fatal("Unable to create kvstore client")
-	}
+	BackendOperations
+}
 
-	defaultClient = c
+type clientImpl struct {
+	enabled bool
+
+	cfg    Config
+	opts   ExtraOptions
+	logger *slog.Logger
+
+	stats *spanstat.SpanStat
+
+	BackendOperations
+}
+
+func (cl *clientImpl) IsEnabled() bool {
+	return cl.enabled
+}
+
+func (cl *clientImpl) Start(hctx cell.HookContext) (err error) {
+	cl.stats.Start()
+	defer func() { cl.stats.EndError(err) }()
+
+	cl.logger.Info("Establishing connection to kvstore")
+	client, errCh := NewClient(context.Background(), cl.logger, cl.cfg.KVStore, cl.cfg.KVStoreOpt, cl.opts)
+
 	select {
-	case <-defaultClientSet:
-		// avoid closing channel already closed.
-	default:
-		close(defaultClientSet)
+	case err = <-errCh:
+	case <-hctx.Done():
+		err = hctx.Err()
 	}
 
-	go func() {
-		err, isErr := <-errChan
-		if isErr && err != nil {
-			scopedLog.WithError(err).Fatal("Unable to connect to kvstore")
+	if err != nil {
+		if client != nil {
+			client.Close()
 		}
-	}()
+
+		return fmt.Errorf("failed to establish connection to kvstore: %w", err)
+	}
+
+	cl.logger.Info("Connection to kvstore successfully established")
+	cl.BackendOperations = client
 
 	return nil
 }
 
-// Client returns the global kvstore, blocking until it has been configured
-func Client() BackendOperations {
-	<-defaultClientSet
-	return defaultClient
+func (cl *clientImpl) Stop(cell.HookContext) error {
+	if cl.BackendOperations != nil {
+		cl.BackendOperations.Close()
+	}
+	return nil
+}
+
+// commands returns the script commands suitable to be used in production environments.
+func (cl *clientImpl) commands() map[string]script.Cmd {
+	if !cl.IsEnabled() {
+		return nil
+	}
+
+	cmds := cmds{client: cl}
+	return map[string]script.Cmd{
+		"kvstore/list": cmds.list(),
+	}
 }
 
 // NewClient returns a new kvstore client based on the configuration
-func NewClient(ctx context.Context, selectedBackend string, opts map[string]string, options *ExtraOptions) (BackendOperations, chan error) {
+func NewClient(ctx context.Context, logger *slog.Logger, selectedBackend string, opts map[string]string, options ExtraOptions) (BackendOperations, chan error) {
 	// Channel used to report immediate errors, module.newClient will
 	// create and return a different channel, caller doesn't need to know
 	errChan := make(chan error, 1)
@@ -63,38 +98,10 @@ func NewClient(ctx context.Context, selectedBackend string, opts map[string]stri
 		return nil, errChan
 	}
 
-	if err := module.setConfig(opts); err != nil {
+	if err := module.setConfig(logger, opts); err != nil {
 		errChan <- err
 		return nil, errChan
 	}
 
-	if err := module.setExtraConfig(options); err != nil {
-		errChan <- err
-		return nil, errChan
-	}
-
-	return module.newClient(ctx, options)
-}
-
-// Connected returns a channel which is closed when the following conditions
-// are being met at the same time:
-// * The kvstore client is configured
-// * Connectivity to the kvstore has been established
-// * The kvstore has quorum
-//
-// The channel will *not* be closed if the kvstore client is closed before
-// connectivity or quorum has been achieved. It will wait until a new kvstore
-// client is configured to again wait for connectivity and quorum.
-func Connected() <-chan struct{} {
-	c := make(chan struct{})
-	go func(c chan struct{}) {
-		for {
-			if err := <-Client().Connected(context.Background()); err == nil {
-				close(c)
-				return
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}(c)
-	return c
+	return module.newClient(ctx, logger, options)
 }

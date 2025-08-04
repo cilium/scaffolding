@@ -8,10 +8,12 @@ import (
 	"maps"
 	"slices"
 
+	"k8s.io/utils/ptr"
+
+	serviceStore "github.com/cilium/cilium/pkg/clustermesh/store"
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/loadbalancer"
-	serviceStore "github.com/cilium/cilium/pkg/service/store"
 )
 
 type services struct {
@@ -77,8 +79,8 @@ func (svc *services) new() *serviceStore.ClusterService {
 func (svc *services) frontends() map[string]serviceStore.PortConfiguration {
 	fe := make(map[string]serviceStore.PortConfiguration)
 	ports := serviceStore.PortConfiguration{
-		"foo": loadbalancer.NewL4Addr(loadbalancer.TCP, 80),
-		"bar": loadbalancer.NewL4Addr(loadbalancer.TCP, 90),
+		"foo": ptr.To(loadbalancer.NewL4Addr(loadbalancer.TCP, 80)),
+		"bar": ptr.To(loadbalancer.NewL4Addr(loadbalancer.TCP, 90)),
 	}
 
 	fe[svc.rnd.ServiceIP4().String()] = ports
@@ -97,8 +99,8 @@ func (svc *services) backends() map[string]serviceStore.PortConfiguration {
 
 	be := make(map[string]serviceStore.PortConfiguration, n)
 	ports := serviceStore.PortConfiguration{
-		"foo": loadbalancer.NewL4Addr(loadbalancer.TCP, 8080),
-		"bar": loadbalancer.NewL4Addr(loadbalancer.TCP, 9090),
+		"foo": ptr.To(loadbalancer.NewL4Addr(loadbalancer.TCP, 8080)),
+		"bar": ptr.To(loadbalancer.NewL4Addr(loadbalancer.TCP, 9090)),
 	}
 
 	for len(be) < n {
@@ -119,8 +121,8 @@ func (svc *services) updated(be map[string]serviceStore.PortConfiguration) map[s
 	}
 
 	ports := serviceStore.PortConfiguration{
-		"foo": loadbalancer.NewL4Addr(loadbalancer.TCP, 8080),
-		"bar": loadbalancer.NewL4Addr(loadbalancer.TCP, 9090),
+		"foo": ptr.To(loadbalancer.NewL4Addr(loadbalancer.TCP, 8080)),
+		"bar": ptr.To(loadbalancer.NewL4Addr(loadbalancer.TCP, 9090)),
 	}
 
 	be[svc.rnd.PodIP4().String()] = ports
