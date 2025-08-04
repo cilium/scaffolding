@@ -5,9 +5,8 @@ package mocker
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/hive/cell"
 	"github.com/cilium/hive/job"
@@ -16,13 +15,14 @@ import (
 	"github.com/cilium/cilium/clustermesh-apiserver/syncstate"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/store"
+	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/promise"
 )
 
 type mocker struct {
 	cfg config
 
-	log logrus.FieldLogger
+	log *slog.Logger
 
 	backend promise.Promise[kvstore.BackendOperations]
 	factory store.Factory
@@ -35,7 +35,7 @@ func newMocker(in struct {
 	cell.In
 
 	Lifecycle cell.Lifecycle
-	Logger    logrus.FieldLogger
+	Logger    *slog.Logger
 	JobGroup  job.Group
 
 	Config    config
@@ -91,7 +91,7 @@ func (mk *mocker) HealthEndpoints() []health.EndpointFunc {
 
 				w.WriteHeader(statusCode)
 				if _, err := w.Write([]byte(reply)); err != nil {
-					mk.log.WithError(err).Error("Failed to respond to /readyz request")
+					mk.log.Error("Failed to respond to /readyz request", logfields.Error, err)
 				}
 			},
 		},

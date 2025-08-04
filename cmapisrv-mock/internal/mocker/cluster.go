@@ -6,9 +6,10 @@ package mocker
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 
 	"github.com/cilium/cilium/clustermesh-apiserver/syncstate"
@@ -17,6 +18,7 @@ import (
 	"github.com/cilium/cilium/pkg/defaults"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/store"
+	"github.com/cilium/cilium/pkg/logging/logfields"
 )
 
 type clusters struct {
@@ -24,14 +26,14 @@ type clusters struct {
 	cls []cluster
 }
 
-func newClusters(log logrus.FieldLogger, cfg config, factory store.Factory, backend kvstore.BackendOperations, rnd *random) clusters {
+func newClusters(log *slog.Logger, cfg config, factory store.Factory, backend kvstore.BackendOperations, rnd *random) clusters {
 	cls := clusters{cfg: cfg}
 
 	for i := uint(0); i < cfg.Clusters; i++ {
 		id := cfg.FirstClusterID + i
 		name := fmt.Sprintf("cluster-%03d", id)
 		cls.cls = append(cls.cls, newCluster(
-			log.WithField("cluster", name),
+			log.With("cluster", name),
 			cparams{
 				cluster:         cmtypes.ClusterInfo{ID: uint32(id), Name: name},
 				factory:         factory,
@@ -63,7 +65,7 @@ func (cls clusters) Run(ctx context.Context, ss syncstate.SyncState) {
 }
 
 type cluster struct {
-	log     logrus.FieldLogger
+	log     *slog.Logger
 	backend kvstore.BackendOperations
 
 	cinfo      cmtypes.ClusterInfo
@@ -83,7 +85,7 @@ type cparams struct {
 	nodeAnnotations map[string]string
 }
 
-func newCluster(log logrus.FieldLogger, cp cparams) cluster {
+func newCluster(log *slog.Logger, cp cparams) cluster {
 	log.Info("Creating cluster")
 	cl := cluster{
 		log:     log,
@@ -158,7 +160,8 @@ func (cl *cluster) writeClusterConfig(ctx context.Context) {
 	}
 
 	if err := cmutils.SetClusterConfig(ctx, cl.cinfo.Name, config, cl.backend); err != nil {
-		cl.log.WithError(err).Fatal("Failed to write ClusterConfig")
+		cl.log.Error("Failed to write ClusterConfig", logfields.Error, err)
+		os.Exit(-1)
 	}
 	cl.log.Info("Written ClusterConfig")
 }

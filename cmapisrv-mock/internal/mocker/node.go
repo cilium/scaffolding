@@ -4,14 +4,15 @@
 package mocker
 
 import (
+	"log/slog"
 	"net"
-
-	"github.com/sirupsen/logrus"
+	"os"
 
 	"github.com/cilium/cilium/pkg/cidr"
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/kvstore"
+	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/node/addressing"
 	nodeStore "github.com/cilium/cilium/pkg/node/store"
 	nodeTypes "github.com/cilium/cilium/pkg/node/types"
@@ -28,7 +29,7 @@ type nodes struct {
 	annotations map[string]string
 }
 
-func newNodes(log logrus.FieldLogger, cp cparams) *nodes {
+func newNodes(log *slog.Logger, cp cparams) *nodes {
 	prefix := kvstore.StateToCachePrefix(nodeStore.NodeStorePrefix)
 	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend, prefix)
 
@@ -98,7 +99,8 @@ func (ns *nodes) new() *nodeTypes.Node {
 	if ns.encryption == encryptionModeWireGuard {
 		key, err := ns.rnd.WireGuardPublicKey()
 		if err != nil {
-			ns.log.WithError(err).Fatal("Failed to generate WireGuard key")
+			ns.log.Error("Failed to generate WireGuard key", logfields.Error, err)
+			os.Exit(-1)
 		}
 
 		no.WireguardPubKey = key

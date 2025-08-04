@@ -8,6 +8,7 @@ import (
 
 	cmhealth "github.com/cilium/cilium/clustermesh-apiserver/health"
 	cmmetrics "github.com/cilium/cilium/clustermesh-apiserver/metrics"
+	"github.com/cilium/cilium/clustermesh-apiserver/option"
 	"github.com/cilium/cilium/clustermesh-apiserver/syncstate"
 	"github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/controller"
@@ -21,6 +22,8 @@ import (
 var Cell = cell.Module(
 	"mocker",
 	"Cilium Cluster Mesh Mocker",
+
+	cell.Config(option.DefaultLegacyClusterMeshConfig),
 
 	cell.Config(defaultConfig),
 	cell.Invoke(config.validate),

@@ -29,6 +29,7 @@ github.com/cilium/cilium/api/v1/models
 github.com/cilium/cilium/clustermesh-apiserver/etcdinit
 github.com/cilium/cilium/clustermesh-apiserver/health
 github.com/cilium/cilium/clustermesh-apiserver/metrics
+github.com/cilium/cilium/clustermesh-apiserver/option
 github.com/cilium/cilium/clustermesh-apiserver/syncstate
 github.com/cilium/cilium/pkg/alibabacloud/eni/types
 github.com/cilium/cilium/pkg/annotation

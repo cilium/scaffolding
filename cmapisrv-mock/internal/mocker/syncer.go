@@ -5,26 +5,28 @@ package mocker
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 
 	"github.com/cilium/cilium/pkg/kvstore/store"
+	"github.com/cilium/cilium/pkg/logging/logfields"
 )
 
 type nextFn[T store.Key] func(synced bool) (obj T, delete bool)
 
 type syncer[T store.Key] struct {
-	log   logrus.FieldLogger
+	log   *slog.Logger
 	store store.SyncStore
 	next  nextFn[T]
 	init  chan struct{}
 }
 
-func newSyncer[T store.Key](log logrus.FieldLogger, typ string, store store.SyncStore, next nextFn[T]) syncer[T] {
+func newSyncer[T store.Key](log *slog.Logger, typ string, store store.SyncStore, next nextFn[T]) syncer[T] {
 	return syncer[T]{
-		log:   log.WithFields(logrus.Fields{"type": typ}),
+		log:   log.With("type", typ),
 		store: store,
 		next:  next,
 		init:  make(chan struct{}),
@@ -35,16 +37,18 @@ func (s syncer[T]) Run(ctx context.Context, target uint, qps rate.Limit, allSync
 	s.log.Info("Starting synchronization")
 	do := func(obj T, delete bool) {
 		if delete {
-			s.log.WithField("key", obj.GetKeyName()).Debug("Deleting key")
+			s.log.Debug("Deleting key", "key", obj.GetKeyName())
 			if err := s.store.DeleteKey(ctx, obj); err != nil {
-				s.log.WithError(err).Fatal("Failed to delete key")
+				s.log.Error("Failed to delete key", logfields.Error, err)
+				os.Exit(-1)
 			}
 			return
 		}
 
-		s.log.WithField("key", obj.GetKeyName()).Debug("Upserting key")
+		s.log.Debug("Upserting key", "key", obj.GetKeyName())
 		if err := s.store.UpsertKey(ctx, obj); err != nil {
-			s.log.WithError(err).Fatal("Failed to upsert key")
+			s.log.Error("Failed to upsert key", logfields.Error, err)
+			os.Exit(-1)
 		}
 	}
 
