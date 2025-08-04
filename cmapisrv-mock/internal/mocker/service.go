@@ -4,10 +4,9 @@
 package mocker
 
 import (
+	"log/slog"
 	"maps"
 	"slices"
-
-	"github.com/sirupsen/logrus"
 
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/kvstore"
@@ -24,7 +23,7 @@ type services struct {
 	enableIPv6 bool
 }
 
-func newServices(log logrus.FieldLogger, cp cparams) *services {
+func newServices(log *slog.Logger, cp cparams) *services {
 	prefix := kvstore.StateToCachePrefix(serviceStore.ServiceStorePrefix)
 	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend, prefix)
 

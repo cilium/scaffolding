@@ -4,10 +4,9 @@
 package mocker
 
 import (
+	"log/slog"
 	"net"
 	"path"
-
-	"github.com/sirupsen/logrus"
 
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/identity"
@@ -32,7 +31,7 @@ type endpoints struct {
 }
 
 func newEndpoints(
-	log logrus.FieldLogger, cp cparams,
+	log *slog.Logger, cp cparams,
 	nodes *nodes, identities *identities) *endpoints {
 
 	prefix := kvstore.StateToCachePrefix(IPIdentitiesPath)

@@ -4,10 +4,9 @@
 package mocker
 
 import (
+	"log/slog"
 	"path"
 	"strconv"
-
-	"github.com/sirupsen/logrus"
 
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/identity"
@@ -26,7 +25,7 @@ type identities struct {
 	rnd     *random
 }
 
-func newIdentities(log logrus.FieldLogger, cp cparams) *identities {
+func newIdentities(log *slog.Logger, cp cparams) *identities {
 	prefix := kvstore.StateToCachePrefix(IdentitiesPath)
 	ss := cp.factory.NewSyncStore(cp.cluster.Name, cp.backend,
 		path.Join(prefix, cp.cluster.Name, "id"),

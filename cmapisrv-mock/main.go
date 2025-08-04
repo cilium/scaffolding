@@ -5,10 +5,8 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/cilium/cilium/clustermesh-apiserver/etcdinit"
@@ -42,29 +40,24 @@ func main() {
 }
 
 func newMockerCmd(h *hive.Hive) *cobra.Command {
-	var debug bool
-
 	rootCmd := &cobra.Command{
 		Use:   "mocker",
 		Short: "Run ClusterMesh mocker",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := h.Run(slog.Default()); err != nil {
-				log.Fatal(err)
+			if err := h.Run(logging.DefaultSlogLogger); err != nil {
+				logging.DefaultSlogLogger.Error(err.Error())
+				os.Exit(-1)
 			}
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
 			metrics.Namespace = "mocker"
-
-			if debug {
-				log.Logger.SetLevel(logrus.DebugLevel)
-			}
+			option.Config.SetupLogging(h.Viper(), "mocker")
 
 			option.LogRegisteredOptions(h.Viper(), log)
 		},
 	}
 
 	h.RegisterFlags(rootCmd.Flags())
-	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debugging logs")
 	rootCmd.AddCommand(h.Command())
 	return rootCmd
 }
