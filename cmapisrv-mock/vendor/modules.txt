@@ -10,7 +10,7 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.18.0
+# github.com/cilium/cilium v1.18.1
 ## explicit; go 1.24.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -135,7 +135,7 @@ github.com/cilium/hive/script/internal/diff
 # github.com/cilium/proxy v0.0.0-20250623105955-2136f59a4ea1
 ## explicit; go 1.23.0
 github.com/cilium/proxy/pkg/policy/api/kafka
-# github.com/cilium/statedb v0.4.4
+# github.com/cilium/statedb v0.4.5
 ## explicit; go 1.24
 github.com/cilium/statedb
 github.com/cilium/statedb/index
