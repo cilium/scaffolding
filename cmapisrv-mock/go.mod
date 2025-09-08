@@ -6,9 +6,9 @@ require (
 	github.com/cilium/cilium v1.18.1
 	github.com/cilium/hive v0.0.0-20250731144630-28e7a35ed227
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.7
-	golang.org/x/time v0.12.0
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.10
+	golang.org/x/time v0.13.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 )
