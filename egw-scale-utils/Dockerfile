@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=docker.io/library/alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
-ARG GOLANG_IMAGE=docker.io/library/golang:1.25.1@sha256:a5e935dbd8bc3a5ea24388e376388c9a69b40628b6788a81658a801abbec8f2e
+ARG GOLANG_IMAGE=docker.io/library/golang:1.25.1@sha256:bb979b278ffb8d31c8b07336fd187ef8fafc8766ebeaece524304483ea137e96
 
 FROM ${GOLANG_IMAGE} AS builder
 ADD . /go/src/github.com/cilium/scaffolding/egw-scale-utils
