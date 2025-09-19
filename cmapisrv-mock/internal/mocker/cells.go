@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/kvstore/heartbeat"
 	"github.com/cilium/cilium/pkg/kvstore/store"
+	"github.com/cilium/cilium/pkg/lock"
 )
 
 var Cell = cell.Module(
@@ -44,8 +45,9 @@ var Cell = cell.Module(
 
 	heartbeat.Enabled,
 	heartbeat.Cell,
-	cell.Provide(func(ss syncstate.SyncState) *kvstore.ExtraOptions {
-		return &kvstore.ExtraOptions{
+	cell.Provide(func() (syncstate.SyncState, kvstore.ExtraOptions) {
+		ss := syncstate.SyncState{StoppableWaitGroup: lock.NewStoppableWaitGroup()}
+		return ss, kvstore.ExtraOptions{
 			BootstrapComplete: ss.WaitChannel(),
 		}
 	}),
@@ -53,7 +55,6 @@ var Cell = cell.Module(
 
 	cmhealth.HealthAPIServerCell,
 	cell.Provide(func() types.ClusterInfo { return types.DefaultClusterInfo }),
-	syncstate.Cell,
 	cell.Provide((*mocker).HealthEndpoints),
 
 	gops.Cell(defaults.EnableGops, defaults.GopsPortKVStoreMesh),
