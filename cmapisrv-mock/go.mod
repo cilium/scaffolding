@@ -10,7 +10,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/time v0.13.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
-	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 )
 
 require (
