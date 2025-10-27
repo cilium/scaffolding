@@ -10,12 +10,12 @@ github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cilium/cilium v1.18.2 h1:ZqxNBoVLMYbJIYiKXWXna5kxd4XiE9IRww9vdaKJZoo=
-github.com/cilium/cilium v1.18.2/go.mod h1:2FzcCUTmMUDdOYxZgyeu1DXbnlwgLHQdzK3FWj+28ME=
+github.com/cilium/cilium v1.18.3 h1:E0SnxNDeWJ3AtO6IX0oIsJdODT71M/QCcj9LjuLdGK0=
+github.com/cilium/cilium v1.18.3/go.mod h1:2FzcCUTmMUDdOYxZgyeu1DXbnlwgLHQdzK3FWj+28ME=
 github.com/cilium/ebpf v0.19.0 h1:Ro/rE64RmFBeA9FGjcTc+KmCeY6jXmryu6FfnzPRIao=
 github.com/cilium/ebpf v0.19.0/go.mod h1:fLCgMo3l8tZmAdM3B2XqdFzXBpwkcSTroaVqN08OWVY=
-github.com/cilium/hive v0.0.0-20251008073947-21f6f6e081b5 h1:Cg5PDgMQhWHpLpTUEFKvx/Ti8DXPcGeAn239uv1AdMA=
-github.com/cilium/hive v0.0.0-20251008073947-21f6f6e081b5/go.mod h1:6qtm9+eQD8D1SsqGFgNE63lNeys9PZswouh37X5ZhWU=
+github.com/cilium/hive v0.0.0-20251021073839-03494cb6c4de h1:Kvp7XGVwH6zoLZx2As7ufnFohE94WwcU+WDJWzloOK8=
+github.com/cilium/hive v0.0.0-20251021073839-03494cb6c4de/go.mod h1:6qtm9+eQD8D1SsqGFgNE63lNeys9PZswouh37X5ZhWU=
 github.com/cilium/proxy v0.0.0-20250623105955-2136f59a4ea1 h1:SOOtIfQmW/pF1iW1I4hVUx1pvgX7Xh2E8jHv+itBXQ0=
 github.com/cilium/proxy v0.0.0-20250623105955-2136f59a4ea1/go.mod h1:Kwyyx+cC2H67Aj1sDuqBLvPn6TEmEJRPvULIrJ/kBRo=
 github.com/cilium/statedb v0.4.5 h1:WP1xbkAdDup0wOkhRZUJG/Wh4+ZLAOgl7yIIxJ3vIEo=
