@@ -3,7 +3,7 @@ module github.com/cilium/scaffolding/cmapisrv-mock
 go 1.24.0
 
 require (
-	github.com/cilium/cilium v1.18.3
+	github.com/cilium/cilium v1.18.4
 	github.com/cilium/hive v0.0.0-20251021073839-03494cb6c4de
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/spf13/cobra v1.10.1
@@ -26,7 +26,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
