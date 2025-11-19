@@ -60,19 +60,15 @@ spec:
         - --trusted-ca-file=/var/lib/etcd-secrets/ca.crt
         - --cert-file=/var/lib/etcd-secrets/tls.crt
         - --key-file=/var/lib/etcd-secrets/tls.key
-        - --listen-client-urls=https://127.0.0.1:2379,https://[$(HOSTNAME_IP)]:2379
-        - --advertise-client-urls=https://[$(HOSTNAME_IP)]:2379
+        - --listen-client-urls=https://0.0.0.0:2379
+        - --advertise-client-urls=https://localhost:2379
         - --initial-cluster-token=clustermesh-mocker
         - --auto-compaction-retention=1
-        - --listen-metrics-urls=http://[$(HOSTNAME_IP)]:9998
+        - --listen-metrics-urls=http://0.0.0.0:9998
         - --metrics=basic
         env:
         - name: ETCDCTL_API
           value: "3"
-        - name: HOSTNAME_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
         ports:
         - name: etcd
           containerPort: 2379
