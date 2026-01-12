@@ -124,7 +124,7 @@ github.com/cilium/ebpf/internal/sysenc
 github.com/cilium/ebpf/internal/testutils/testmain
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
-# github.com/cilium/hive v0.0.0-20251219070844-89ccf807d9fb
+# github.com/cilium/hive v0.0.0-20260108104938-97756f6ff54c
 ## explicit; go 1.23.0
 github.com/cilium/hive
 github.com/cilium/hive/cell
@@ -722,7 +722,7 @@ k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
-# k8s.io/utils v0.0.0-20251220205832-9d40a56c1308
+# k8s.io/utils v0.0.0-20260108192941-914a6e750570
 ## explicit; go 1.23
 k8s.io/utils/buffer
 k8s.io/utils/clock
