@@ -1,0 +1,5 @@
+periodics:
+- name: l7-perf-benchmark-1-main # Name of directory in bucket
+  tags:
+  - "perfDashPrefix: l7-perf-main" # Just the name what to display in perfdash
+  - "perfDashJobType: networking" # Type of metrics to display
