@@ -171,11 +171,9 @@ func (elm *etcdLeaseManager) GetSession(ctx context.Context, key string) (*concu
 	// Kick off a goroutine that will remove the references to this lease when
 	// it expires. We add it to the map of leases before starting this goroutine,
 	// to ensure the cleanup always happens after adding it, and not in the opposite order.
-	elm.wg.Add(1)
-	go func() {
-		defer elm.wg.Done()
+	elm.wg.Go(func() {
 		elm.waitForExpiration(session)
-	}()
+	})
 
 	return elm.GetSession(ctx, key)
 }
