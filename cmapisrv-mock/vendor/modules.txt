@@ -185,7 +185,7 @@ github.com/coreos/go-systemd/v22/journal
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
+# github.com/dustinkirkland/golang-petname v0.0.0-20260215035315-f0c533e9ce9b
 ## explicit; go 1.20
 github.com/dustinkirkland/golang-petname
 # github.com/fsnotify/fsnotify v1.9.0
@@ -779,7 +779,7 @@ k8s.io/klog/v2/internal/sloghandler
 # k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 ## explicit; go 1.23.0
 k8s.io/kube-openapi/pkg/util
-# k8s.io/utils v0.0.0-20260108192941-914a6e750570
+# k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 ## explicit; go 1.23
 k8s.io/utils/buffer
 k8s.io/utils/clock
