@@ -57,15 +57,15 @@ func newEndpoints(
 	return eps
 }
 
-func (eps *endpoints) next(synced bool) (obj *identity.IPIdentityPair, delete bool) {
-	if synced && eps.rnd.ShouldUpdateUnlikely() && !eps.cache.AlmostEmpty() {
+func (eps *endpoints) next(synced bool, target uint) (obj *identity.IPIdentityPair, delete bool) {
+	if synced && eps.rnd.ShouldUpdateUnlikely() && eps.cache.Len() > 0 {
 		endpoint := eps.cache.Get(eps.rnd)
 		endpoint.ID = eps.identityGetter()
 		eps.cache.Upsert(endpoint)
 		return endpoint, false
 	}
 
-	if synced && eps.rnd.ShouldRemove() && !eps.cache.AlmostEmpty() {
+	if synced && eps.rnd.ShouldRemove(eps.cache.Len(), target) && eps.cache.Len() > 1 {
 		return eps.cache.Remove(eps.rnd), true
 	}
 

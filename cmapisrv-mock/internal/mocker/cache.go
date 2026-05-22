@@ -26,11 +26,11 @@ func (c *cache[T]) Get(rnd *random) T {
 	return c.values[id]
 }
 
-func (c *cache[T]) AlmostEmpty() bool {
+func (c *cache[T]) Len() uint {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	return len(c.values) <= 3
+	return uint(len(c.values))
 }
 
 func (c *cache[T]) Add(value T) bool {

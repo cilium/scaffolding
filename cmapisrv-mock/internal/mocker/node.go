@@ -51,8 +51,8 @@ func (ns *nodes) RandomHostIP() net.IP {
 	return no.GetNodeInternalIPv4()
 }
 
-func (ns *nodes) next(synced bool) (obj *nodeTypes.Node, delete bool) {
-	if synced && ns.rnd.ShouldRemove() && !ns.cache.AlmostEmpty() {
+func (ns *nodes) next(synced bool, target uint) (obj *nodeTypes.Node, delete bool) {
+	if synced && ns.rnd.ShouldRemove(ns.cache.Len(), target) && ns.cache.Len() > 1 {
 		return ns.cache.Remove(ns.rnd), true
 	}
 

@@ -40,15 +40,15 @@ func newServices(log *slog.Logger, cp cparams) *services {
 	return svc
 }
 
-func (svc *services) next(synced bool) (obj *serviceStore.ClusterService, delete bool) {
-	if synced && svc.rnd.ShouldUpdateLikely() && !svc.cache.AlmostEmpty() {
+func (svc *services) next(synced bool, target uint) (obj *serviceStore.ClusterService, delete bool) {
+	if synced && svc.rnd.ShouldUpdateLikely() && svc.cache.Len() > 0 {
 		service := svc.cache.Get(svc.rnd)
 		service.Backends = svc.updated(service.Backends)
 		svc.cache.Upsert(service)
 		return service, false
 	}
 
-	if synced && svc.rnd.ShouldRemove() && !svc.cache.AlmostEmpty() {
+	if synced && svc.rnd.ShouldRemove(svc.cache.Len(), target) && svc.cache.Len() > 1 {
 		return svc.cache.Remove(svc.rnd), true
 	}
 
@@ -114,7 +114,7 @@ func (svc *services) backends() map[string]serviceStore.PortConfiguration {
 }
 
 func (svc *services) updated(be map[string]serviceStore.PortConfiguration) map[string]serviceStore.PortConfiguration {
-	if svc.rnd.ShouldRemove() && len(be) > 0 {
+	if svc.rnd.ShouldRemove(uint(len(be)), uint(MaxServiceBackends/2)) && len(be) > 0 {
 		key := slices.Collect(maps.Keys(be))[svc.rnd.Index(len(be))]
 		delete(be, key)
 		return be
