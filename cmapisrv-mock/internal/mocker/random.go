@@ -16,6 +16,8 @@ import (
 	"github.com/cilium/cilium/pkg/lock"
 )
 
+const MaxServiceBackends = 50
+
 type random struct {
 	nodeIP4, nodeIP6 addr
 	podIP4, podIP6   addr
@@ -68,7 +70,18 @@ func (r *random) CIDR6() *net.IPNet { return r.cidr6.Next() }
 func (r *random) Index(length int) int       { return rand.Intn(length) }
 func (r *random) ShouldUpdateUnlikely() bool { return rand.Intn(5) == 0 }
 func (r *random) ShouldUpdateLikely() bool   { return rand.Intn(100) != 0 }
-func (r *random) ShouldRemove() bool         { return rand.Intn(2) == 1 }
+
+// The probability of removing an object is current / (current + target).
+// This ensures that when current == target, the probability is 0.5.
+// When current > target, the probability is > 0.5, and when current < target,
+// it is < 0.5.
+func (r *random) ShouldRemove(current, target uint) bool {
+	if target == 0 {
+		return rand.Intn(2) == 1
+	}
+
+	return uint(rand.Intn(int(current+target))) < current
+}
 
 func (r *random) Identity(cluster uint32) identity.NumericIdentity {
 	return identity.NumericIdentity(cluster<<16 + uint32(rand.Intn(65536-256)+256))
@@ -91,7 +104,7 @@ func (r *random) IdentityLabels(cluster string) labels.LabelArray {
 	return lbls
 }
 
-func (r *random) ServiceBackends() int { return rand.Intn(50) }
+func (r *random) ServiceBackends() int { return rand.Intn(MaxServiceBackends) }
 func (r *random) ServiceLabels() map[string]string {
 	n := rand.Intn(6) + 1
 	lbls := make(map[string]string, n)

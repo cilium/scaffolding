@@ -47,8 +47,8 @@ func (ids *identities) RandomIdentity() identity.NumericIdentity {
 	return identity.NumericIdentity(parsed)
 }
 
-func (ids *identities) next(synced bool) (obj *store.KVPair, delete bool) {
-	if synced && ids.rnd.ShouldRemove() && !ids.cache.AlmostEmpty() {
+func (ids *identities) next(synced bool, target uint) (obj *store.KVPair, delete bool) {
+	if synced && ids.rnd.ShouldRemove(ids.cache.Len(), target) && ids.cache.Len() > 1 {
 		return ids.cache.Remove(ids.rnd), true
 	}
 

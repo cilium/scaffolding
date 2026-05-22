@@ -15,7 +15,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging/logfields"
 )
 
-type nextFn[T store.Key] func(synced bool) (obj T, delete bool)
+type nextFn[T store.Key] func(synced bool, target uint) (obj T, delete bool)
 
 type syncer[T store.Key] struct {
 	log   *slog.Logger
@@ -60,7 +60,7 @@ func (s syncer[T]) Run(ctx context.Context, target uint, qps rate.Limit, allSync
 	}()
 
 	for i := uint(0); i < target; i++ {
-		do(s.next(false))
+		do(s.next(false, target))
 	}
 
 	s.store.Synced(ctx, func(context.Context) {
@@ -86,7 +86,7 @@ func (s syncer[T]) Run(ctx context.Context, target uint, qps rate.Limit, allSync
 		}
 
 		if target != 0 && qps > 0 {
-			do(s.next(true))
+			do(s.next(true, target))
 		}
 	}
 }
