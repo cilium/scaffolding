@@ -117,6 +117,9 @@ const (
 	// PolicyPrecedence is the datapath precedence for a policy Entry
 	PolicyPrecedence = "policyPrecedence"
 
+	// PolicyPassPrecedence is the precedence for a pass policy Entry
+	PolicyPassPrecedence = "policyPassPrecedence"
+
 	// PolicyRevision is the revision of the policy in the repository or of
 	// the object in question
 	PolicyRevision = "policyRevision"
@@ -291,6 +294,9 @@ const (
 
 	// MTU is the maximum transmission unit of one interface
 	MTU = "mtu"
+
+	// MinMTU is the minimum MTU allowed for an interface
+	MinMTU = "minMTU"
 
 	// Interface is an interface id/name on the system
 	Interface = "interface"
@@ -657,6 +663,12 @@ const (
 	// K8sNetworkPolicyName is the name of a K8sPolicyObject
 	K8sNetworkPolicyName = "k8sNetworkPolicyName"
 
+	// K8sClusterNetworkPolicy is a k8s ClusterNetworkPolicy object.
+	K8sClusterNetworkPolicy = "k8sClusterNetworkPolicy"
+
+	// K8sClusterNetworkPolicyName is the name of a K8sPolicyObject
+	K8sClusterNetworkPolicyName = "k8sClusterNetworkPolicyName"
+
 	// K8sIngress is a k8s Ingress service object
 	K8sIngress = "k8sIngress"
 
@@ -712,6 +724,15 @@ const (
 	Count = "count"
 
 	Total = "total"
+
+	// ErrorCount is the number of errors encountered
+	ErrorCount = "errorCount"
+
+	// Requested is the number of resources requested
+	Requested = "requested"
+
+	// Found is the number of resources found
+	Found = "found"
 
 	// Debug is a boolean value for whether debug is set or not.
 	Debug = "debug"
@@ -1091,6 +1112,8 @@ const (
 
 	Link = "link"
 
+	LinkConfig = "linkConfig"
+
 	Hook = "hook"
 
 	DNSRedirect = "dnsRedirect"
@@ -1136,6 +1159,10 @@ const (
 	Retries = "retries"
 
 	Gateway = "gateway"
+
+	GammaService = "gammaService"
+
+	GatewayClass = "GatewayClass"
 
 	Kind = "kind"
 
@@ -1302,6 +1329,8 @@ const (
 	NumInterfaces = "numInterfaces"
 
 	NumSubnets = "numSubnets"
+
+	TargetedSubnets = "targetedSubnets"
 
 	NumRouteTables = "numRouteTables"
 
@@ -1563,8 +1592,6 @@ const (
 
 	BootTime = "bootTime"
 
-	BootstrapTime = "bootstrapTime"
-
 	Socket = "socket"
 
 	Filter = "filter"
@@ -1583,7 +1610,7 @@ const (
 
 	RssBytes = "rssBytes"
 
-	BPFSPath = "bpffsPath"
+	BPFFSPath = "bpffsPath"
 
 	ProgName = "progName"
 
@@ -1594,6 +1621,8 @@ const (
 	Tier = "tier"
 
 	TierBasePriority = "tierBasePriority"
+
+	TierLastPriority = "tierLastPriority"
 
 	Priority = "priority"
 
@@ -1612,8 +1641,6 @@ const (
 	NewLocally = "newLocally"
 
 	Released = "released"
-
-	DNSRulesV2 = "dnsRulesV2"
 
 	BPFHeaderfileHashOld = "old-" + "bpfHeaderfileHash"
 
@@ -1859,4 +1886,18 @@ const (
 	ReloadCAError = "reloadCAError"
 
 	ExtendedMessage = "extendedMessage"
+
+	BackendTLSPolicyName = "backendTLSPolicyName"
+
+	ConfigMapName = "configMapName"
+
+	AttachType = "attachType"
+
+	WithFrags = "withFrags"
+
+	CiliumDatapathPluginName = "datapathPluginName"
+
+	CiliumDatapathPluginAttachmentPolicy = "datapathPluginAttachmentPolicy"
+
+	CiliumDatapathPluginVersion = "datapathPluginVersion"
 )

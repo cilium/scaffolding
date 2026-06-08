@@ -10,7 +10,6 @@ import (
 
 	"github.com/cilium/cilium/pkg/cidr"
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
-	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/node/addressing"
@@ -84,7 +83,6 @@ func (ns *nodes) new() *nodeTypes.Node {
 		IPv4AllocCIDR: &cidr.CIDR{IPNet: ns.rnd.CIDR4()},
 		IPv4HealthIP:  ns.rnd.PodIP4(),
 		IPv4IngressIP: ns.rnd.PodIP4(),
-		NodeIdentity:  uint32(identity.ReservedIdentityRemoteNode),
 		EncryptionKey: ns.encryption.toKey(),
 	}
 

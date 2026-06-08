@@ -536,6 +536,17 @@ type ServiceName struct {
 	clusterEndPos uint16
 }
 
+func (s *ServiceName) DeepEqual(other *ServiceName) bool {
+	switch {
+	case s == nil && other == nil:
+		return true
+	case s != nil && other != nil:
+		return *s == *other
+	default:
+		return false
+	}
+}
+
 func (s ServiceName) Cluster() string {
 	if s.clusterEndPos > 0 {
 		return s.str[:s.clusterEndPos-1]
@@ -1138,6 +1149,10 @@ func (l L3n4Addr) Bytes() []byte {
 				bytes: key,
 			}
 		}).bytes
+}
+
+func (l L3n4Addr) Key() index.Key {
+	return l.Bytes()
 }
 
 func (l L3n4Addr) MarshalYAML() (any, error) {
