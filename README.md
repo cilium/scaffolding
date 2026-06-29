@@ -8,7 +8,6 @@ The project is organized as follows:
 * `./scale-tests`: collection of scripts for visualizing scale and performance data.
 * `./scripts`: collection of bash scripts which implement commonly used/required functionality.
 * `./kustomize`: collection of [kustomize](https://kustomize.io/) templates for applying commonly used manifests.
-* `./scenarios`: implementation scripts for running benchmarks within different scenarios for some purpose.
 * `./cmapisrv-mock`: a component which mocks the behavior of the Cilium Cluster Mesh API Server for scalability testing purposes.
 * `./egw-scale-utils`: components for scale testing Cilium's Egress Gateway feature.
 
@@ -295,70 +294,3 @@ patchesStrategicMerge:
         targetPort: 80
         name: http
 ```
-
-## scenarios
-
-Each sub-directory within the `scenarios` directory is meant to house resources for running any kind of performance test, using the resources within scaffolding.
-The idea here is that each directory has:
-
-* A main script for running the test(s),
-* A `kustomization.yaml` file for deploying intra needed for the test,
-* An artifacts directory where items produced from the test are kept,
-* A `README.md` describing what is going on,
-* And any other resources required.
-
-`scenarios/common.sh` can be sourced within as a helper, containing common environment variables and functions:
-
-Environment variables:
-
-* **`SCENARIO_DIR`:** Absolute path to the directory of the current scenario (ie cwd when `common.sh` is sourced)
-* **`ARTIFACTS`:** Absolute path to the scenario's artifacts directory
-* **`ROOT_DIR`:** Absolute path to the root of scaffolding
-* **`TOOLKIT`:** ... toolkit sub-directory ...
-* **`SCRIPT`:** ... script sub-directory ...
-* **`KUSTOMIZE`:** ... kustomize sub-directory ...
-
-These environment variables can be overridden if needed by setting them prior to calling the `init` function below.
-
-Functions:
-
-* **`init()`:** Set the above environment variables, create `ARTIFACTS` directory, build `toolkit` if `ARTIFACTS/toolkit` does not exist.
-* **`init_print()`:** Print the above imported environment variables and functions.
-* **`reset_vars()`:** Reset the above imported environment variables.
-* **`build_toolkit()`:** Build a binary for toolkit and save it into the artifacts directory.
-* **`wait_ready()`:** Use `scripts/retry.sh` along with `scripts/k8s_api_readyz.sh` and the toolkit's `verify k8s-ready` command to wait until the k8s cluster is ready to go before proceeding. This is great to use after applying a built kustomize file or after provisioning a cluster.
-* **`wait_cilium_ready()`:** Call `wait_ready`,  wait one minute for Cilium to show ready through `cilium status`, and then run a connectivity test. The connectivity test can be skipped by setting `SKIP_CT` to `skip-ct`.
-* **`breakpoint()`:** Wait to continue until some data comes in from STDIN (ie from a user).
-* **`env_var_or_die()`:** Check if the given variable is set, and if it isn't, exit with rc 1.
-
-### xdp
-
-Demonstrate the positive CPU impact of XDP native acceleration and DSR on a load-balancer.
-Requires three nodes, one for a load balancer, one for a netperf server, one for grafana and prometheus.
-
-Implemented within `minikube` for local development, but can easily be modified for other environments as needed.
-
-Run `kubectl port-forward -n monitoring svc/grafana 3000:3000` to view the `node-exporter` dashboard, which can be used to monitor the CPU usage of the load balancer node.
-
-### netperf regression testing
-
-Perform latency and throughput regression testing between multiple versions of Cilium.
-Netperf latency and throughput tests are executed on a specific version of Cilium.
-An upgrade will then be performed to a new version of Cilium, and tests will be repeated.
-
-Profiles will be taken on nodes. Tests are run pod-to-pod.
-
-### IPSec testing
-
-Performs the same tests as above, with options for enabling encryption in Cilium.
-One can specify installing Cilium with IPSec enabled, wireguard enabled, or no encryption enabled.
-
-### IPSec RPS testing
-
-Performs the same tests as above, but uses a single version of Cilium and includes a
-build of Cilium that includes an RPS implementation for IPSec.
-
-### EGW masquerade delay
-
-Executes a small-scale scalability test in a kind cluster to determine the amount of time it takes for traffic egressing from a workload pod to be masqueraded through an EGW node.
-Used for testing the components within the `egw-scale-utils` directory.
