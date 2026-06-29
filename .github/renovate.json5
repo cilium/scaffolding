@@ -12,7 +12,8 @@
     "cmapisrv-mock/go.*",
     "cmapisrv-mock/Dockerfile",
     "egw-scale-utils/go.*",
-    "egw-scale-utils/Dockerfile"
+    "egw-scale-utils/Dockerfile",
+    "toolkit/go.*",
   ],
   "pinDigests": true,
   "ignorePresets": [":prHourlyLimit2"],
