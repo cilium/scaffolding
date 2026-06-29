@@ -1,93 +1,94 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    ":gitSignOff",
-    "helpers:pinGitHubActionDigests"
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    ':gitSignOff',
+    'helpers:pinGitHubActionDigests',
   ],
   // This ensures that the gitAuthor and gitSignOff fields match
-  "gitAuthor": "renovate[bot] <bot@renovateapp.com>",
-  "includePaths": [
-    ".github/workflows/*.yaml",
-    "cmapisrv-mock/go.*",
-    "cmapisrv-mock/Dockerfile",
-    "egw-scale-utils/go.*",
-    "egw-scale-utils/Dockerfile",
-    "toolkit/go.*",
+  gitAuthor: 'renovate[bot] <bot@renovateapp.com>',
+  includePaths: [
+    '.github/workflows/*.yaml',
+    'cmapisrv-mock/go.*',
+    'cmapisrv-mock/Dockerfile',
+    'egw-scale-utils/go.*',
+    'egw-scale-utils/Dockerfile',
+    'toolkit/go.*',
   ],
-  "pinDigests": true,
-  "ignorePresets": [":prHourlyLimit2"],
-  "separateMajorMinor": false,
-  "separateMinorPatch": false,
-  "pruneStaleBranches": true,
-  "baseBranches": [
-    "main"
+  pinDigests: true,
+  ignorePresets: [
+    ':prHourlyLimit2',
   ],
-  "schedule": [
-    "on monday"
+  separateMajorMinor: false,
+  separateMinorPatch: false,
+  pruneStaleBranches: true,
+  baseBranchPatterns: [
+    'main',
   ],
-  "vulnerabilityAlerts": {
-    "enabled": true
+  schedule: [
+    'on monday',
+  ],
+  vulnerabilityAlerts: {
+    enabled: true,
   },
-  "labels": [
-    "dependencies",
-    "renovate/stop-updating"
+  labels: [
+    'dependencies',
+    'renovate/stop-updating',
   ],
-  "stopUpdatingLabel": "renovate/stop-updating",
-  "packageRules": [
+  stopUpdatingLabel: 'renovate/stop-updating',
+  packageRules: [
     {
-      "groupName": "all github action dependencies",
-      "groupSlug": "all-github-action",
-      "matchFileNames": [
-        ".github/workflows/**"
-      ]
+      groupName: 'all github action dependencies',
+      groupSlug: 'all-github-action',
+      matchFileNames: [
+        '.github/workflows/**',
+      ],
     },
     {
-      "groupName": "all go dependencies",
-      "groupSlug": "all-go-deps",
-      "matchFileNames": [
-        "**/go.mod",
-        "**/go.sum"
+      groupName: 'all go dependencies',
+      groupSlug: 'all-go-deps',
+      matchFileNames: [
+        '**/go.mod',
+        '**/go.sum',
       ],
-      "postUpdateOptions": [
-        // update source import paths on major updates
-        "gomodTidy",
-        "gomodUpdateImportPaths"
-      ]
+      postUpdateOptions: [
+        'gomodTidy',
+        'gomodUpdateImportPaths',
+      ],
     },
     {
       // Avoid updating patch releases of golang in go.mod
-      "enabled": false,
-      "matchFileNames": [
-        "**/go.mod"
+      enabled: false,
+      matchFileNames: [
+        '**/go.mod',
       ],
-      "matchDepNames": [
-        "go"
+      matchDepNames: [
+        'go',
       ],
-      "matchDatasources": [
-        "golang-version"
+      matchDatasources: [
+        'golang-version',
       ],
-      "matchUpdateTypes": [
-        "patch"
-      ]
+      matchUpdateTypes: [
+        'patch',
+      ],
     },
     {
-      "groupName": "all docker images dependencies",
-      "groupSlug": "all-images-deps",
-      "matchFileNames": [
-        "**/Dockerfile"
-      ]
-    }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "fileMatch": [
-        ".github/workflows/.*\\.yaml"
+      groupName: 'all docker images dependencies',
+      groupSlug: 'all-images-deps',
+      matchFileNames: [
+        '**/Dockerfile',
       ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.*version: (?<currentValue>.*)"
-      ]
-    }
-  ]
+    },
+  ],
+  customManagers: [
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/.github/workflows/.*\\.yaml/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.*version: (?<currentValue>.*)',
+      ],
+    },
+  ],
 }
