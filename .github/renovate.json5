@@ -79,6 +79,16 @@
         '**/Dockerfile',
       ],
     },
+    {
+      // Prevent renovate from attempting to pin the golangci-lint digest.
+      matchManagers: [
+        'github-actions',
+      ],
+      matchPackageNames: [
+        'golangci/golangci-lint',
+      ],
+      pinDigests: false,
+    },
   ],
   customManagers: [
     {
