@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=docker.io/library/alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
-ARG GOLANG_IMAGE=docker.io/library/golang:1.26.4@sha256:32c0e6e5c4f6707717051091b4d0b077464a679eaab563e11474efc5328e2aa5
+ARG GOLANG_IMAGE=docker.io/library/golang:1.26.4@sha256:f96cc555eb8db430159a3aa6797cd5bae561945b7b0fe7d0e284c63a3b291609
 ARG ETCD_SERVER_IMAGE=gcr.io/etcd-development/etcd:v3.6.12@sha256:3c2ced08f23b1183e8bd4613064c3fb6b8db5057a4d1f13c3518c76e357a07a8
 
 FROM ${GOLANG_IMAGE} AS builder
