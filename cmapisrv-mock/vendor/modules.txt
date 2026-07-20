@@ -7,7 +7,7 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.20.0-pre.4
+# github.com/cilium/cilium v1.20.0-rc.0
 ## explicit; go 1.26.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -123,8 +123,8 @@ github.com/cilium/hive/shell
 # github.com/cilium/lumberjack/v2 v2.4.2
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
-# github.com/cilium/statedb v0.8.2
-## explicit; go 1.25
+# github.com/cilium/statedb v0.8.3
+## explicit; go 1.25.0
 github.com/cilium/statedb
 github.com/cilium/statedb/index
 github.com/cilium/statedb/internal
