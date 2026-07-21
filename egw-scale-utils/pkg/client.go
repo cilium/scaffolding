@@ -24,6 +24,7 @@ type ClientConfig struct {
 	TestTimeout        time.Duration
 	Stress             bool
 	StressDelay        time.Duration
+	StressDuration     time.Duration
 }
 
 var (
@@ -94,7 +95,22 @@ func stressExternalTarget(
 	logger.Info("Waiting before starting the connections stress test", "delay", cfg.StressDelay)
 	time.Sleep(cfg.StressDelay)
 
+	// A nil channel blocks forever, so when StressDuration is unset the loop
+	// remains bounded only by maxerrs, preserving the previous behavior.
+	var deadline <-chan time.Time
+	if cfg.StressDuration > 0 {
+		deadline = time.After(cfg.StressDuration)
+	}
+
+loop:
 	for errcnt < maxerrs {
+		select {
+		case <-deadline:
+			logger.Info("Stress duration elapsed, completing test", "duration", cfg.StressDuration, "cnt", count, "errcnt", errcnt)
+			break loop
+		default:
+		}
+
 		start := time.Now()
 		conn, err := dialer.Dial("tcp4", cfg.ExternalTargetAddr)
 		elapsed := time.Since(start)
