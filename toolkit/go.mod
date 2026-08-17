@@ -3,9 +3,9 @@ module github.com/cilium/scaffolding/toolkit
 go 1.26.0
 
 require (
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/exp v0.0.0-20260810151157-a8b543ca52da
+	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
 	k8s.io/api v0.36.3
 	k8s.io/apimachinery v0.36.3
 	k8s.io/cli-runtime v0.36.3
