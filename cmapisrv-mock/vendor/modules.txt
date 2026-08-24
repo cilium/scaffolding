@@ -7,7 +7,7 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.20.0
+# github.com/cilium/cilium v1.20.1
 ## explicit; go 1.26.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -110,7 +110,7 @@ github.com/cilium/ebpf/internal/sysenc
 github.com/cilium/ebpf/internal/testutils/testmain
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
-# github.com/cilium/hive v1.0.4
+# github.com/cilium/hive v1.0.5
 ## explicit; go 1.23.0
 github.com/cilium/hive
 github.com/cilium/hive/cell
