@@ -3,8 +3,8 @@ module github.com/cilium/scaffolding/cmapisrv-mock
 go 1.26.0
 
 require (
-	github.com/cilium/cilium v1.20.0
-	github.com/cilium/hive v1.0.4
+	github.com/cilium/cilium v1.20.1
+	github.com/cilium/hive v1.0.5
 	github.com/dustinkirkland/golang-petname v0.0.0-20260215035315-f0c533e9ce9b
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
