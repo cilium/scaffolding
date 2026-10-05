@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/cilium/cilium v1.20.2
 	github.com/cilium/hive v1.0.6
-	github.com/dustinkirkland/golang-petname v0.0.0-20260215035315-f0c533e9ce9b
+	github.com/dustinkirkland/golang-petname v0.0.0-20260929120758-6e3915f1a6a8
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/time v0.16.0
