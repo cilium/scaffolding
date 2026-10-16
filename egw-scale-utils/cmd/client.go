@@ -40,6 +40,9 @@ func init() {
 	clientCmd.PersistentFlags().DurationVar(
 		&clientCfg.StressDelay, "stress-delay", 0, "Delay before starting the connections stress test, for metrics scraping purpose.",
 	)
+	clientCmd.PersistentFlags().DurationVar(
+		&clientCfg.StressDuration, "stress-duration", 0, "Maximum duration of the connections stress test. The test also stops early after repeated failures. Zero means no time bound (stop on failures only).",
+	)
 
 	rootCmd.AddCommand(clientCmd)
 }
