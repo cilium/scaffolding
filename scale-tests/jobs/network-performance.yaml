@@ -1,4 +1,8 @@
 periodics:
+- name: gke-perf-baseline-main
+  tags:
+  - "perfDashPrefix: gke-perf-baseline-main"
+  - "perfDashJobType: networking"
 - name: gke-perf-native-main
   tags:
   - "perfDashPrefix: gke-perf-native-main"
@@ -22,4 +26,8 @@ periodics:
 - name: gke-perf-tunnel-wireguard-main
   tags:
   - "perfDashPrefix: gke-perf-tunnel-wireguard-main"
+  - "perfDashJobType: networking"
+- name: gke-perf-native-kpr-main
+  tags:
+  - "perfDashPrefix: gke-perf-native-kpr-main"
   - "perfDashJobType: networking"
